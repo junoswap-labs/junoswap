@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { Address } from 'viem'
 
-const mockSwapAddress = '0xWrapped1234567890abcdef1234567890ab' as Address
-const mockTokenA = '0xTokenA1234567890abcdef1234567890abcd' as Address
-const mockTokenB = '0xTokenB1234567890abcdef1234567890abcd' as Address
+const mockSwapAddress = '0xaaaaaaaa1234567890abcdef1234567890abcdef' as Address
+const mockTokenA = '0xbbbbbbbb1234567890abcdef1234567890abcdef' as Address
+const mockTokenB = '0xcccccccc1234567890abcdef1234567890abcdef' as Address
 const nativeAddr = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as Address
 
 vi.mock('@/services/tokens', () => ({
@@ -124,7 +124,7 @@ describe('services/dex/uniswap-v3', () => {
                     tokenOut: nativeAddr,
                     amountIn: 1000n,
                     amountOutMinimum: 500n,
-                    recipient: '0xRecipient1234567890abcdef1234567890' as Address,
+                    recipient: '0xdddddddd1234567890abcdef1234567890abcdef' as Address,
                     slippageTolerance: 100,
                     deadline: 1700000000,
                 },

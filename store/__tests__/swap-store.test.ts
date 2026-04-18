@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { useSwapStore } from '@/store/swap-store'
 import type { Token } from '@/types/tokens'
 import type { QuoteResult } from '@/types/swap'
+import { ProtocolType } from '@/lib/dex-config'
 
 const mockToken: Token = {
     address: '0xToken1234567890abcdef1234567890abcdef12' as `0x${string}`,
@@ -77,7 +78,7 @@ describe('swap-store', () => {
                     isLoading: false,
                     isError: false,
                     error: null,
-                    protocolType: 'v3' as const,
+                    protocolType: ProtocolType.V3,
                 },
             }
             useSwapStore.getState().setDexQuotes(quotes)
