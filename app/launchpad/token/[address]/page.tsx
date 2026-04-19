@@ -17,7 +17,7 @@ export default function TokenPage() {
             fallback={
                 <div className="flex min-h-screen flex-col items-center justify-center gap-4">
                     <div className="relative flex h-16 w-16 items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(255,0,60,0.10)_0%,transparent_70%)] empty-state-glow-pulse" />
+                        <div className="absolute inset-0 rounded-full bg-muted/40" />
                         <Loader2 className="relative h-8 w-8 animate-spin text-primary" />
                     </div>
                     <span className="text-sm text-muted-foreground">Loading token...</span>

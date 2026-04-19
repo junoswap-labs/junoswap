@@ -111,7 +111,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
         return (
             <div className="flex flex-col items-center justify-center gap-3 py-16">
                 <div className="relative flex h-12 w-12 items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(255,0,60,0.08)_0%,transparent_70%)] empty-state-glow-pulse" />
+                    <div className="absolute inset-0 rounded-full bg-muted/40" />
                     <Loader2 className="relative h-6 w-6 animate-spin text-primary" />
                 </div>
                 <span className="text-sm text-muted-foreground">Loading tokens...</span>

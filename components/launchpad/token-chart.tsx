@@ -412,10 +412,10 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
             {!isLoading && data.length === 0 && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 top-11 flex flex-col items-center justify-center gap-3">
                     <div className="relative flex h-16 w-16 items-center justify-center">
-                        <div className="empty-state-glow-pulse absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.04)_0%,transparent_70%)]" />
-                        <BarChart3 className="relative h-8 w-8 text-muted-foreground/40" />
+                        <div className="absolute inset-0 rounded-full bg-muted/40" />
+                        <BarChart3 className="relative h-8 w-8 text-muted-foreground/50" />
                     </div>
-                    <span className="text-sm text-muted-foreground/60">No trading data yet</span>
+                    <span className="text-sm text-muted-foreground/70">No trading data yet</span>
                 </div>
             )}
         </div>
