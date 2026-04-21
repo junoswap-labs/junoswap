@@ -274,9 +274,19 @@ export function TokenTradeCard({
                         value={activeTab}
                         onValueChange={(v) => setActiveTab(v as 'buy' | 'sell')}
                     >
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="buy">Buy</TabsTrigger>
-                            <TabsTrigger value="sell">Sell</TabsTrigger>
+                        <TabsList className="relative grid w-full grid-cols-2 rounded-lg bg-muted/40 p-1">
+                            <TabsTrigger
+                                value="buy"
+                                className="relative z-10 flex items-center justify-center rounded-md py-2 text-sm font-medium tracking-wide uppercase transition-all duration-200 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-emerald-500/20"
+                            >
+                                Buy
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="sell"
+                                className="relative z-10 flex items-center justify-center rounded-md py-2 text-sm font-medium tracking-wide uppercase transition-all duration-200 data-[state=active]:bg-rose-500 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-rose-500/20"
+                            >
+                                Sell
+                            </TabsTrigger>
                         </TabsList>
 
                         {/* Slippage settings */}
