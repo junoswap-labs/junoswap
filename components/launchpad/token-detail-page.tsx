@@ -93,121 +93,121 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 Back to Launchpad
             </Link>
 
-            {/* Price header — full width */}
-            <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 md:gap-x-6 md:gap-y-2">
-                {/* Token identity */}
-                <div className="flex items-center gap-2.5 md:gap-3">
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted md:h-14 md:w-14">
-                        {tokenInfo?.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={tokenInfo.logo}
-                                alt={symbol}
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                    ;(e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                            />
-                        ) : (
-                            <div className="flex h-full w-full items-center justify-center text-base font-bold text-muted-foreground">
-                                {symbol.slice(0, 2)}
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-                            <h1 className="text-lg font-bold md:text-xl">{name}</h1>
-                            <span className="text-sm text-muted-foreground">${symbol}</span>
-                        </div>
-                        <button
-                            onClick={copyAddress}
-                            className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <span className="font-mono">{formatAddress(tokenAddr)}</span>
-                            {copied ? (
-                                <Check className="h-3 w-3 text-green-400" />
-                            ) : (
-                                <Copy className="h-3 w-3" />
-                            )}
-                        </button>
-                        {tokenInfo?.description && (
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {tokenInfo.description}
-                            </p>
-                        )}
-                        {(tokenInfo?.link1 || tokenInfo?.link2 || tokenInfo?.link3) && (
-                            <div className="mt-1 flex gap-2">
-                                {tokenInfo?.link1 && (
-                                    <a
-                                        href={tokenInfo.link1}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                                    >
-                                        <Globe className="h-4 w-4" />
-                                    </a>
-                                )}
-                                {tokenInfo?.link2 && (
-                                    <a
-                                        href={tokenInfo.link2}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                                    >
-                                        <Twitter className="h-4 w-4" />
-                                    </a>
-                                )}
-                                {tokenInfo?.link3 && (
-                                    <a
-                                        href={tokenInfo.link3}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                                    >
-                                        <MessageCircle className="h-4 w-4" />
-                                    </a>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Price display */}
-                <div className="flex items-baseline gap-2 md:gap-3">
-                    {currentPrice !== null ? (
-                        <span className="text-2xl font-bold tabular-nums tracking-tight md:text-3xl">
-                            {currentPrice < 0.0001
-                                ? '<0.0001'
-                                : currentPrice < 1
-                                  ? currentPrice.toFixed(6)
-                                  : currentPrice.toFixed(4)}{' '}
-                            KUB
-                        </span>
-                    ) : (
-                        <span className="text-2xl font-bold text-muted-foreground md:text-3xl">
-                            --
-                        </span>
-                    )}
-                    {priceChangePercent24h !== null && (
-                        <span
-                            className={cn(
-                                'inline-flex items-center rounded-md px-1.5 py-0.5 text-sm font-semibold tabular-nums',
-                                isPositive
-                                    ? 'bg-emerald-500/15 text-emerald-400'
-                                    : 'bg-red-500/15 text-red-400'
-                            )}
-                        >
-                            {isPositive ? '+' : ''}
-                            {priceChangePercent24h.toFixed(2)}%
-                        </span>
-                    )}
-                </div>
-            </div>
-
             {/* Two-column grid */}
             <div className="grid gap-4 md:gap-6 lg:grid-cols-12">
-                {/* Left column — chart, stats, trades */}
+                {/* Left column — token info, chart, stats, trades */}
                 <div className="order-2 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
+                    {/* Price header */}
+                    <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 md:gap-x-6 md:gap-y-2">
+                        {/* Token identity */}
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted md:h-14 md:w-14">
+                                {tokenInfo?.logo ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={tokenInfo.logo}
+                                        alt={symbol}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                            ;(e.target as HTMLImageElement).style.display = 'none'
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-base font-bold text-muted-foreground">
+                                        {symbol.slice(0, 2)}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                                    <h1 className="text-lg font-bold md:text-xl">{name}</h1>
+                                    <span className="text-sm text-muted-foreground">${symbol}</span>
+                                </div>
+                                <button
+                                    onClick={copyAddress}
+                                    className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <span className="font-mono">{formatAddress(tokenAddr)}</span>
+                                    {copied ? (
+                                        <Check className="h-3 w-3 text-green-400" />
+                                    ) : (
+                                        <Copy className="h-3 w-3" />
+                                    )}
+                                </button>
+                                {tokenInfo?.description && (
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {tokenInfo.description}
+                                    </p>
+                                )}
+                                {(tokenInfo?.link1 || tokenInfo?.link2 || tokenInfo?.link3) && (
+                                    <div className="mt-1 flex gap-2">
+                                        {tokenInfo?.link1 && (
+                                            <a
+                                                href={tokenInfo.link1}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                            >
+                                                <Globe className="h-4 w-4" />
+                                            </a>
+                                        )}
+                                        {tokenInfo?.link2 && (
+                                            <a
+                                                href={tokenInfo.link2}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                            >
+                                                <Twitter className="h-4 w-4" />
+                                            </a>
+                                        )}
+                                        {tokenInfo?.link3 && (
+                                            <a
+                                                href={tokenInfo.link3}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                            >
+                                                <MessageCircle className="h-4 w-4" />
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Price display */}
+                        <div className="flex items-baseline gap-2 md:gap-3">
+                            {currentPrice !== null ? (
+                                <span className="text-2xl font-bold tabular-nums tracking-tight md:text-3xl">
+                                    {currentPrice < 0.0001
+                                        ? '<0.0001'
+                                        : currentPrice < 1
+                                          ? currentPrice.toFixed(6)
+                                          : currentPrice.toFixed(4)}{' '}
+                                    KUB
+                                </span>
+                            ) : (
+                                <span className="text-2xl font-bold text-muted-foreground md:text-3xl">
+                                    --
+                                </span>
+                            )}
+                            {priceChangePercent24h !== null && (
+                                <span
+                                    className={cn(
+                                        'inline-flex items-center rounded-md px-1.5 py-0.5 text-sm font-semibold tabular-nums',
+                                        isPositive
+                                            ? 'bg-emerald-500/15 text-emerald-400'
+                                            : 'bg-red-500/15 text-red-400'
+                                    )}
+                                >
+                                    {isPositive ? '+' : ''}
+                                    {priceChangePercent24h.toFixed(2)}%
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Inline market stats */}
                     <TokenStats
                         marketCap={marketCap}

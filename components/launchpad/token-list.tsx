@@ -140,7 +140,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     }
 
     return (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
             {filtered.map(({ token, tokenName, tokenSymbol, reserveResult, isGraduated }) => {
                 const nativeReserve = reserveResult?.[0]
                 const tokenReserve = reserveResult?.[1]
