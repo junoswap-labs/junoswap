@@ -45,6 +45,14 @@ export const KUB_TESTNET_TOKENS: Token[] = [
         chainId: kubTestnet.id,
         logo: 'https://cmswap.mypinata.cloud/ipfs/bafkreiglz7dfa4xf6octr7aktdrb6oza6vvcf5t6n26onvg6gymnuhdose',
     },
+    {
+        address: '0x70138f1b88BEe73dD2Cb06F24146f964Dde6144e' as const,
+        symbol: 'KUSDT',
+        name: 'KUSDT',
+        decimals: 18,
+        chainId: kubTestnet.id,
+        logo: 'https://cmswap.mypinata.cloud/ipfs/bafkreieg7yf6iwx7obygg62hz252bwnaddedanvlizonaawagk7eze4qcu',
+    },
 ]
 
 export const JB_CHAIN_TOKENS: Token[] = [
