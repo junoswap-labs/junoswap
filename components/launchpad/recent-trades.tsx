@@ -24,6 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Activity } from 'lucide-react'
 import type { SwapEventData } from '@/hooks/useTokenSwapEvents'
+import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface RecentTradesProps {
     tokenAddr: Address
@@ -44,15 +45,19 @@ function TradeRow({
     trade,
     index,
     tokenSymbol,
+    nativeUsdPrice,
 }: {
     trade: SwapEventData
     index: number
     tokenSymbol: string
+    nativeUsdPrice: number | null
 }) {
     const price = calculatePrice(trade)
+    const displayPrice = nativeUsdPrice !== null ? price * nativeUsdPrice : price
     const valueKub = trade.isBuy
         ? parseFloat(formatEther(trade.amountIn))
         : parseFloat(formatEther(trade.amountOut))
+    const displayValue = nativeUsdPrice !== null ? valueKub * nativeUsdPrice : valueKub
     const amount = parseFloat(formatEther(trade.amountIn))
 
     return (
@@ -88,11 +93,16 @@ function TradeRow({
             </TableCell>
 
             {/* Price */}
-            <TableCell className="font-mono tracking-tight">{formatTradePrice(price)}</TableCell>
+            <TableCell className="font-mono tracking-tight">
+                {nativeUsdPrice !== null ? '$' : ''}
+                {formatTradePrice(displayPrice)}
+            </TableCell>
 
             {/* Value */}
             <TableCell className="hidden text-right font-mono tracking-tight text-muted-foreground sm:table-cell">
-                {formatCompact(valueKub)} KUB
+                {nativeUsdPrice !== null
+                    ? `$${formatCompact(displayValue)}`
+                    : `${formatCompact(displayValue)} KUB`}
             </TableCell>
 
             {/* Time */}
@@ -150,6 +160,7 @@ function LoadingState() {
 
 export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTradesProps) {
     const { data: events, isLoading } = useTokenSwapEvents(tokenAddr)
+    const { nativeUsdPrice } = useNativeUsdPriceContext()
 
     const trades = events ? [...events].sort((a, b) => b.timestamp - a.timestamp).slice(0, 20) : []
 
@@ -225,6 +236,7 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                                         trade={trade}
                                         index={i}
                                         tokenSymbol={tokenSymbol}
+                                        nativeUsdPrice={nativeUsdPrice}
                                     />
                                 ))}
                             </TableBody>

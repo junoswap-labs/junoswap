@@ -17,14 +17,19 @@ import type {
     Time as LWTime,
 } from 'lightweight-charts'
 import type { Address } from 'viem'
+import { formatEther } from 'viem'
 import { useTheme } from 'next-themes'
 import { useTokenPriceHistory, TIMEFRAMES } from '@/hooks/useTokenPriceHistory'
 import type { ChartMode } from '@/types/chart'
+import { TIMEFRAME_DURATIONS } from '@/types/chart'
 import { cn } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
+import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface TokenChartProps {
     tokenAddr: Address
+    nativeReserve?: bigint
+    tokenReserve?: bigint
     className?: string
 }
 
@@ -48,6 +53,11 @@ function formatChartValue(value: number, mode: ChartMode): string {
     return mode === 'mcap' ? formatMcap(value) : formatPrice(value)
 }
 
+function formatUsdChartValue(value: number, mode: ChartMode, isUsd: boolean): string {
+    const formatted = formatChartValue(value, mode)
+    return isUsd && formatted !== '<0.0001' && formatted !== '<0.01' ? `$${formatted}` : formatted
+}
+
 function useChartColors() {
     const { resolvedTheme } = useTheme()
     const isDark = resolvedTheme === 'dark'
@@ -69,7 +79,7 @@ function useChartColors() {
     )
 }
 
-export function TokenChart({ tokenAddr, className }: TokenChartProps) {
+export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }: TokenChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const chartRef = useRef<IChartApi | null>(null)
     const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
@@ -81,6 +91,67 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
     const { data, isLoading, timeframe, setTimeframe, chartMode, setChartMode } =
         useTokenPriceHistory(tokenAddr)
     const chartColors = useChartColors()
+    const { nativeUsdPrice } = useNativeUsdPriceContext()
+
+    const displayData = useMemo(() => {
+        let result = data
+
+        // Convert to USD
+        if (nativeUsdPrice !== null) {
+            result = result.map((d) => ({
+                ...d,
+                open: d.open * nativeUsdPrice,
+                high: d.high * nativeUsdPrice,
+                low: d.low * nativeUsdPrice,
+                close: d.close * nativeUsdPrice,
+            }))
+        }
+
+        // Append current price point from live reserves
+        if (
+            nativeReserve !== undefined &&
+            nativeReserve > 0n &&
+            tokenReserve !== undefined &&
+            tokenReserve > 0n &&
+            result.length > 0
+        ) {
+            const price =
+                parseFloat(formatEther(nativeReserve)) / parseFloat(formatEther(tokenReserve))
+            const value = chartMode === 'mcap' ? price * 1e9 : price
+            const displayValue = nativeUsdPrice !== null ? value * nativeUsdPrice : value
+            const now = Math.floor(Date.now() / 1000)
+            const duration = TIMEFRAME_DURATIONS[timeframe]
+            const candleTime = Math.floor(now / duration) * duration
+            const lastCandle = result[result.length - 1]
+
+            if (lastCandle && lastCandle.time === candleTime) {
+                result = result.map((d, i) =>
+                    i === result.length - 1
+                        ? {
+                              ...d,
+                              close: displayValue,
+                              high: Math.max(d.high, displayValue),
+                              low: Math.min(d.low, displayValue),
+                          }
+                        : d
+                )
+            } else if (lastCandle) {
+                result = [
+                    ...result,
+                    {
+                        time: candleTime,
+                        open: lastCandle.close,
+                        high: Math.max(lastCandle.close, displayValue),
+                        low: Math.min(lastCandle.close, displayValue),
+                        close: displayValue,
+                        volume: 0,
+                    },
+                ]
+            }
+        }
+
+        return result
+    }, [data, nativeUsdPrice, nativeReserve, tokenReserve, chartMode, timeframe])
 
     // OHLCV overlay state
     const [ohlcvData, setOhlcvData] = useState<{
@@ -221,10 +292,20 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
 
     // Update data
     useEffect(() => {
-        if (!candleSeriesRef.current || !volumeSeriesRef.current || data.length === 0) return
+        if (!candleSeriesRef.current || !volumeSeriesRef.current || displayData.length === 0) return
+
+        const isUsd = nativeUsdPrice !== null
+        const prefix = isUsd ? '$' : ''
+
+        candleSeriesRef.current.applyOptions({
+            priceFormat: {
+                type: 'custom',
+                formatter: (price: number) => `${prefix}${formatChartValue(price, chartMode)}`,
+            },
+        })
 
         candleSeriesRef.current.setData(
-            data.map((d) => ({
+            displayData.map((d) => ({
                 time: d.time as LWTime,
                 open: d.open,
                 high: d.high,
@@ -234,7 +315,7 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
         )
 
         volumeSeriesRef.current.setData(
-            data.map((d) => ({
+            displayData.map((d) => ({
                 time: d.time as LWTime,
                 value: d.volume,
                 color: d.close >= d.open ? chartColors.volumeUp : chartColors.volumeDown,
@@ -247,7 +328,7 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
             priceLineRef.current = null
         }
 
-        const lastCandle = data[data.length - 1]
+        const lastCandle = displayData[displayData.length - 1]
         if (lastCandle) {
             const isUp = lastCandle.close >= lastCandle.open
             priceLineRef.current = candleSeriesRef.current.createPriceLine({
@@ -275,7 +356,7 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
         }
 
         chartRef.current?.timeScale().fitContent()
-    }, [data])
+    }, [displayData, chartMode, nativeUsdPrice, chartColors])
 
     return (
         <div className={cn('relative rounded-lg border border-border/60 bg-card', className)}>
@@ -351,7 +432,11 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
                                         : chartColors.ohlcvDown
                                 }
                             >
-                                {formatChartValue(ohlcvData.open, chartMode)}
+                                {formatUsdChartValue(
+                                    ohlcvData.open,
+                                    chartMode,
+                                    nativeUsdPrice !== null
+                                )}
                             </span>
                         </span>
                         <span className="text-muted-foreground">
@@ -363,7 +448,11 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
                                         : chartColors.ohlcvDown
                                 }
                             >
-                                {formatChartValue(ohlcvData.high, chartMode)}
+                                {formatUsdChartValue(
+                                    ohlcvData.high,
+                                    chartMode,
+                                    nativeUsdPrice !== null
+                                )}
                             </span>
                         </span>
                         <span className="text-muted-foreground">
@@ -375,7 +464,11 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
                                         : chartColors.ohlcvDown
                                 }
                             >
-                                {formatChartValue(ohlcvData.low, chartMode)}
+                                {formatUsdChartValue(
+                                    ohlcvData.low,
+                                    chartMode,
+                                    nativeUsdPrice !== null
+                                )}
                             </span>
                         </span>
                         <span className="text-muted-foreground">
@@ -387,7 +480,11 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
                                         : chartColors.ohlcvDown
                                 }
                             >
-                                {formatChartValue(ohlcvData.close, chartMode)}
+                                {formatUsdChartValue(
+                                    ohlcvData.close,
+                                    chartMode,
+                                    nativeUsdPrice !== null
+                                )}
                             </span>
                         </span>
                         <span
@@ -409,7 +506,7 @@ export function TokenChart({ tokenAddr, className }: TokenChartProps) {
             </div>
 
             {/* Empty state overlay */}
-            {!isLoading && data.length === 0 && (
+            {!isLoading && displayData.length === 0 && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 top-11 flex flex-col items-center justify-center gap-3">
                     <div className="relative flex h-16 w-16 items-center justify-center">
                         <div className="absolute inset-0 rounded-full bg-muted/40" />

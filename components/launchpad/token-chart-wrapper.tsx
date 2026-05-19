@@ -19,6 +19,8 @@ const TokenChart = dynamic(() => import('./token-chart').then((mod) => mod.Token
 
 interface TokenChartWrapperProps {
     tokenAddr: Address
+    nativeReserve?: bigint
+    tokenReserve?: bigint
     className?: string
 }
 

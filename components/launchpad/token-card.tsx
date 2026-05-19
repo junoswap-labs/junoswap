@@ -6,6 +6,7 @@ import { formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
 import type { LaunchToken } from '@/types/launchpad'
 import { GraduationProgress } from './graduation-progress'
+import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface TokenCardProps {
     token: LaunchToken
@@ -26,6 +27,7 @@ export function TokenCard({
     marketCap,
     isGraduated,
 }: TokenCardProps) {
+    const { nativeUsdPrice } = useNativeUsdPriceContext()
     const symbol = tokenSymbol || token.symbol || '???'
     const name = tokenName || token.name || ''
 
@@ -82,7 +84,9 @@ export function TokenCard({
                                     <div className="mb-1.5 flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">MC</span>
                                         <span className="font-medium">
-                                            {formatCompact(parseFloat(marketCap))} KUB
+                                            {nativeUsdPrice !== null
+                                                ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
+                                                : `${formatCompact(parseFloat(marketCap))} KUB`}
                                         </span>
                                     </div>
                                 )}

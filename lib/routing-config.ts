@@ -3,6 +3,17 @@ import type { IntermediaryConfig } from '@/types/routing'
 import { kubTestnet, jbc, bitkub, worldchain, base, bsc } from './wagmi'
 
 /**
+ * USDT/stablecoin address per chain for native→USD price conversion.
+ * Used by the launchpad to display prices/mcaps in USD.
+ */
+export const NATIVE_USD_STABLE: Record<number, { address: Address; decimals: number }> = {
+    [kubTestnet.id]: {
+        address: '0x70138f1b88BEe73dD2Cb06F24146f964Dde6144e', // KUSDT on kubTestnet
+        decimals: 18,
+    },
+}
+
+/**
  * Intermediary token addresses for multi-hop routing per chain
  */
 export const INTERMEDIARY_TOKENS: Record<number, IntermediaryConfig> = {

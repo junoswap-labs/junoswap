@@ -10,6 +10,7 @@ import {
 } from '@/services/launchpad'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface TokenStatsProps {
     marketCap: string
@@ -43,6 +44,9 @@ export function TokenStats({
 }: TokenStatsProps) {
     const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
     const ready = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
+    const { nativeUsdPrice } = useNativeUsdPriceContext()
+    const mcapNum = parseFloat(marketCap)
+    const displayMcap = nativeUsdPrice !== null ? mcapNum * nativeUsdPrice : mcapNum
 
     return (
         <div className={cn('space-y-3', className)}>
@@ -50,7 +54,11 @@ export function TokenStats({
             <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:gap-6">
                 <StatItem
                     label="Market Cap"
-                    value={`${formatCompact(parseFloat(marketCap))} KUB`}
+                    value={
+                        nativeUsdPrice !== null
+                            ? `$${formatCompact(displayMcap)}`
+                            : `${formatCompact(displayMcap)} KUB`
+                    }
                 />
                 <Separator orientation="vertical" className="h-8" />
                 <StatItem label="KUB Reserve" value={`${formatKub(nativeReserve)} KUB`} />

@@ -2,13 +2,12 @@
 
 import { useReadContract } from 'wagmi'
 import type { Address } from 'viem'
-import { parseEther } from 'viem'
+import { formatEther } from 'viem'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
-import { calculateMarketCap } from '@/services/launchpad'
 import { cn } from '@/lib/utils'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 import { TokenTradeCard } from './token-trade-card'
@@ -18,6 +17,7 @@ import { RecentTrades } from './recent-trades'
 import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { Globe, Twitter, MessageCircle, ArrowLeft, Copy, Check } from 'lucide-react'
+import { useNativeUsdPriceContext } from './native-usd-price-provider'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -64,14 +64,24 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     // Token price
     const { currentPrice, priceChangePercent24h, isPositive } = useTokenPrice(tokenAddr)
 
-    const totalSupply = parseEther('1000000000') // 1 billion with 18 decimals
-    const marketCap = calculateMarketCap(nativeReserve, tokenReserve, totalSupply)
+    const marketCap =
+        nativeReserve > 0n && tokenReserve > 0n
+            ? String(
+                  (parseFloat(formatEther(nativeReserve)) / parseFloat(formatEther(tokenReserve))) *
+                      1e9
+              )
+            : '0'
 
     const symbol = (tokenSymbol as string) || 'TOKEN'
     const name = (tokenName as string) || 'Unknown Token'
     const decimals = (tokenDecimals as number) || 18
 
     const [copied, setCopied] = useState(false)
+    const { nativeUsdPrice } = useNativeUsdPriceContext()
+    const displayPrice =
+        nativeUsdPrice !== null && currentPrice !== null
+            ? currentPrice * nativeUsdPrice
+            : currentPrice
 
     const copyAddress = () => {
         navigator.clipboard.writeText(tokenAddr)
@@ -187,14 +197,15 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
 
                         {/* Price display */}
                         <div className="flex items-baseline gap-2 md:gap-3">
-                            {currentPrice !== null ? (
+                            {displayPrice !== null ? (
                                 <span className="text-2xl font-bold tabular-nums tracking-tight md:text-3xl">
-                                    {currentPrice < 0.0001
+                                    {nativeUsdPrice !== null ? '$' : ''}
+                                    {displayPrice < 0.0001
                                         ? '<0.0001'
-                                        : currentPrice < 1
-                                          ? currentPrice.toFixed(6)
-                                          : currentPrice.toFixed(4)}{' '}
-                                    KUB
+                                        : displayPrice < 1
+                                          ? displayPrice.toFixed(6)
+                                          : displayPrice.toFixed(4)}
+                                    {nativeUsdPrice === null ? ' KUB' : ''}
                                 </span>
                             ) : (
                                 <span className="text-2xl font-bold text-muted-foreground md:text-3xl">
@@ -228,7 +239,11 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                     />
 
                     {/* Chart */}
-                    <TokenChartWrapper tokenAddr={tokenAddr} />
+                    <TokenChartWrapper
+                        tokenAddr={tokenAddr}
+                        nativeReserve={nativeReserve}
+                        tokenReserve={tokenReserve}
+                    />
 
                     {/* Recent trades */}
                     <RecentTrades tokenAddr={tokenAddr} tokenSymbol={symbol} />

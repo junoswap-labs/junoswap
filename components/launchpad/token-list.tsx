@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useReadContracts } from 'wagmi'
-import { parseEther } from 'viem'
+import { formatEther } from 'viem'
 import type { Address } from 'viem'
 import {
     PUMP_CORE_NATIVE_ADDRESS,
@@ -11,12 +11,9 @@ import {
 } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { useTokenList } from '@/hooks/useTokenList'
-import { calculateMarketCap } from '@/services/launchpad'
 import { TokenCard } from './token-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Coins, Loader2, SearchX } from 'lucide-react'
-
-const TOTAL_SUPPLY = parseEther('1000000000') // 1 billion
 
 interface TokenListProps {
     searchQuery?: string
@@ -146,8 +143,15 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                 const tokenReserve = reserveResult?.[1]
 
                 let marketCap: string | undefined
-                if (nativeReserve !== undefined && tokenReserve !== undefined) {
-                    marketCap = calculateMarketCap(nativeReserve, tokenReserve, TOTAL_SUPPLY)
+                if (
+                    nativeReserve !== undefined &&
+                    tokenReserve !== undefined &&
+                    tokenReserve > 0n
+                ) {
+                    const price =
+                        parseFloat(formatEther(nativeReserve)) /
+                        parseFloat(formatEther(tokenReserve))
+                    marketCap = String(price * 1e9)
                 }
 
                 return (
