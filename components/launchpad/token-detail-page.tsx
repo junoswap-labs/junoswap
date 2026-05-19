@@ -101,7 +101,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                     <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 md:gap-x-6 md:gap-y-2">
                         {/* Token identity */}
                         <div className="flex items-center gap-2.5 md:gap-3">
-                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted md:h-14 md:w-14">
+                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
                                 {tokenInfo?.logo ? (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
@@ -135,7 +135,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                     )}
                                 </button>
                                 {tokenInfo?.description && (
-                                    <p className="mt-1 text-sm text-muted-foreground">
+                                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                                         {tokenInfo.description}
                                     </p>
                                 )}

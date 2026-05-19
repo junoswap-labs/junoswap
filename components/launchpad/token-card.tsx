@@ -32,9 +32,9 @@ export function TokenCard({
     return (
         <Link href={`/launchpad/token/${token.address}`}>
             <Card className="overflow-hidden transition-colors hover:border-primary/50 hover:bg-accent/50">
-                <CardContent className="flex gap-3 p-3 sm:gap-4 sm:p-4">
+                <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
                     {/* Large coin image - left side */}
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-[120px] lg:w-[120px]">
+                    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted lg:h-[120px] lg:w-[120px]">
                         {token.logo ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -48,14 +48,14 @@ export function TokenCard({
                                     if (parent && !parent.querySelector('span')) {
                                         const fallback = document.createElement('span')
                                         fallback.className =
-                                            'text-xl sm:text-2xl lg:text-3xl font-black text-muted-foreground/50'
+                                            'text-lg sm:text-2xl lg:text-3xl font-black text-muted-foreground/50'
                                         fallback.textContent = symbol.slice(0, 3)
                                         parent.appendChild(fallback)
                                     }
                                 }}
                             />
                         ) : (
-                            <span className="text-xl font-black text-muted-foreground/50 sm:text-2xl lg:text-3xl">
+                            <span className="text-lg font-black text-muted-foreground/50 sm:text-2xl lg:text-3xl">
                                 {symbol.slice(0, 3)}
                             </span>
                         )}
