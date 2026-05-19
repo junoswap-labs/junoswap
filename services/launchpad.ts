@@ -184,6 +184,29 @@ export function getSellConfig(tokenAddr: Address, tokenAmount: bigint, minNative
 }
 
 /**
+ * Get the graduate contract call config
+ */
+export function getGraduateConfig(tokenAddr: Address) {
+    return {
+        address: PUMP_CORE_NATIVE_ADDRESS as Address,
+        abi: PUMP_CORE_NATIVE_ABI,
+        functionName: 'graduate' as const,
+        args: [tokenAddr] as const,
+    }
+}
+
+/**
+ * Check if token is ready to graduate (threshold met but not yet graduated on-chain)
+ */
+export function isReadyToGraduate(
+    nativeReserve: bigint,
+    graduationAmount: bigint,
+    isGraduated: boolean
+): boolean {
+    return !isGraduated && graduationAmount > 0n && nativeReserve >= graduationAmount
+}
+
+/**
  * Extract the token address from Creation event logs.
  * The Creation event has `creator` indexed (topics[1]) and `tokenAddr` non-indexed (in data).
  */

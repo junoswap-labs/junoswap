@@ -6,6 +6,7 @@ import {
     formatTokenAmount,
     calculateGraduationProgress,
     formatCompact,
+    isReadyToGraduate,
 } from '@/services/launchpad'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ export function TokenStats({
     className,
 }: TokenStatsProps) {
     const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
+    const ready = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
 
     return (
         <div className={cn('space-y-3', className)}>
@@ -66,6 +68,10 @@ export function TokenStats({
                         <Badge variant="default" className="w-fit bg-green-600 text-white text-xs">
                             Graduated
                         </Badge>
+                    ) : ready ? (
+                        <Badge variant="default" className="w-fit bg-amber-500 text-white text-xs">
+                            Ready to Graduate
+                        </Badge>
                     ) : (
                         <Badge variant="secondary" className="w-fit text-xs">
                             Bonding Curve
@@ -79,7 +85,10 @@ export function TokenStats({
                 <div className="space-y-1">
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                         <div
-                            className="h-full rounded-full bg-primary transition-all duration-300"
+                            className={cn(
+                                'h-full rounded-full transition-all duration-300',
+                                ready ? 'bg-amber-500' : 'bg-primary'
+                            )}
                             style={{ width: `${Math.min(progress, 100)}%` }}
                         />
                     </div>
@@ -87,7 +96,11 @@ export function TokenStats({
                         <span>
                             {formatKub(nativeReserve)} / {formatKub(graduationAmount)} KUB
                         </span>
-                        <span>{progress.toFixed(1)}% to graduation</span>
+                        <span>
+                            {ready
+                                ? '100% — Ready to Graduate'
+                                : `${progress.toFixed(1)}% to graduation`}
+                        </span>
                     </div>
                 </div>
             )}

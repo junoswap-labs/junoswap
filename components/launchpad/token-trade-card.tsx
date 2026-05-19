@@ -12,11 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useBondingCurveBuy } from '@/hooks/useBondingCurveBuy'
 import { useBondingCurveSell } from '@/hooks/useBondingCurveSell'
+import { useGraduate } from '@/hooks/useGraduate'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { isValidNumberInput, cn } from '@/lib/utils'
-import { formatKub, formatTokenAmount } from '@/services/launchpad'
+import { formatKub, formatTokenAmount, isReadyToGraduate } from '@/services/launchpad'
 import { toastSuccess, toastError } from '@/lib/toast'
 import { getChainMetadata } from '@/lib/wagmi'
 import { ConnectModal } from '@/components/web3/connect-modal'
@@ -70,8 +71,26 @@ export function TokenTradeCard({
         tokenReserve,
         isGraduated,
         virtualAmount,
+        graduationAmount,
         refetch: refetchReserves,
     } = useTokenReserves({ tokenAddr })
+
+    const readyToGraduate = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
+
+    // Graduate hook
+    const {
+        graduate,
+        isPreparing: isGraduatePreparing,
+        isExecuting: isGraduateExecuting,
+        isConfirming: isGraduateConfirming,
+        isSuccess: isGraduateSuccess,
+        isError: isGraduateError,
+        error: graduateError,
+        hash: graduateHash,
+    } = useGraduate({
+        tokenAddr,
+        enabled: readyToGraduate,
+    })
 
     // User's native KUB balance
     const { data: nativeBalance, refetch: refetchNative } = useBalance({
@@ -126,7 +145,7 @@ export function TokenTradeCard({
         nativeReserve,
         tokenReserve,
         virtualAmount,
-        enabled: !isGraduated,
+        enabled: !isGraduated && !readyToGraduate,
     })
 
     // Sell hook
@@ -201,6 +220,19 @@ export function TokenTradeCard({
         refetchTokens()
     }, [isSellSuccess, sellHash])
 
+    // Handle graduate success
+    useEffect(() => {
+        if (!isGraduateSuccess || !graduateHash) return
+        const metadata = getChainMetadata(PUMP_CORE_NATIVE_CHAIN_ID)
+        toastSuccess('Token graduated!', {
+            action: {
+                label: 'View Transaction',
+                onClick: () => window.open(`${metadata.explorer}/tx/${graduateHash}`, '_blank'),
+            },
+        })
+        refetchReserves()
+    }, [isGraduateSuccess, graduateHash])
+
     // Handle errors
     useEffect(() => {
         if (isBuyError && buyError) toastError(buyError, 'Buy failed')
@@ -209,6 +241,10 @@ export function TokenTradeCard({
     useEffect(() => {
         if (isSellError && sellError) toastError(sellError, 'Sell failed')
     }, [isSellError, sellError])
+
+    useEffect(() => {
+        if (isGraduateError && graduateError) toastError(graduateError, 'Graduation failed')
+    }, [isGraduateError, graduateError])
 
     const handleBuyInputChange = (value: string) => {
         if (isValidNumberInput(value)) setBuyAmount(value)
@@ -251,6 +287,21 @@ export function TokenTradeCard({
         sell()
     }
 
+    const handleGraduate = () => {
+        if (!isConnected) {
+            setIsConnectModalOpen(true)
+            return
+        }
+        graduate()
+    }
+
+    const nearThreshold =
+        !isGraduated &&
+        !readyToGraduate &&
+        graduationAmount > 0n &&
+        nativeReserve >= (graduationAmount * 90n) / 100n
+
+    // Graduated — show final state
     if (isGraduated) {
         return (
             <Card>
@@ -258,7 +309,7 @@ export function TokenTradeCard({
                     <div className="rounded-lg bg-green-500/10 p-6 text-center">
                         <p className="text-lg font-semibold text-green-500">Token Graduated!</p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            This token is now trading on Uniswap V3
+                            This token is now trading on Junoswap
                         </p>
                     </div>
                 </CardContent>
@@ -266,6 +317,52 @@ export function TokenTradeCard({
         )
     }
 
+    // Ready to graduate — show graduate button
+    if (readyToGraduate) {
+        return (
+            <>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="rounded-lg bg-amber-500/10 p-6 text-center space-y-4">
+                            <div>
+                                <p className="text-lg font-semibold text-amber-500">
+                                    Ready to Graduate!
+                                </p>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    This token has reached the graduation threshold. Anyone can
+                                    trigger graduation to move it to Junoswap.
+                                </p>
+                            </div>
+                            <Button
+                                size="xl"
+                                className="w-full bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700"
+                                onClick={handleGraduate}
+                                disabled={
+                                    isGraduatePreparing ||
+                                    isGraduateExecuting ||
+                                    isGraduateConfirming
+                                }
+                            >
+                                {isGraduateExecuting
+                                    ? 'Graduating...'
+                                    : isGraduateConfirming
+                                      ? 'Confirming...'
+                                      : 'Graduate Token'}
+                            </Button>
+                            {isGraduatePreparing && (
+                                <p className="text-xs text-muted-foreground">
+                                    Preparing transaction...
+                                </p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+                <ConnectModal open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen} />
+            </>
+        )
+    }
+
+    // Bonding curve — normal buy/sell
     return (
         <>
             <Card>
@@ -433,6 +530,12 @@ export function TokenTradeCard({
                                         <span className="text-muted-foreground">Fee</span>
                                         <span className="font-medium">1%</span>
                                     </div>
+                                </div>
+                            )}
+
+                            {nearThreshold && (
+                                <div className="rounded-md bg-amber-500/10 p-2.5 text-xs text-amber-600 dark:text-amber-400">
+                                    Selling may push the reserve below the graduation threshold.
                                 </div>
                             )}
 
