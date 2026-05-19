@@ -21,6 +21,7 @@ export interface SwapEventData {
     amountOut: bigint
     reserveIn: bigint
     reserveOut: bigint
+    transactionHash: `0x${string}`
 }
 
 export function useTokenSwapEvents(tokenAddr: Address | undefined) {
@@ -63,6 +64,7 @@ export function useTokenSwapEvents(tokenAddr: Address | undefined) {
                 amountOut: log.args.amountOut ?? 0n,
                 reserveIn: log.args.reserveIn ?? 0n,
                 reserveOut: log.args.reserveOut ?? 0n,
+                transactionHash: log.transactionHash,
             }))
         },
         enabled: !!publicClient && !!tokenAddr,

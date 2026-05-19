@@ -9,7 +9,8 @@ import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { calculateMarketCap } from '@/services/launchpad'
-import { formatAddress, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { ExplorerLink } from '@/components/ui/explorer-link'
 import { TokenTradeCard } from './token-trade-card'
 import { TokenChartWrapper } from './token-chart-wrapper'
 import { TokenStats } from './token-stats'
@@ -123,17 +124,25 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                     <h1 className="text-lg font-bold md:text-xl">{name}</h1>
                                     <span className="text-sm text-muted-foreground">${symbol}</span>
                                 </div>
-                                <button
-                                    onClick={copyAddress}
-                                    className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    <span className="font-mono">{formatAddress(tokenAddr)}</span>
-                                    {copied ? (
-                                        <Check className="h-3 w-3 text-green-400" />
-                                    ) : (
-                                        <Copy className="h-3 w-3" />
-                                    )}
-                                </button>
+                                <div className="mt-0.5 flex items-center gap-1.5">
+                                    <ExplorerLink
+                                        value={tokenAddr}
+                                        type="token"
+                                        chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                                        className="text-xs"
+                                    />
+                                    <button
+                                        onClick={copyAddress}
+                                        className="text-muted-foreground hover:text-foreground transition-colors"
+                                        title="Copy address"
+                                    >
+                                        {copied ? (
+                                            <Check className="h-3 w-3 text-green-400" />
+                                        ) : (
+                                            <Copy className="h-3 w-3" />
+                                        )}
+                                    </button>
+                                </div>
                                 {tokenInfo?.description && (
                                     <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                                         {tokenInfo.description}

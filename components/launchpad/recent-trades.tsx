@@ -7,7 +7,10 @@ import { formatDistanceToNow } from 'date-fns'
 import { useTokenSwapEvents } from '@/hooks/useTokenSwapEvents'
 import { calculatePrice } from '@/services/chart'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
-import { formatAddress } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { getExplorerTxUrl } from '@/lib/explorer'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
     Table,
@@ -20,7 +23,6 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Activity } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { SwapEventData } from '@/hooks/useTokenSwapEvents'
 
 interface RecentTradesProps {
@@ -54,7 +56,16 @@ function TradeRow({
     const amount = parseFloat(formatEther(trade.amountIn))
 
     return (
-        <TableRow key={`${trade.blockNumber}-${index}`}>
+        <TableRow
+            key={`${trade.blockNumber}-${index}`}
+            className="cursor-pointer hover:bg-muted/40 transition-colors"
+            onClick={() =>
+                window.open(
+                    getExplorerTxUrl(PUMP_CORE_NATIVE_CHAIN_ID, trade.transactionHash),
+                    '_blank'
+                )
+            }
+        >
             {/* Type */}
             <TableCell>
                 <span
@@ -93,8 +104,16 @@ function TradeRow({
             </TableCell>
 
             {/* Wallet */}
-            <TableCell className="hidden text-right font-mono text-muted-foreground lg:table-cell">
-                <span title={trade.sender}>{formatAddress(trade.sender)}</span>
+            <TableCell
+                className="hidden text-right font-mono text-muted-foreground lg:table-cell"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <ExplorerLink
+                    value={trade.sender}
+                    type="address"
+                    chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                    compact
+                />
             </TableCell>
         </TableRow>
     )

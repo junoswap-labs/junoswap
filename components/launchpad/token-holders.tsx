@@ -4,7 +4,8 @@ import type { Address } from 'viem'
 import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
 import { formatTokenAmount } from '@/services/launchpad'
-import { formatAddress } from '@/lib/utils'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +30,12 @@ function HolderRow({ holder, rank }: { holder: HolderData; rank: number }) {
         <TableRow>
             <TableCell className="w-8 text-muted-foreground">{rank}</TableCell>
             <TableCell className="font-mono text-xs">
-                <span title={holder.address}>{formatAddress(holder.address)}</span>
+                <ExplorerLink
+                    value={holder.address}
+                    type="address"
+                    chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                    compact
+                />
             </TableCell>
             <TableCell className="text-right font-mono tracking-tight">
                 {formatTokenAmount(holder.balance)}

@@ -27,6 +27,7 @@ interface RawSwapEvent {
     amountOut: bigint
     reserveIn: bigint
     reserveOut: bigint
+    transactionHash: `0x${string}`
 }
 
 export function useAllSwapEvents() {
@@ -83,6 +84,7 @@ export function useAllSwapEvents() {
                 amountOut: log.args.amountOut ?? 0n,
                 reserveIn: log.args.reserveIn ?? 0n,
                 reserveOut: log.args.reserveOut ?? 0n,
+                transactionHash: log.transactionHash,
             }))
         },
         enabled: !!publicClient,

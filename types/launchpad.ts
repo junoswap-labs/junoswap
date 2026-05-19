@@ -59,6 +59,7 @@ export interface EnrichedSwapEvent {
     amountOut: bigint
     reserveIn: bigint
     reserveOut: bigint
+    transactionHash: `0x${string}`
     tokenSymbol: string
     tokenName: string
     tokenLogo: string

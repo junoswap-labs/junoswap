@@ -8,6 +8,8 @@ import { Activity } from 'lucide-react'
 import { useAllSwapEvents } from '@/hooks/useAllSwapEvents'
 import { formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { formatAddress, cn } from '@/lib/utils'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { getExplorerAddressUrl } from '@/lib/explorer'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
 function TradeChip({ event }: { event: EnrichedSwapEvent }) {
@@ -46,7 +48,17 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
             {/* Value */}
             <span className="text-muted-foreground">{formatCompact(valueKub)} KUB</span>
             {/* Wallet */}
-            <span className="hidden font-mono text-muted-foreground sm:inline">
+            <span
+                className="hidden cursor-pointer font-mono text-muted-foreground hover:text-foreground transition-colors sm:inline"
+                onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    window.open(
+                        getExplorerAddressUrl(PUMP_CORE_NATIVE_CHAIN_ID, event.sender),
+                        '_blank'
+                    )
+                }}
+            >
                 {formatAddress(event.sender)}
             </span>
             {/* Time */}
