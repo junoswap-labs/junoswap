@@ -69,15 +69,6 @@ export interface V3PoolData {
     apr?: number
 }
 
-/**
- * Pool list item for display
- */
-export interface PoolListItem extends V3PoolData {
-    token0Symbol: string
-    token1Symbol: string
-    feeFormatted: string
-}
-
 // ============ Liquidity Operation Types ============
 
 /**
@@ -152,7 +143,7 @@ export interface RangeConfig {
 /**
  * Range preset configuration
  */
-export interface RangePresetConfig {
+interface RangePresetConfig {
     label: string
     value: RangePreset
     description: string
@@ -352,28 +343,11 @@ export interface DepositInfo {
 }
 
 /**
- * Parameters for staking a position
- */
-export interface StakeParams {
-    tokenId: bigint
-    incentiveKey: IncentiveKey
-}
-
-/**
  * Parameters for unstaking a position
  */
 export interface UnstakeParams {
     tokenId: bigint
     incentiveKey: IncentiveKey
-}
-
-/**
- * Parameters for claiming rewards
- */
-export interface ClaimRewardParams {
-    rewardToken: Address
-    to: Address
-    amountRequested: bigint // Use 0n for max claim
 }
 
 /**

@@ -18,16 +18,6 @@ export interface LaunchToken {
 }
 
 /**
- * Live market data from bonding curve reserves
- */
-export interface LaunchTokenMarketData {
-    address: Address
-    nativeReserve: bigint
-    tokenReserve: bigint
-    isGraduated: boolean
-}
-
-/**
  * Token creation form state
  */
 export interface CreateTokenForm {

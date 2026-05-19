@@ -83,17 +83,6 @@ export function encodeSweepToken(token: Address, amountMinimum: bigint, recipien
 }
 
 /**
- * Encode burn function call
- */
-export function encodeBurn(tokenId: bigint): Hex {
-    return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
-        functionName: 'burn',
-        args: [tokenId],
-    })
-}
-
-/**
  * Build multicall for removing liquidity and collecting tokens
  * Sequence:
  * 1. decreaseLiquidity - removes liquidity, tokens stay in position manager

@@ -13,7 +13,7 @@ export enum ProtocolType {
 /**
  * Base configuration interface for all protocol types
  */
-export interface BaseProtocolConfig {
+interface BaseProtocolConfig {
     protocolType: ProtocolType
     chainId: number
     enabled: boolean
@@ -23,7 +23,7 @@ export interface BaseProtocolConfig {
  * Uniswap V2 protocol configuration
  * Used for constant product AMM DEXs
  */
-export interface V2Config extends BaseProtocolConfig {
+interface V2Config extends BaseProtocolConfig {
     protocolType: ProtocolType.V2
     factory: Address
     router: Address
@@ -34,7 +34,7 @@ export interface V2Config extends BaseProtocolConfig {
  * Uniswap V3 protocol configuration
  * Used for concentrated liquidity AMM DEXs
  */
-export interface V3Config extends BaseProtocolConfig {
+interface V3Config extends BaseProtocolConfig {
     protocolType: ProtocolType.V3
     factory: Address
     quoter: Address
@@ -48,12 +48,12 @@ export interface V3Config extends BaseProtocolConfig {
 /**
  * Union type of all protocol configurations
  */
-export type ProtocolConfig = V2Config | V3Config
+type ProtocolConfig = V2Config | V3Config
 
 /**
  * DEX configuration containing all protocols supported by a DEX
  */
-export interface DEXConfiguration {
+interface DEXConfiguration {
     dexId: DEXType
     defaultProtocol: ProtocolType
     priority?: number
@@ -74,19 +74,17 @@ export const FEE_TIERS = {
  * Fee tiers for PancakeSwap V3 pools
  * NOTE: PancakeSwap uses 0.25% (2500) instead of Uniswap's 0.3% (3000)
  */
-export const PANCAKESWAP_FEE_TIERS = {
+const PANCAKESWAP_FEE_TIERS = {
     STABLE: 100, // 0.01%
     LOW: 500, // 0.05%
     MEDIUM: 2500, // 0.25% (PancakeSwap standard - different from Uniswap!)
     HIGH: 10000, // 1%
 } as const
 
-export type FeeTier = (typeof FEE_TIERS)[keyof typeof FEE_TIERS]
-
 /**
  * Unified DEX configuration registry
  */
-export const DEX_CONFIGS_REGISTRY: Record<DEXType, DEXConfiguration> = {
+const DEX_CONFIGS_REGISTRY: Record<DEXType, DEXConfiguration> = {
     junoswap: {
         dexId: 'junoswap',
         defaultProtocol: ProtocolType.V3,
@@ -404,16 +402,6 @@ export function getProtocolSpender(config: ProtocolConfig): Address | undefined 
  * Default fee tier to use (0.3% is most common)
  */
 export const DEFAULT_FEE_TIER = FEE_TIERS.MEDIUM
-
-/**
- * Common fee tiers to try when finding pools
- */
-export const COMMON_FEE_TIERS = [
-    FEE_TIERS.MEDIUM, // 0.3%
-    FEE_TIERS.LOW, // 0.05%
-    FEE_TIERS.HIGH, // 1%
-    FEE_TIERS.STABLE, // 0.01%
-] as const
 
 /**
  * Get the default DEX for a given chain

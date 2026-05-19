@@ -107,7 +107,7 @@ export function isNativeToken(address: Address): boolean {
  * Chains that should NOT unwrap wrapped native tokens due to regulatory/KYC reasons
  * These chains will collect wrapped tokens (KKUB) instead of native tokens
  */
-export const SKIP_UNWRAP_CHAINS = [bitkub.id] as const
+const SKIP_UNWRAP_CHAINS = [bitkub.id] as const
 
 /**
  * Check if chain should skip native token unwrapping

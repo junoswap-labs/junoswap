@@ -107,21 +107,6 @@ export function buildMultiHopSwapPath(
 }
 
 /**
- * Build V2 quote params for multi-hop
- */
-export function buildV2MultiHopQuoteParams(
-    tokens: Address[],
-    amountIn: bigint,
-    chainId: number,
-    wnative?: Address
-) {
-    return {
-        amountIn,
-        path: buildMultiHopSwapPath(tokens, chainId, wnative),
-    }
-}
-
-/**
  * V2 Multi-hop Swap parameters interface
  */
 export interface V2MultiHopSwapParams {

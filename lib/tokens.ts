@@ -12,7 +12,7 @@ export function getAllowanceFunctionName(tokenAddress: Address): 'allowance' | '
     return tokenAddress.toLowerCase() === KUSDT_ADDRESS.toLowerCase() ? 'allowances' : 'allowance'
 }
 
-export const KUB_TESTNET_TOKENS: Token[] = [
+const KUB_TESTNET_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
         symbol: 'KUB',
@@ -55,7 +55,7 @@ export const KUB_TESTNET_TOKENS: Token[] = [
     },
 ]
 
-export const JB_CHAIN_TOKENS: Token[] = [
+const JB_CHAIN_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
         symbol: 'JBC',
@@ -122,7 +122,7 @@ export const JB_CHAIN_TOKENS: Token[] = [
     },
 ]
 
-export const KUB_MAINNET_TOKENS: Token[] = [
+const KUB_MAINNET_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
         symbol: 'KUB',
@@ -197,7 +197,7 @@ export const KUB_MAINNET_TOKENS: Token[] = [
     },
 ]
 
-export const WORLDCHAIN_TOKENS: Token[] = [
+const WORLDCHAIN_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
         symbol: 'ETH',
@@ -264,7 +264,7 @@ export const WORLDCHAIN_TOKENS: Token[] = [
     },
 ]
 
-export const BASE_TOKENS: Token[] = [
+const BASE_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
         symbol: 'ETH',
@@ -339,7 +339,7 @@ export const BASE_TOKENS: Token[] = [
     },
 ]
 
-export const BSC_TOKENS: Token[] = [
+const BSC_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
         symbol: 'BNB',

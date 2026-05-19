@@ -34,10 +34,7 @@ export function buildSwapSearchParams(params: SwapUrlParams): URLSearchParams {
 /**
  * Validate and resolve token address to Token object
  */
-export function resolveTokenFromAddress(
-    chainId: number,
-    address: string | undefined
-): Token | null {
+function resolveTokenFromAddress(chainId: number, address: string | undefined): Token | null {
     if (!address) return null
 
     // Validate address format
@@ -57,7 +54,7 @@ export function resolveTokenFromAddress(
 /**
  * Validate amount string
  */
-export function validateAmountString(amount: string | undefined): string {
+function validateAmountString(amount: string | undefined): string {
     if (!amount) return ''
 
     const trimmed = amount.trim()
@@ -69,7 +66,7 @@ export function validateAmountString(amount: string | undefined): string {
 /**
  * Parse chain ID from URL param
  */
-export function parseChainId(chainParam: string | undefined): number | null {
+function parseChainId(chainParam: string | undefined): number | null {
     if (!chainParam) return null
     const parsed = parseInt(chainParam, 10)
     return isNaN(parsed) ? null : parsed

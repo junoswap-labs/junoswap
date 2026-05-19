@@ -155,22 +155,6 @@ export function encodeV3Path(tokens: Address[], fees: number[]): Hex {
 }
 
 /**
- * Build quote parameters for multi-hop exactInput
- */
-export function buildMultiHopQuoteParams(
-    tokens: Address[],
-    fees: number[],
-    amountIn: bigint,
-    chainId: number
-) {
-    const swapTokens = tokens.map((t) => getSwapAddress(t, chainId))
-    return {
-        path: encodeV3Path(swapTokens, fees),
-        amountIn,
-    }
-}
-
-/**
  * Build swap parameters for multi-hop exactInput
  */
 export function buildMultiHopSwapParams(
