@@ -10,7 +10,12 @@ import {
     PUMP_CORE_NATIVE_ABI,
     PUMP_CORE_NATIVE_CHAIN_ID,
 } from '@/lib/abis/pump-core-native'
-import { calculateBuyOutput, calculateMinOutput, INITIAL_TOKEN_SUPPLY } from '@/services/launchpad'
+import {
+    calculateBuyOutput,
+    calculateMinOutput,
+    INITIAL_TOKEN_SUPPLY,
+    parseTokenAddressFromLogs,
+} from '@/services/launchpad'
 import { useLaunchpadStore } from '@/store/launchpad-store'
 import type { CreateTokenForm } from '@/types/launchpad'
 
@@ -165,16 +170,10 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         if (!publicClient) return null
         try {
             const receipt = await publicClient.getTransactionReceipt({ hash })
-            for (const log of receipt.logs) {
-                if (log.address.toLowerCase() === PUMP_CORE_NATIVE_ADDRESS.toLowerCase()) {
-                    const tokenAddr = `0x${log.topics[1]?.slice(26)}` as Address
-                    if (tokenAddr && tokenAddr.length === 42) return tokenAddr
-                }
-            }
+            return parseTokenAddressFromLogs(receipt.logs)
         } catch {
-            // fall through
+            return null
         }
-        return null
     }
 
     // --- Effect: When create succeeds, trigger buy or mark success ---
@@ -188,23 +187,52 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
             // Parse token address then trigger buy
             didTriggerBuy.current = true
             setPhase('buying')
-            parseTokenAddress(createHash).then((tokenAddr) => {
+            parseTokenAddress(createHash).then(async (tokenAddr) => {
                 if (!tokenAddr) {
                     setPhaseError(new Error('Failed to parse token address from receipt'))
                     setPhase('error')
                     return
                 }
                 setCreatedTokenAddress(tokenAddr)
+
+                // Read on-chain reserves to confirm the RPC node has indexed the block
+                if (!publicClient) {
+                    setPhaseError(new Error('Public client not available'))
+                    setPhase('error')
+                    return
+                }
+                const reserveData = await publicClient.readContract({
+                    address: PUMP_CORE_NATIVE_ADDRESS,
+                    abi: PUMP_CORE_NATIVE_ABI,
+                    functionName: 'pumpReserve',
+                    args: [tokenAddr],
+                })
+                const [nativeReserve, tokenReserve] = reserveData as [bigint, bigint]
+                if (tokenReserve <= 0n) {
+                    setPhaseError(new Error('Token reserves not yet available'))
+                    setPhase('error')
+                    return
+                }
+
+                // Recalculate minTokenOut using actual on-chain reserves
+                const actualExpected = calculateBuyOutput(
+                    upfrontBuyNative,
+                    nativeReserve,
+                    tokenReserve,
+                    virtualAmount as bigint
+                )
+                const actualMinOut = calculateMinOutput(actualExpected, settings.slippageBps)
+
                 buyParamsRef.current = {
                     tokenAddr,
-                    minTokenOut,
+                    minTokenOut: actualMinOut,
                     buyAmount: upfrontBuyNative,
                 }
                 writeBuy({
                     address: PUMP_CORE_NATIVE_ADDRESS,
                     abi: PUMP_CORE_NATIVE_ABI,
                     functionName: 'buy',
-                    args: [tokenAddr, minTokenOut],
+                    args: [tokenAddr, actualMinOut],
                     value: upfrontBuyNative,
                     chainId: PUMP_CORE_NATIVE_CHAIN_ID,
                 })

@@ -1,5 +1,5 @@
-import { formatEther } from 'viem'
-import type { Address } from 'viem'
+import { formatEther, decodeEventLog } from 'viem'
+import type { Address, Log } from 'viem'
 import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_ABI } from '@/lib/abis/pump-core-native'
 
 const PUMP_FEE_BPS = 100n // 1%
@@ -181,4 +181,27 @@ export function getSellConfig(tokenAddr: Address, tokenAmount: bigint, minNative
         functionName: 'sell' as const,
         args: [tokenAddr, tokenAmount, minNativeOut] as const,
     }
+}
+
+/**
+ * Extract the token address from Creation event logs.
+ * The Creation event has `creator` indexed (topics[1]) and `tokenAddr` non-indexed (in data).
+ */
+export function parseTokenAddressFromLogs(logs: Log[]): Address | null {
+    for (const log of logs) {
+        if (log.address.toLowerCase() !== PUMP_CORE_NATIVE_ADDRESS.toLowerCase()) continue
+        try {
+            const decoded = decodeEventLog({
+                abi: PUMP_CORE_NATIVE_ABI,
+                data: log.data,
+                topics: log.topics,
+            })
+            if (decoded.eventName === 'Creation') {
+                return (decoded.args as { tokenAddr: Address }).tokenAddr
+            }
+        } catch {
+            continue
+        }
+    }
+    return null
 }
