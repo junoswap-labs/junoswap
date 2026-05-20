@@ -93,11 +93,13 @@ export function TokenStats({
                 <div className="space-y-1">
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                         <div
-                            className={cn(
-                                'h-full rounded-full transition-all duration-300',
-                                ready ? 'bg-amber-500' : 'bg-primary'
-                            )}
-                            style={{ width: `${Math.min(progress, 100)}%` }}
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                                width: `${Math.min(progress, 100)}%`,
+                                background: ready
+                                    ? 'linear-gradient(90deg, rgb(245 158 11 / 0.3), rgb(245 158 11))'
+                                    : `linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--primary)))`,
+                            }}
                         />
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">

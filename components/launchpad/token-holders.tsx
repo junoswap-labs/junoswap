@@ -3,7 +3,6 @@
 import type { Address } from 'viem'
 import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
-import { formatTokenAmount } from '@/services/launchpad'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Users } from 'lucide-react'
@@ -37,23 +36,8 @@ function HolderRow({ holder, rank }: { holder: HolderData; rank: number }) {
                     compact
                 />
             </TableCell>
-            <TableCell className="text-right font-mono tracking-tight">
-                {formatTokenAmount(holder.balance)}
-            </TableCell>
-            <TableCell className="w-24">
-                <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                            className="h-full rounded-full bg-primary/60"
-                            style={{
-                                width: `${Math.min(holder.percentage * 5, 100)}%`,
-                            }}
-                        />
-                    </div>
-                    <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
-                        {holder.percentage.toFixed(2)}%
-                    </span>
-                </div>
+            <TableCell className="w-24 text-right text-xs tabular-nums text-muted-foreground">
+                {holder.percentage.toFixed(2)}%
             </TableCell>
         </TableRow>
     )
@@ -69,9 +53,6 @@ function LoadingState() {
                     </TableCell>
                     <TableCell>
                         <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                    </TableCell>
-                    <TableCell>
-                        <div className="ml-auto h-4 w-24 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
                         <div className="h-4 w-20 animate-pulse rounded bg-muted" />
@@ -90,10 +71,9 @@ export function TokenHolders({ tokenAddr, className }: TokenHoldersProps) {
             <TableRow>
                 <TableHead className="w-8 text-[10px] uppercase tracking-wider">#</TableHead>
                 <TableHead className="text-[10px] uppercase tracking-wider">Address</TableHead>
-                <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                    Holdings
+                <TableHead className="w-24 text-right text-[10px] uppercase tracking-wider">
+                    % of Supply
                 </TableHead>
-                <TableHead className="w-24 text-[10px] uppercase tracking-wider">%</TableHead>
             </TableRow>
         </TableHeader>
     )

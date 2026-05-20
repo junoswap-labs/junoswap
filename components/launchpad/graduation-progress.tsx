@@ -38,8 +38,12 @@ export function GraduationProgress({
             <div className={cn('space-y-1.5', className)}>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                     <div
-                        className="h-full rounded-full bg-amber-500 transition-all duration-300"
-                        style={{ width: '100%' }}
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                            width: '100%',
+                            background:
+                                'linear-gradient(90deg, rgb(245 158 11 / 0.3), rgb(245 158 11))',
+                        }}
                     />
                 </div>
                 <div className="flex justify-between text-xs">
@@ -64,8 +68,11 @@ export function GraduationProgress({
         <div className={cn('space-y-1', className)}>
             <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                 <div
-                    className="h-full rounded-full bg-primary transition-all duration-300"
-                    style={{ width: `${Math.min(progress, 100)}%` }}
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                        width: `${Math.min(progress, 100)}%`,
+                        background: `linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--primary)))`,
+                    }}
                 />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">

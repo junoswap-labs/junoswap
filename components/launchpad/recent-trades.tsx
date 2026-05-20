@@ -5,7 +5,6 @@ import type { Address } from 'viem'
 import { formatDistanceToNow } from 'date-fns'
 
 import { useTokenSwapEvents } from '@/hooks/useTokenSwapEvents'
-import { calculatePrice } from '@/services/chart'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { cn } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
@@ -32,33 +31,19 @@ interface RecentTradesProps {
     className?: string
 }
 
-function formatTradePrice(price: number): string {
-    if (price === 0) return '0'
-    if (price < 0.00000001) return price.toExponential(2)
-    if (price < 0.0001) return price.toFixed(8)
-    if (price < 1) return price.toFixed(6)
-    if (price < 100) return price.toFixed(4)
-    return price.toFixed(2)
-}
-
 function TradeRow({
     trade,
     index,
-    tokenSymbol,
     nativeUsdPrice,
 }: {
     trade: SwapEventData
     index: number
-    tokenSymbol: string
     nativeUsdPrice: number | null
 }) {
-    const price = calculatePrice(trade)
-    const displayPrice = nativeUsdPrice !== null ? price * nativeUsdPrice : price
-    const valueKub = trade.isBuy
-        ? parseFloat(formatEther(trade.amountIn))
-        : parseFloat(formatEther(trade.amountOut))
+    const nativeAmount = trade.isBuy ? trade.amountIn : trade.amountOut
+    const tokenAmount = trade.isBuy ? trade.amountOut : trade.amountIn
+    const valueKub = parseFloat(formatEther(nativeAmount))
     const displayValue = nativeUsdPrice !== null ? valueKub * nativeUsdPrice : valueKub
-    const amount = parseFloat(formatEther(trade.amountIn))
 
     return (
         <TableRow
@@ -85,17 +70,19 @@ function TradeRow({
                 </span>
             </TableCell>
 
-            {/* Amount */}
+            {/* Amount (KUB) */}
             <TableCell className="hidden font-mono tracking-tight sm:table-cell">
-                {trade.isBuy
-                    ? `${formatKub(BigInt(Math.round(amount * 1e18)))} KUB`
-                    : `${formatTokenAmount(BigInt(Math.round(amount * 1e18)))} ${tokenSymbol}`}
+                {formatKub(nativeAmount)}
             </TableCell>
 
-            {/* Price */}
-            <TableCell className="font-mono tracking-tight">
-                {nativeUsdPrice !== null ? '$' : ''}
-                {formatTradePrice(displayPrice)}
+            {/* Token Amount */}
+            <TableCell
+                className={cn(
+                    'font-mono tracking-tight',
+                    trade.isBuy ? 'text-emerald-400' : 'text-red-400'
+                )}
+            >
+                {formatTokenAmount(tokenAmount)}
             </TableCell>
 
             {/* Value */}
@@ -141,7 +128,7 @@ function LoadingState() {
                         <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
-                        <div className="h-5 w-16 animate-pulse rounded bg-muted" />
+                        <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                         <div className="ml-auto h-5 w-14 animate-pulse rounded bg-muted" />
@@ -178,10 +165,10 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                                     Type
                                 </TableHead>
                                 <TableHead className="hidden text-[10px] uppercase tracking-wider sm:table-cell">
-                                    Amount
+                                    Amount (KUB)
                                 </TableHead>
                                 <TableHead className="text-[10px] uppercase tracking-wider">
-                                    Price
+                                    {tokenSymbol}
                                 </TableHead>
                                 <TableHead className="hidden text-right text-[10px] uppercase tracking-wider sm:table-cell">
                                     Value
@@ -213,10 +200,10 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                                         Type
                                     </TableHead>
                                     <TableHead className="hidden text-[10px] uppercase tracking-wider sm:table-cell">
-                                        Amount
+                                        Amount (KUB)
                                     </TableHead>
                                     <TableHead className="text-[10px] uppercase tracking-wider">
-                                        Price
+                                        {tokenSymbol}
                                     </TableHead>
                                     <TableHead className="hidden text-right text-[10px] uppercase tracking-wider sm:table-cell">
                                         Value
@@ -235,7 +222,6 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                                         key={`${trade.blockNumber}-${i}`}
                                         trade={trade}
                                         index={i}
-                                        tokenSymbol={tokenSymbol}
                                         nativeUsdPrice={nativeUsdPrice}
                                     />
                                 ))}
