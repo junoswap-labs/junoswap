@@ -1,9 +1,6 @@
 import { GraphQLClient, ClientError } from 'graphql-request'
 
-const ponderUrl = process.env.NEXT_PUBLIC_PONDER_URL || undefined
-const ponderEnabled = !!ponderUrl
-
-const client = ponderEnabled ? new GraphQLClient(`${ponderUrl}/graphql`) : null
+const client = new GraphQLClient('/api/ponder/graphql')
 
 const REQUEST_TIMEOUT_MS = 5_000
 
@@ -16,17 +13,13 @@ export function isPonderError(error: unknown): boolean {
 }
 
 export function ponderRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-    if (!ponderEnabled) {
-        throw new Error('Ponder not configured')
-    }
-
     if (Date.now() < circuitOpenUntil) {
         throw new Error('Ponder circuit breaker open')
     }
 
     const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
 
-    return client!
+    return client
         .request<T>({
             document: query,
             variables,
