@@ -1,158 +1,139 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { usePublicClient, useReadContracts } from 'wagmi'
-import { parseAbiItem } from 'viem'
+import { usePublicClient } from 'wagmi'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
-import { useTokenList } from '@/hooks/useTokenList'
+import { ponderRequest, isPonderError } from '@/lib/ponder-client'
+import { fetchAllSwapEventsRpc, fetchTokenListRpc } from '@/lib/rpc/launchpad-queries'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
-const SWAP_EVENT = parseAbiItem(
-    'event Swap(address indexed sender, bool indexed isBuy, address indexed tokenAddr, uint256 amountIn, uint256 amountOut, uint256 reserveIn, uint256 reserveOut)'
-)
+const ALL_SWAP_EVENTS_QUERY = `
+  query AllSwapEvents {
+    swapEvents(orderBy: "timestamp", orderDirection: "desc", limit: 50) {
+      items {
+        tokenAddr
+        sender
+        isBuy
+        amountIn
+        amountOut
+        reserveIn
+        reserveOut
+        timestamp
+        transactionHash
+      }
+    }
+    launchTokens {
+      items {
+        tokenAddr
+        logo
+        name
+        symbol
+      }
+    }
+  }
+`
 
-const DEPLOYMENT_BLOCK = 0n
-
-interface RawSwapEvent {
-    blockNumber: bigint
-    logIndex: number
-    timestamp: number
-    sender: Address
-    isBuy: boolean
-    tokenAddr: Address
-    amountIn: bigint
-    amountOut: bigint
-    reserveIn: bigint
-    reserveOut: bigint
-    transactionHash: `0x${string}`
+interface SwapEventsResponse {
+    swapEvents: {
+        items: Array<{
+            tokenAddr: string
+            sender: string
+            isBuy: number
+            amountIn: string
+            amountOut: string
+            reserveIn: string
+            reserveOut: string
+            timestamp: number
+            transactionHash: string
+        }>
+    }
+    launchTokens: {
+        items: Array<{
+            tokenAddr: string
+            logo: string
+            name: string
+            symbol: string
+        }>
+    }
 }
 
 export function useAllSwapEvents() {
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
-    const { tokens } = useTokenList()
 
-    // Build token lookup map from Creation events (has logo)
-    const tokenMap = useMemo(() => {
-        const map = new Map<string, { logo: string }>()
-        for (const token of tokens) {
-            map.set(token.address.toLowerCase(), { logo: token.logo })
-        }
-        return map
-    }, [tokens])
-
-    // Fetch all swap events (no tokenAddr filter)
     const {
-        data: rawEvents,
-        isLoading: isEventsLoading,
+        data: events = [],
+        isLoading,
         ...rest
     } = useQuery({
-        queryKey: ['all-swap-events', PUMP_CORE_NATIVE_CHAIN_ID],
-        queryFn: async (): Promise<RawSwapEvent[]> => {
-            if (!publicClient) return []
+        queryKey: ['all-swap-events'],
+        queryFn: async (): Promise<EnrichedSwapEvent[]> => {
+            try {
+                const data = await ponderRequest<SwapEventsResponse>(ALL_SWAP_EVENTS_QUERY)
 
-            const logs = await publicClient.getLogs({
-                address: PUMP_CORE_NATIVE_ADDRESS,
-                event: SWAP_EVENT,
-                fromBlock: DEPLOYMENT_BLOCK,
-                toBlock: 'latest',
-            })
+                const tokenMeta = new Map<string, { logo: string; name: string; symbol: string }>()
+                for (const token of data.launchTokens.items) {
+                    tokenMeta.set(token.tokenAddr.toLowerCase(), {
+                        logo: token.logo ?? '',
+                        name: token.name ?? '',
+                        symbol: token.symbol ?? '',
+                    })
+                }
 
-            if (logs.length === 0) return []
+                // Fetch missing symbols on-chain
+                if (publicClient) {
+                    const missing = [...tokenMeta.entries()].filter(([, m]) => !m.symbol)
+                    if (missing.length > 0) {
+                        const results = await Promise.allSettled(
+                            missing.map(([addr]) =>
+                                publicClient.readContract({
+                                    address: addr as Address,
+                                    abi: ERC20_ABI,
+                                    functionName: 'symbol',
+                                })
+                            )
+                        )
+                        results.forEach((r, i) => {
+                            if (r.status === 'fulfilled') {
+                                const entry = missing[i]
+                                if (!entry) return
+                                const meta = tokenMeta.get(entry[0])!
+                                meta.symbol = r.value as string
+                            }
+                        })
+                    }
+                }
 
-            // Deduplicate block numbers and fetch timestamps
-            const blockNumbers = [...new Set(logs.map((l) => l.blockNumber))]
-            const blockMap = new Map<bigint, number>()
-
-            await Promise.all(
-                blockNumbers.map(async (bn) => {
-                    const block = await publicClient.getBlock({ blockNumber: bn })
-                    blockMap.set(bn, Number(block.timestamp))
+                return data.swapEvents.items.map((e): EnrichedSwapEvent => {
+                    const meta = tokenMeta.get(e.tokenAddr.toLowerCase())
+                    return {
+                        blockNumber: BigInt(0),
+                        logIndex: 0,
+                        timestamp: e.timestamp,
+                        sender: e.sender as Address,
+                        isBuy: e.isBuy === 1,
+                        tokenAddr: e.tokenAddr as Address,
+                        amountIn: BigInt(e.amountIn),
+                        amountOut: BigInt(e.amountOut),
+                        reserveIn: BigInt(e.reserveIn),
+                        reserveOut: BigInt(e.reserveOut),
+                        transactionHash: e.transactionHash as `0x${string}`,
+                        tokenSymbol: meta?.symbol || '???',
+                        tokenName: meta?.name ?? '',
+                        tokenLogo: meta?.logo ?? '',
+                    }
                 })
-            )
-
-            return logs.map((log) => ({
-                blockNumber: log.blockNumber,
-                logIndex: log.logIndex,
-                timestamp: blockMap.get(log.blockNumber) ?? 0,
-                sender: log.args.sender as Address,
-                isBuy: log.args.isBuy ?? false,
-                tokenAddr: log.args.tokenAddr as Address,
-                amountIn: log.args.amountIn ?? 0n,
-                amountOut: log.args.amountOut ?? 0n,
-                reserveIn: log.args.reserveIn ?? 0n,
-                reserveOut: log.args.reserveOut ?? 0n,
-                transactionHash: log.transactionHash,
-            }))
+            } catch (e) {
+                if (!isPonderError(e) || !publicClient) throw e
+                const tokenList = await fetchTokenListRpc(publicClient)
+                return fetchAllSwapEventsRpc(publicClient, tokenList)
+            }
         },
         enabled: !!publicClient,
         staleTime: 15_000,
         refetchInterval: 15_000,
     })
 
-    // Extract unique token addresses from events
-    const uniqueAddrs = useMemo(() => {
-        if (!rawEvents) return []
-        const seen = new Set<string>()
-        const addrs: Address[] = []
-        for (const event of rawEvents) {
-            const lower = event.tokenAddr.toLowerCase()
-            if (!seen.has(lower)) {
-                seen.add(lower)
-                addrs.push(event.tokenAddr)
-            }
-        }
-        return addrs
-    }, [rawEvents])
-
-    // Batch fetch symbol for unique tokens
-    const { data: symbolResults } = useReadContracts({
-        contracts: uniqueAddrs.map((addr) => ({
-            address: addr,
-            abi: ERC20_ABI,
-            functionName: 'symbol' as const,
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        })),
-        query: { enabled: uniqueAddrs.length > 0 },
-    })
-
-    // Merge into enriched events
-    const enrichedEvents: EnrichedSwapEvent[] = useMemo(() => {
-        if (!rawEvents) return []
-
-        // Build address -> index lookup for symbol results
-        const addrIndexMap = new Map<string, number>()
-        uniqueAddrs.forEach((addr, i) => {
-            addrIndexMap.set(addr.toLowerCase(), i)
-        })
-
-        return rawEvents
-            .map((event) => {
-                const idx = addrIndexMap.get(event.tokenAddr.toLowerCase()) ?? -1
-                const symbol =
-                    idx >= 0 ? (symbolResults?.[idx]?.result as string | undefined) : undefined
-                const logo = tokenMap.get(event.tokenAddr.toLowerCase())?.logo ?? ''
-
-                return {
-                    ...event,
-                    tokenSymbol: symbol ?? '???',
-                    tokenName: '',
-                    tokenLogo: logo,
-                }
-            })
-            .sort((a, b) => {
-                // Sort by blockNumber desc, then logIndex desc
-                if (b.blockNumber !== a.blockNumber) return Number(b.blockNumber - a.blockNumber)
-                return b.logIndex - a.logIndex
-            })
-            .slice(0, 50)
-    }, [rawEvents, uniqueAddrs, symbolResults, tokenMap])
-
-    return {
-        data: enrichedEvents,
-        isLoading: isEventsLoading,
-        ...rest,
-    }
+    return { data: events, isLoading, ...rest }
 }

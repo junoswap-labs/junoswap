@@ -2,72 +2,78 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { usePublicClient } from 'wagmi'
-import { parseAbiItem } from 'viem'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { ponderRequest, isPonderError } from '@/lib/ponder-client'
+import { fetchTokenSwapEventsRpc, type SwapEventData } from '@/lib/rpc/launchpad-queries'
 
-const SWAP_EVENT = parseAbiItem(
-    'event Swap(address indexed sender, bool indexed isBuy, address indexed tokenAddr, uint256 amountIn, uint256 amountOut, uint256 reserveIn, uint256 reserveOut)'
-)
+export type { SwapEventData }
 
-const DEPLOYMENT_BLOCK = 0n
+const TOKEN_SWAP_EVENTS_QUERY = `
+  query TokenSwapEvents($tokenAddr: String!) {
+    swapEvents(where: { tokenAddr: $tokenAddr }, orderBy: "timestamp", orderDirection: "desc") {
+      items {
+        sender
+        isBuy
+        amountIn
+        amountOut
+        reserveIn
+        reserveOut
+        timestamp
+        transactionHash
+        blockNumber
+      }
+    }
+  }
+`
 
-export interface SwapEventData {
-    blockNumber: bigint
-    timestamp: number
-    sender: Address
-    isBuy: boolean
-    amountIn: bigint
-    amountOut: bigint
-    reserveIn: bigint
-    reserveOut: bigint
-    transactionHash: `0x${string}`
+interface TokenSwapEventsResponse {
+    swapEvents: {
+        items: Array<{
+            sender: string
+            isBuy: number
+            amountIn: string
+            amountOut: string
+            reserveIn: string
+            reserveOut: string
+            timestamp: number
+            transactionHash: string
+            blockNumber: number
+        }>
+    }
 }
 
 export function useTokenSwapEvents(tokenAddr: Address | undefined) {
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     return useQuery({
-        queryKey: ['token-swap-events', tokenAddr, PUMP_CORE_NATIVE_CHAIN_ID],
+        queryKey: ['token-swap-events', tokenAddr?.toLowerCase()],
         queryFn: async (): Promise<SwapEventData[]> => {
-            if (!publicClient || !tokenAddr) return []
+            if (!tokenAddr) return []
 
-            const logs = await publicClient.getLogs({
-                address: PUMP_CORE_NATIVE_ADDRESS,
-                event: SWAP_EVENT,
-                args: {
-                    tokenAddr,
-                },
-                fromBlock: DEPLOYMENT_BLOCK,
-                toBlock: 'latest',
-            })
-
-            if (logs.length === 0) return []
-
-            // Fetch block timestamps — deduplicate block numbers
-            const blockNumbers = [...new Set(logs.map((l) => l.blockNumber))]
-            const blockMap = new Map<bigint, number>()
-
-            await Promise.all(
-                blockNumbers.map(async (bn) => {
-                    const block = await publicClient.getBlock({ blockNumber: bn })
-                    blockMap.set(bn, Number(block.timestamp))
+            try {
+                const data = await ponderRequest<TokenSwapEventsResponse>(TOKEN_SWAP_EVENTS_QUERY, {
+                    tokenAddr: tokenAddr.toLowerCase(),
                 })
-            )
 
-            return logs.map((log) => ({
-                blockNumber: log.blockNumber,
-                timestamp: blockMap.get(log.blockNumber) ?? 0,
-                sender: log.args.sender as Address,
-                isBuy: log.args.isBuy ?? false,
-                amountIn: log.args.amountIn ?? 0n,
-                amountOut: log.args.amountOut ?? 0n,
-                reserveIn: log.args.reserveIn ?? 0n,
-                reserveOut: log.args.reserveOut ?? 0n,
-                transactionHash: log.transactionHash,
-            }))
+                return data.swapEvents.items.map((e) => ({
+                    blockNumber: BigInt(e.blockNumber),
+                    timestamp: e.timestamp,
+                    sender: e.sender as Address,
+                    isBuy: e.isBuy === 1,
+                    tokenAddr: tokenAddr,
+                    amountIn: BigInt(e.amountIn),
+                    amountOut: BigInt(e.amountOut),
+                    reserveIn: BigInt(e.reserveIn),
+                    reserveOut: BigInt(e.reserveOut),
+                    transactionHash: e.transactionHash as `0x${string}`,
+                }))
+            } catch (e) {
+                if (!isPonderError(e) || !publicClient) throw e
+                return fetchTokenSwapEventsRpc(publicClient, tokenAddr)
+            }
         },
-        enabled: !!publicClient && !!tokenAddr,
+        enabled: !!tokenAddr && !!publicClient,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })

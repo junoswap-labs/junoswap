@@ -47,7 +47,7 @@ function TradeRow({
 
     return (
         <TableRow
-            key={`${trade.blockNumber}-${index}`}
+            key={`${trade.transactionHash}-${index}`}
             className="cursor-pointer hover:bg-muted/40 transition-colors"
             onClick={() =>
                 window.open(
@@ -219,7 +219,7 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                             <TableBody>
                                 {trades.map((trade, i) => (
                                     <TradeRow
-                                        key={`${trade.blockNumber}-${i}`}
+                                        key={`${trade.transactionHash}-${i}`}
                                         trade={trade}
                                         index={i}
                                         nativeUsdPrice={nativeUsdPrice}

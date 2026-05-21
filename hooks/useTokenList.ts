@@ -2,18 +2,45 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { usePublicClient } from 'wagmi'
-import { parseAbiItem } from 'viem'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { ponderRequest, isPonderError } from '@/lib/ponder-client'
+import { fetchTokenListRpc } from '@/lib/rpc/launchpad-queries'
 import type { LaunchToken } from '@/types/launchpad'
 
-const CREATION_EVENT = parseAbiItem(
-    'event Creation(address indexed creator, address tokenAddr, string logo, string description, string link1, string link2, string link3, uint256 createdTime)'
-)
+const TOKEN_LIST_QUERY = `
+  query TokenList {
+    launchTokens(orderBy: "createdTime", orderDirection: "desc") {
+      items {
+        tokenAddr
+        creator
+        logo
+        description
+        link1
+        link2
+        link3
+        createdTime
+        isGraduated
+      }
+    }
+  }
+`
 
-// Block number where PumpCoreNative was deployed on KUB Testnet
-// Update this after deployment if known, or use 0 to scan from genesis
-const DEPLOYMENT_BLOCK = 0n
+interface TokenListResponse {
+    launchTokens: {
+        items: Array<{
+            tokenAddr: string
+            creator: string
+            logo: string
+            description: string
+            link1: string
+            link2: string
+            link3: string
+            createdTime: number
+            isGraduated: number
+        }>
+    }
+}
 
 interface UseTokenListResult {
     tokens: LaunchToken[]
@@ -29,37 +56,32 @@ export function useTokenList(): UseTokenListResult {
         isLoading,
         refetch,
     } = useQuery({
-        queryKey: ['launchpad-token-list', PUMP_CORE_NATIVE_CHAIN_ID],
+        queryKey: ['launchpad-token-list'],
         queryFn: async () => {
-            if (!publicClient) return []
-
-            const logs = await publicClient.getLogs({
-                address: PUMP_CORE_NATIVE_ADDRESS,
-                event: CREATION_EVENT,
-                fromBlock: DEPLOYMENT_BLOCK,
-                toBlock: 'latest',
-            })
-
-            const parsedTokens: LaunchToken[] = logs.map((log) => ({
-                address: log.args.tokenAddr as Address,
-                name: '', // Not in event, read from contract
-                symbol: '', // Not in event, read from contract
-                logo: log.args.logo ?? '',
-                description: log.args.description ?? '',
-                link1: log.args.link1 ?? '',
-                link2: log.args.link2 ?? '',
-                link3: log.args.link3 ?? '',
-                creator: log.args.creator as Address,
-                createdTime: Number(log.args.createdTime ?? 0),
-                chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-            }))
-
-            // Sort newest first
-            parsedTokens.sort((a, b) => b.createdTime - a.createdTime)
-            return parsedTokens
+            try {
+                const data = await ponderRequest<TokenListResponse>(TOKEN_LIST_QUERY)
+                return data.launchTokens.items.map(
+                    (t): LaunchToken => ({
+                        address: t.tokenAddr as Address,
+                        name: '',
+                        symbol: '',
+                        logo: t.logo ?? '',
+                        description: t.description ?? '',
+                        link1: t.link1 ?? '',
+                        link2: t.link2 ?? '',
+                        link3: t.link3 ?? '',
+                        creator: t.creator as Address,
+                        createdTime: t.createdTime,
+                        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    })
+                )
+            } catch (e) {
+                if (!isPonderError(e) || !publicClient) throw e
+                return fetchTokenListRpc(publicClient)
+            }
         },
         enabled: !!publicClient,
-        staleTime: 30_000, // 30 seconds
+        staleTime: 30_000,
     })
 
     return { tokens, isLoading, refetch }

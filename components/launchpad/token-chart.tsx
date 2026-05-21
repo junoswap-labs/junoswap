@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import {
     createChart,
     CandlestickSeries,
@@ -51,11 +51,6 @@ function formatMcap(value: number): string {
 
 function formatChartValue(value: number, mode: ChartMode): string {
     return mode === 'mcap' ? formatMcap(value) : formatPrice(value)
-}
-
-function formatUsdChartValue(value: number, mode: ChartMode, isUsd: boolean): string {
-    const formatted = formatChartValue(value, mode)
-    return isUsd && formatted !== '<0.0001' && formatted !== '<0.01' ? `$${formatted}` : formatted
 }
 
 function useChartColors() {
@@ -153,8 +148,9 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
         return result
     }, [data, nativeUsdPrice, nativeReserve, tokenReserve, chartMode, timeframe])
 
-    // OHLCV overlay state
-    const [ohlcvData, setOhlcvData] = useState<{
+    // OHLCV overlay - updated via DOM to avoid re-render loops
+    const ohlcvRef = useRef<HTMLDivElement>(null)
+    const currentOhlcv = useRef<{
         open: number
         high: number
         low: number
@@ -162,7 +158,41 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
         volume: number
         change: number
     } | null>(null)
-    const lastCandleRef = useRef<typeof ohlcvData>(null)
+    const lastCandleRef = useRef(currentOhlcv.current)
+    const updateOhlcvDom = useRef<
+        (
+            d: {
+                open: number
+                high: number
+                low: number
+                close: number
+                volume: number
+                change: number
+            } | null
+        ) => void
+    >(() => {})
+
+    updateOhlcvDom.current = (d) => {
+        currentOhlcv.current = d
+        const el = ohlcvRef.current
+        if (!el || !d) {
+            if (el) el.style.display = 'none'
+            return
+        }
+        el.style.display = ''
+        const isUsd = nativeUsdPrice !== null
+        const prefix = isUsd ? '$' : ''
+        const fmt = (v: number) => `${prefix}${formatChartValue(v, chartMode)}`
+        const up = chartColors.ohlcvUp
+        const down = chartColors.ohlcvDown
+        const cls = (cond: boolean) => (cond ? up : down)
+        el.innerHTML =
+            `<span class="text-muted-foreground">O <span class="${cls(d.open <= d.close)}">${fmt(d.open)}</span></span>` +
+            `<span class="text-muted-foreground">H <span class="${cls(d.high >= d.close)}">${fmt(d.high)}</span></span>` +
+            `<span class="text-muted-foreground">L <span class="${cls(d.low <= d.close)}">${fmt(d.low)}</span></span>` +
+            `<span class="text-muted-foreground">C <span class="${cls(d.change >= 0)}">${fmt(d.close)}</span></span>` +
+            `<span class="font-semibold ${cls(d.change >= 0)}">${d.change >= 0 ? '+' : ''}${d.change.toFixed(2)}%</span>`
+    }
 
     // Initialize chart
     useEffect(() => {
@@ -243,7 +273,7 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
             param: Parameters<Parameters<typeof chart.subscribeCrosshairMove>[0]>[0]
         ) => {
             if (!param.time || !param.point) {
-                setOhlcvData(lastCandleRef.current)
+                updateOhlcvDom.current(lastCandleRef.current)
                 return
             }
 
@@ -261,7 +291,7 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
                 const change =
                     ohlcv.open !== 0 ? ((ohlcv.close - ohlcv.open) / ohlcv.open) * 100 : 0
 
-                setOhlcvData({ ...ohlcv, volume, change })
+                updateOhlcvDom.current({ ...ohlcv, volume, change })
             }
         }
         chart.subscribeCrosshairMove(crosshairHandler)
@@ -341,7 +371,7 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
             })
 
             // Update OHLCV overlay fallback
-            lastCandleRef.current = {
+            const ohlcv = {
                 open: lastCandle.open,
                 high: lastCandle.high,
                 low: lastCandle.low,
@@ -352,7 +382,8 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
                         ? ((lastCandle.close - lastCandle.open) / lastCandle.open) * 100
                         : 0,
             }
-            setOhlcvData(lastCandleRef.current)
+            lastCandleRef.current = ohlcv
+            updateOhlcvDom.current(ohlcv)
         }
 
         chartRef.current?.timeScale().fitContent()
@@ -420,84 +451,12 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
 
             {/* Chart area with OHLCV overlay */}
             <div className="relative">
-                {/* OHLCV overlay */}
-                {ohlcvData && (
-                    <div className="pointer-events-none absolute left-2 top-2 z-10 flex flex-wrap items-center gap-2 font-mono text-[10px] sm:left-3 sm:gap-3 sm:text-[11px]">
-                        <span className="text-muted-foreground">
-                            O{' '}
-                            <span
-                                className={
-                                    ohlcvData.open <= ohlcvData.close
-                                        ? chartColors.ohlcvUp
-                                        : chartColors.ohlcvDown
-                                }
-                            >
-                                {formatUsdChartValue(
-                                    ohlcvData.open,
-                                    chartMode,
-                                    nativeUsdPrice !== null
-                                )}
-                            </span>
-                        </span>
-                        <span className="text-muted-foreground">
-                            H{' '}
-                            <span
-                                className={
-                                    ohlcvData.high >= ohlcvData.close
-                                        ? chartColors.ohlcvUp
-                                        : chartColors.ohlcvDown
-                                }
-                            >
-                                {formatUsdChartValue(
-                                    ohlcvData.high,
-                                    chartMode,
-                                    nativeUsdPrice !== null
-                                )}
-                            </span>
-                        </span>
-                        <span className="text-muted-foreground">
-                            L{' '}
-                            <span
-                                className={
-                                    ohlcvData.low <= ohlcvData.close
-                                        ? chartColors.ohlcvUp
-                                        : chartColors.ohlcvDown
-                                }
-                            >
-                                {formatUsdChartValue(
-                                    ohlcvData.low,
-                                    chartMode,
-                                    nativeUsdPrice !== null
-                                )}
-                            </span>
-                        </span>
-                        <span className="text-muted-foreground">
-                            C{' '}
-                            <span
-                                className={
-                                    ohlcvData.change >= 0
-                                        ? chartColors.ohlcvUp
-                                        : chartColors.ohlcvDown
-                                }
-                            >
-                                {formatUsdChartValue(
-                                    ohlcvData.close,
-                                    chartMode,
-                                    nativeUsdPrice !== null
-                                )}
-                            </span>
-                        </span>
-                        <span
-                            className={cn(
-                                'font-semibold',
-                                ohlcvData.change >= 0 ? chartColors.ohlcvUp : chartColors.ohlcvDown
-                            )}
-                        >
-                            {ohlcvData.change >= 0 ? '+' : ''}
-                            {ohlcvData.change.toFixed(2)}%
-                        </span>
-                    </div>
-                )}
+                {/* OHLCV overlay - updated via DOM to avoid re-render loops */}
+                <div
+                    ref={ohlcvRef}
+                    style={{ display: 'none' }}
+                    className="pointer-events-none absolute left-2 top-2 z-10 flex flex-wrap items-center gap-2 font-mono text-[10px] sm:left-3 sm:gap-3 sm:text-[11px]"
+                />
 
                 <div
                     ref={chartContainerRef}

@@ -123,10 +123,7 @@ export function ActivityTicker() {
                 <div className="min-w-0 flex-1 overflow-hidden py-2 pl-3">
                     <div className="ticker-scroll flex items-center gap-2">
                         {tickerItems.map((event, i) => (
-                            <TradeChip
-                                key={`${event.blockNumber}-${event.logIndex}-${i}`}
-                                event={event}
-                            />
+                            <TradeChip key={`${event.transactionHash}-${i}`} event={event} />
                         ))}
                     </div>
                 </div>

@@ -25,5 +25,5 @@
         "moduleResolution": "bundler"
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-    "exclude": ["node_modules", "relayer"]
+    "exclude": ["node_modules", "indexer"]
 }

@@ -1,54 +1,127 @@
 'use client'
 
-import { useMemo } from 'react'
-import type { Address } from 'viem'
+import { useQuery } from '@tanstack/react-query'
+import { usePublicClient } from 'wagmi'
 import { parseEther } from 'viem'
-import { useTokenSwapEvents } from '@/hooks/useTokenSwapEvents'
+import type { Address } from 'viem'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { ERC20_ABI } from '@/lib/abis/erc20'
+import { ponderRequest, isPonderError } from '@/lib/ponder-client'
+import { fetchTokenSwapEventsRpc, computeHoldersFromEvents } from '@/lib/rpc/launchpad-queries'
+import type { HolderData } from '@/lib/rpc/launchpad-queries'
 
-const TOTAL_SUPPLY = parseEther('1000000000') // 1 billion tokens with 18 decimals
+export type { HolderData }
 
-export interface HolderData {
-    address: Address
-    balance: bigint
-    percentage: number
+const TOKEN_HOLDERS_QUERY = `
+  query TokenHolders($tokenAddr: String!) {
+    tokenHolders(where: { tokenAddr: $tokenAddr }, limit: 30) {
+      items {
+        address
+      }
+    }
+    tokenSnapshots(where: { tokenAddr: $tokenAddr }) {
+      items {
+        holderCount
+      }
+    }
+  }
+`
+
+interface TokenHoldersResponse {
+    tokenHolders: {
+        items: Array<{
+            address: string
+        }>
+    }
+    tokenSnapshots: {
+        items: Array<{
+            holderCount: number
+        }>
+    }
+}
+
+const TOTAL_SUPPLY = parseEther('1000000000')
+
+async function fetchRealBalances(
+    publicClient: NonNullable<ReturnType<typeof usePublicClient>>,
+    tokenAddr: Address,
+    addresses: Address[]
+): Promise<HolderData[]> {
+    if (addresses.length === 0) return []
+
+    const results = await Promise.allSettled(
+        addresses.map((addr) =>
+            publicClient.readContract({
+                address: tokenAddr,
+                abi: ERC20_ABI,
+                functionName: 'balanceOf',
+                args: [addr],
+            })
+        )
+    )
+
+    const holders: HolderData[] = results
+        .map((result, i) => {
+            if (result.status !== 'fulfilled') return null
+            const balance = result.value as bigint
+            if (balance === 0n) return null
+            return {
+                address: addresses[i],
+                balance,
+                percentage: TOTAL_SUPPLY > 0n ? Number((balance * 10000n) / TOTAL_SUPPLY) / 100 : 0,
+            }
+        })
+        .filter((h): h is HolderData => h !== null)
+        .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0))
+        .slice(0, 20)
+
+    return holders
 }
 
 export function useTokenHolders(tokenAddr: Address | undefined) {
-    const { data: events, isLoading } = useTokenSwapEvents(tokenAddr)
+    const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
-    const { holders, holderCount } = useMemo(() => {
-        if (!events || events.length === 0) {
-            return { holders: [], holderCount: 0 }
-        }
+    const { data, isLoading } = useQuery({
+        queryKey: ['token-holders', tokenAddr?.toLowerCase()],
+        queryFn: async () => {
+            if (!tokenAddr || !publicClient) return { holders: [], holderCount: 0 }
 
-        const balanceMap = new Map<Address, bigint>()
+            // Step 1: Get holder addresses (from Ponder or RPC fallback)
+            let addresses: Address[]
+            let holderCount: number
 
-        for (const event of events) {
-            const current = balanceMap.get(event.sender) ?? 0n
-            if (event.isBuy) {
-                // Buyer receives amountOut tokens
-                balanceMap.set(event.sender, current + event.amountOut)
-            } else {
-                // Seller sends amountIn tokens
-                balanceMap.set(event.sender, current - event.amountIn)
+            try {
+                const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
+                    tokenAddr: tokenAddr.toLowerCase(),
+                })
+                addresses = result.tokenHolders.items.map((h) => h.address as Address)
+                holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
+            } catch (e) {
+                if (!isPonderError(e)) throw e
+                console.warn('[useTokenHolders] Ponder error, falling back to RPC:', e)
+                const events = await fetchTokenSwapEventsRpc(publicClient, tokenAddr)
+                const computed = computeHoldersFromEvents(events)
+                addresses = computed.holders.map((h) => h.address)
+                holderCount = computed.holderCount
             }
-        }
 
-        // Filter to positive balances, sort descending
-        const sorted = Array.from(balanceMap.entries())
-            .filter(([, balance]) => balance > 0n)
-            .sort((a, b) => (b[1] > a[1] ? 1 : b[1] < a[1] ? -1 : 0))
-            .slice(0, 20)
-            .map(([address, balance]) => ({
-                address,
-                balance,
-                percentage: TOTAL_SUPPLY > 0n ? Number((balance * 10000n) / TOTAL_SUPPLY) / 100 : 0,
-            }))
+            // Step 2: Always fetch real on-chain balances via balanceOf
+            const allAddresses = [...new Set(addresses)] as Address[]
+            const holders = await fetchRealBalances(publicClient, tokenAddr, allAddresses)
 
-        const count = Array.from(balanceMap.values()).filter((b) => b > 0n).length
+            // Count real holders with positive balance
+            const realHolderCount = holders.filter((h) => h.balance > 0n).length
 
-        return { holders: sorted, holderCount: count }
-    }, [events])
+            return { holders, holderCount: Math.max(holderCount, realHolderCount) }
+        },
+        enabled: !!tokenAddr && !!publicClient,
+        staleTime: 30_000,
+        refetchInterval: 30_000,
+    })
 
-    return { holders, holderCount, isLoading }
+    return {
+        holders: data?.holders ?? [],
+        holderCount: data?.holderCount ?? 0,
+        isLoading,
+    }
 }
