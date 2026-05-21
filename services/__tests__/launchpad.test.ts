@@ -61,14 +61,15 @@ describe('calculateSellOutput', () => {
 describe('calculateMarketCap', () => {
     it('returns "0" when circulating supply is zero', () => {
         const totalSupply = 1000n
-        expect(calculateMarketCap(500n, totalSupply, totalSupply)).toBe('0')
+        expect(calculateMarketCap(500n, totalSupply, totalSupply, 100n)).toBe('0')
     })
 
     it('calculates market cap correctly', () => {
         const totalSupply = 1000000000n * 10n ** 18n
         const tokenReserve = 800000000n * 10n ** 18n
         const nativeReserve = 100n * 10n ** 18n
-        const result = calculateMarketCap(nativeReserve, tokenReserve, totalSupply)
+        const virtualAmount = 50n * 10n ** 18n
+        const result = calculateMarketCap(nativeReserve, tokenReserve, totalSupply, virtualAmount)
         expect(parseFloat(result)).toBeGreaterThan(0)
     })
 })

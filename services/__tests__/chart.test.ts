@@ -74,7 +74,7 @@ describe('aggregateCandlesticks', () => {
         expect(candles).toHaveLength(2)
     })
 
-    it('forward-fills missing time buckets', () => {
+    it('forward-fills missing time buckets between trades', () => {
         // Two events 3 hours apart in 1h timeframe → should produce 3 candles
         const events = [
             makeEvent(100, true, 10n ** 18n, 100n * 10n ** 18n),
@@ -84,14 +84,30 @@ describe('aggregateCandlesticks', () => {
         expect(candles).toHaveLength(3)
     })
 
-    it('links each candle open to previous close', () => {
+    it('preserves real trade open for candles with trades', () => {
         const events = [
             makeEvent(100, true, 10n ** 18n, 100n * 10n ** 18n),
             makeEvent(3700, true, 5n * 10n ** 18n, 200n * 10n ** 18n),
         ]
         const candles = aggregateCandlesticks(events, '1h')
         expect(candles.length).toBeGreaterThanOrEqual(2)
+        // Second candle's open should be its actual first trade price
+        const secondCandleFirstTradePrice = calculateMarketCapValue(events[1]!)
+        expect(candles[1]!.open).toBeCloseTo(secondCandleFirstTradePrice)
+    })
+
+    it('forward-filled candles use prev close for continuity', () => {
+        const events = [
+            makeEvent(100, true, 10n ** 18n, 100n * 10n ** 18n),
+            makeEvent(7200 + 100, true, 10n ** 18n, 50n * 10n ** 18n),
+        ]
+        const candles = aggregateCandlesticks(events, '1h')
+        // Middle candle (forward-filled) should have open = prev close
         expect(candles[1]!.open).toBe(candles[0]!.close)
+        expect(candles[1]!.high).toBe(candles[0]!.close)
+        expect(candles[1]!.low).toBe(candles[0]!.close)
+        expect(candles[1]!.close).toBe(candles[0]!.close)
+        expect(candles[1]!.volume).toBe(0)
     })
 
     it('works with different timeframes', () => {

@@ -52,6 +52,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const {
         nativeReserve,
         tokenReserve,
+        virtualAmount,
         isGraduated,
         graduationAmount,
         isLoading: isLoadingReserves,
@@ -65,9 +66,10 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const { currentPrice, priceChangePercent24h, isPositive } = useTokenPrice(tokenAddr)
 
     const marketCap =
-        nativeReserve > 0n && tokenReserve > 0n
+        virtualAmount > 0n && nativeReserve > 0n && tokenReserve > 0n
             ? String(
-                  (parseFloat(formatEther(nativeReserve)) / parseFloat(formatEther(tokenReserve))) *
+                  (parseFloat(formatEther(virtualAmount + nativeReserve)) /
+                      parseFloat(formatEther(tokenReserve))) *
                       1e9
               )
             : '0'
@@ -243,6 +245,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         tokenAddr={tokenAddr}
                         nativeReserve={nativeReserve}
                         tokenReserve={tokenReserve}
+                        virtualAmount={virtualAmount}
                     />
 
                     {/* Recent trades */}

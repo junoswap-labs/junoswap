@@ -59,11 +59,13 @@ function getAmountOut(inputAmount: bigint, inputReserve: bigint, outputReserve: 
 export function calculateMarketCap(
     nativeReserve: bigint,
     tokenReserve: bigint,
-    totalSupply: bigint
+    totalSupply: bigint,
+    virtualAmount: bigint
 ): string {
+    const effectiveReserve = virtualAmount + nativeReserve
     const circulatingSupply = totalSupply - tokenReserve
     if (circulatingSupply <= 0n) return '0'
-    const marketCap = (nativeReserve * totalSupply) / circulatingSupply
+    const marketCap = (effectiveReserve * totalSupply) / circulatingSupply
     return formatEther(marketCap)
 }
 

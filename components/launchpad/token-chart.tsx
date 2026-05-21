@@ -30,6 +30,7 @@ interface TokenChartProps {
     tokenAddr: Address
     nativeReserve?: bigint
     tokenReserve?: bigint
+    virtualAmount?: bigint
     className?: string
 }
 
@@ -74,7 +75,13 @@ function useChartColors() {
     )
 }
 
-export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }: TokenChartProps) {
+export function TokenChart({
+    tokenAddr,
+    nativeReserve,
+    tokenReserve,
+    virtualAmount,
+    className,
+}: TokenChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const chartRef = useRef<IChartApi | null>(null)
     const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
@@ -102,51 +109,57 @@ export function TokenChart({ tokenAddr, nativeReserve, tokenReserve, className }
             }))
         }
 
-        // Append current price point from live reserves
+        if (result.length === 0) return result
+
+        // Step 1: Update last trade candle with live bonding curve spot price
         if (
+            virtualAmount !== undefined &&
             nativeReserve !== undefined &&
             nativeReserve > 0n &&
             tokenReserve !== undefined &&
-            tokenReserve > 0n &&
-            result.length > 0
+            tokenReserve > 0n
         ) {
             const price =
-                parseFloat(formatEther(nativeReserve)) / parseFloat(formatEther(tokenReserve))
+                parseFloat(formatEther(virtualAmount + nativeReserve)) /
+                parseFloat(formatEther(tokenReserve))
             const value = chartMode === 'mcap' ? price * 1e9 : price
             const displayValue = nativeUsdPrice !== null ? value * nativeUsdPrice : value
-            const now = Math.floor(Date.now() / 1000)
-            const duration = TIMEFRAME_DURATIONS[timeframe]
-            const candleTime = Math.floor(now / duration) * duration
-            const lastCandle = result[result.length - 1]
+            const lastIdx = result.length - 1
 
-            if (lastCandle && lastCandle.time === candleTime) {
-                result = result.map((d, i) =>
-                    i === result.length - 1
-                        ? {
-                              ...d,
-                              close: displayValue,
-                              high: Math.max(d.high, displayValue),
-                              low: Math.min(d.low, displayValue),
-                          }
-                        : d
-                )
-            } else if (lastCandle) {
-                result = [
-                    ...result,
-                    {
-                        time: candleTime,
-                        open: lastCandle.close,
-                        high: Math.max(lastCandle.close, displayValue),
-                        low: Math.min(lastCandle.close, displayValue),
-                        close: displayValue,
-                        volume: 0,
-                    },
-                ]
+            result = result.map((d, i) =>
+                i === lastIdx
+                    ? {
+                          ...d,
+                          close: displayValue,
+                          high: Math.max(d.high, displayValue),
+                          low: Math.min(d.low, displayValue),
+                      }
+                    : d
+            )
+        }
+
+        // Step 2: Forward-fill flat candles from last trade candle to current time
+        const duration = TIMEFRAME_DURATIONS[timeframe]
+        const nowBucket = Math.floor(Math.floor(Date.now() / 1000) / duration) * duration
+        const lastCandle = result[result.length - 1]!
+        if (lastCandle.time < nowBucket) {
+            const flatPrice = lastCandle.close
+            const fill: typeof result = []
+            for (let t = lastCandle.time + duration; t <= nowBucket; t += duration) {
+                fill.push({
+                    time: t,
+                    open: flatPrice,
+                    high: flatPrice,
+                    low: flatPrice,
+                    close: flatPrice,
+                    volume: 0,
+                })
             }
+            result = [...result, ...fill]
         }
 
         return result
-    }, [data, nativeUsdPrice, nativeReserve, tokenReserve, chartMode, timeframe])
+    }, [data, nativeUsdPrice, virtualAmount, nativeReserve, tokenReserve, chartMode, timeframe])
 
     // OHLCV overlay - updated via DOM to avoid re-render loops
     const ohlcvRef = useRef<HTMLDivElement>(null)

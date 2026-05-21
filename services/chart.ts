@@ -71,7 +71,6 @@ export function aggregateCandlesticks(
     if (times.length === 0) return Array.from(candles.values())
     const firstTime = times[0]!
     const lastTime = times[times.length - 1]!
-
     let prevClose = candles.get(firstTime)!.close
     for (let t = firstTime + duration; t <= lastTime; t += duration) {
         if (!candles.has(t)) {
@@ -88,15 +87,5 @@ export function aggregateCandlesticks(
         }
     }
 
-    // Link each candle's open to the previous candle's close
-    const sorted = Array.from(candles.values()).sort((a, b) => a.time - b.time)
-    for (let i = 1; i < sorted.length; i++) {
-        const curr = sorted[i]!
-        const prev = sorted[i - 1]!
-        curr.open = prev.close
-        curr.high = Math.max(curr.open, curr.high)
-        curr.low = Math.min(curr.open, curr.low)
-    }
-
-    return sorted
+    return Array.from(candles.values()).sort((a, b) => a.time - b.time)
 }

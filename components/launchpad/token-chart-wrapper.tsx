@@ -21,6 +21,7 @@ interface TokenChartWrapperProps {
     tokenAddr: Address
     nativeReserve?: bigint
     tokenReserve?: bigint
+    virtualAmount?: bigint
     className?: string
 }
 

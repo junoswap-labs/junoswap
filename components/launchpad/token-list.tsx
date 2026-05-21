@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useReadContracts } from 'wagmi'
+import { useReadContract, useReadContracts } from 'wagmi'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
 import {
@@ -80,6 +80,15 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
 
     const graduationAmount = graduationAmountResult?.[0]?.result as bigint | undefined
 
+    const { data: virtualAmountData } = useReadContract({
+        address: PUMP_CORE_NATIVE_ADDRESS as Address,
+        abi: PUMP_CORE_NATIVE_ABI,
+        functionName: 'virtualAmount',
+        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        query: { enabled: tokens.length > 0 },
+    })
+    const virtualAmount = (virtualAmountData as bigint | undefined) ?? 0n
+
     // Build enriched token data with ERC20 metadata
     const enrichedTokens = useMemo(() => {
         return tokens.map((token, index) => ({
@@ -144,12 +153,13 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
 
                 let marketCap: string | undefined
                 if (
+                    virtualAmount > 0n &&
                     nativeReserve !== undefined &&
                     tokenReserve !== undefined &&
                     tokenReserve > 0n
                 ) {
                     const price =
-                        parseFloat(formatEther(nativeReserve)) /
+                        parseFloat(formatEther(virtualAmount + nativeReserve)) /
                         parseFloat(formatEther(tokenReserve))
                     marketCap = String(price * 1e9)
                 }
