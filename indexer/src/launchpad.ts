@@ -1,9 +1,9 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { formatEther } from 'viem'
-import { PUMP_CORE_NATIVE_ABI } from '../abis/pump-core-native'
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
+const VIRTUAL_AMOUNT = 3400n * 10n ** 18n
 
 function calculatePrice(isBuy: boolean, amountIn: bigint, amountOut: bigint): number {
     if (amountIn === 0n || amountOut === 0n) return 0
@@ -90,12 +90,7 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     })
 
     const price = calculatePrice(isBuy, amountIn, amountOut)
-    const virtualAmount = await context.client.readContract({
-        abi: PUMP_CORE_NATIVE_ABI,
-        address: context.contracts.PumpCoreNative.address,
-        functionName: 'virtualAmount',
-    })
-    const marketCap = calculateMarketCap(reserveIn, reserveOut, virtualAmount)
+    const marketCap = calculateMarketCap(reserveIn, reserveOut, VIRTUAL_AMOUNT)
     const volume = calculateVolume(isBuy, amountIn, amountOut)
 
     // 2. Read current snapshot (from previous events), or use defaults
