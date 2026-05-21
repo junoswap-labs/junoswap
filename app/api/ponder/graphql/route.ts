@@ -12,13 +12,21 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const response = await fetch(`${PONDER_URL}/graphql`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(5_000),
-    })
+    try {
+        const response = await fetch(`${PONDER_URL}/graphql`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(5_000),
+        })
 
-    const data = await response.json()
-    return NextResponse.json(data, { status: response.status })
+        const data = await response.json()
+        return NextResponse.json(data, { status: response.status })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        return NextResponse.json(
+            { errors: [{ message: `Ponder fetch failed: ${message}` }] },
+            { status: 502 }
+        )
+    }
 }
