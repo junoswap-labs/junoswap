@@ -1,6 +1,14 @@
 import { GraphQLClient, ClientError } from 'graphql-request'
 
-const client = new GraphQLClient('/api/ponder/graphql')
+let client: GraphQLClient | null = null
+
+function getClient() {
+    if (!client) {
+        const origin = typeof window !== 'undefined' ? window.location.origin : ''
+        client = new GraphQLClient(`${origin}/api/ponder/graphql`)
+    }
+    return client
+}
 
 const REQUEST_TIMEOUT_MS = 5_000
 
@@ -19,7 +27,7 @@ export function ponderRequest<T>(query: string, variables?: Record<string, unkno
 
     const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
 
-    return client
+    return getClient()
         .request<T>({
             document: query,
             variables,
