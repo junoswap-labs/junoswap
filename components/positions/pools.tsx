@@ -19,12 +19,30 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { TOKEN_LISTS } from '@/lib/tokens'
 import { usePoolsForPair } from '@/hooks/usePools'
+import { usePoolTvl } from '@/hooks/usePoolTvl'
 import { useEarnStore } from '@/store/earn-store'
 import { formatFeeTier } from '@/lib/liquidity-helpers'
 import type { V3PoolData } from '@/types/earn'
 import type { Token } from '@/types/tokens'
 
-function PoolRow({ pool, onConnect }: { pool: V3PoolData; onConnect: () => void }) {
+function formatTvl(tvlUsd: number): string {
+    if (tvlUsd <= 0) return '$0.00'
+    if (tvlUsd >= 1_000_000) return `$${(tvlUsd / 1_000_000).toFixed(2)}M`
+    if (tvlUsd >= 1_000) return `$${(tvlUsd / 1_000).toFixed(2)}K`
+    return `$${tvlUsd.toFixed(2)}`
+}
+
+function PoolRow({
+    pool,
+    tvlUsd,
+    isLoadingTvl,
+    onConnect,
+}: {
+    pool: V3PoolData
+    tvlUsd: number | null
+    isLoadingTvl: boolean
+    onConnect: () => void
+}) {
     const { isConnected } = useAccount()
     const { openAddLiquidity } = useEarnStore()
     return (
@@ -54,7 +72,13 @@ function PoolRow({ pool, onConnect }: { pool: V3PoolData; onConnect: () => void 
                 <Badge variant="outline">{formatFeeTier(pool.fee)}</Badge>
             </TableCell>
             <TableCell className="p-3">
-                <span className="text-sm">{pool.liquidity > 0n ? 'Active' : 'Empty'}</span>
+                {isLoadingTvl ? (
+                    <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                ) : tvlUsd != null ? (
+                    <span className="text-sm font-medium">{formatTvl(tvlUsd)}</span>
+                ) : (
+                    <span className="text-sm text-muted-foreground">--</span>
+                )}
             </TableCell>
             <TableCell className="p-3 text-right">
                 <Button
@@ -155,6 +179,7 @@ function useCommonPools(chainId: number): { pools: V3PoolData[]; isLoading: bool
 export function PoolsList() {
     const chainId = useChainId()
     const { pools, isLoading } = useCommonPools(chainId)
+    const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     if (isLoading) {
         return (
@@ -164,7 +189,7 @@ export function PoolsList() {
                         <TableRow>
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
-                            <TableHead className="py-3 px-4">Liquidity</TableHead>
+                            <TableHead className="py-3 px-4">TVL</TableHead>
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -190,7 +215,7 @@ export function PoolsList() {
                         <TableRow>
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
-                            <TableHead className="py-3 px-4">Liquidity</TableHead>
+                            <TableHead className="py-3 px-4">TVL</TableHead>
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -199,6 +224,8 @@ export function PoolsList() {
                             <PoolRow
                                 key={pool.address}
                                 pool={pool}
+                                tvlUsd={tvlByAddress[pool.address.toLowerCase()] ?? null}
+                                isLoadingTvl={isLoadingTvl}
                                 onConnect={() => setIsConnectModalOpen(true)}
                             />
                         ))}
