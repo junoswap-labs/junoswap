@@ -393,6 +393,28 @@ export function getTokensForChain(chainId: number): Token[] {
     return TOKEN_LISTS[chainId] || []
 }
 
+const STABLECOIN_SYMBOLS: Record<number, string> = {
+    [kubTestnet.id]: 'KUSDT',
+    [bitkub.id]: 'KUSDT',
+    [jbc.id]: 'JUSDT',
+    [bsc.id]: 'USDT',
+    [worldchain.id]: 'USDC',
+    [base.id]: 'USDC',
+}
+
+export function getDefaultPairTokens(chainId: number): {
+    stablecoin: Token | undefined
+    nativeTokens: Token[]
+} {
+    const tokens = TOKEN_LISTS[chainId] ?? []
+    const native = tokens.find((t) => isNativeToken(t.address as Address))
+    const wrappedNative = tokens[1] // wrapped native is always at index 1
+    const stableSymbol = STABLECOIN_SYMBOLS[chainId]
+    const stablecoin = stableSymbol ? tokens.find((t) => t.symbol === stableSymbol) : undefined
+    const nativeTokens = [native, wrappedNative].filter((t): t is Token => !!t)
+    return { stablecoin, nativeTokens }
+}
+
 /**
  * Find token by address on a specific chain
  */

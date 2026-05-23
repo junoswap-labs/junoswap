@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectModal } from '@/components/web3/connect-modal'
-import { TOKEN_LISTS } from '@/lib/tokens'
+import { TOKEN_LISTS, getDefaultPairTokens } from '@/lib/tokens'
 import { usePoolsForPair } from '@/hooks/usePools'
 import { usePoolTvl } from '@/hooks/usePoolTvl'
 import { useEarnStore } from '@/store/earn-store'
@@ -44,27 +44,46 @@ function PoolRow({
     onConnect: () => void
 }) {
     const { isConnected } = useAccount()
+    const chainId = useChainId()
     const { openAddLiquidity } = useEarnStore()
+
+    const { stablecoin, nativeTokens } = getDefaultPairTokens(chainId)
+    const eq = (a: Token, b: Token) => a.address.toLowerCase() === b.address.toLowerCase()
+    const isNative = (t: Token) => nativeTokens.some((n) => eq(t, n))
+    const isToken0Stable = !!stablecoin && eq(pool.token0, stablecoin)
+    const isToken0Native = isNative(pool.token0)
+    const isToken1Stable = !!stablecoin && eq(pool.token1, stablecoin)
+    const isToken1Native = isNative(pool.token1)
+
+    // Ensure stable/native displays second; native+stable pair shows NATIVE / STABLE
+    let [display0, display1] = [pool.token0, pool.token1]
+    if (isToken0Stable && isToken1Native) {
+        ;[display0, display1] = [pool.token1, pool.token0]
+    } else if (isToken0Native && isToken1Stable) {
+        // Already NATIVE / STABLE — keep
+    } else if (isToken0Stable || isToken0Native) {
+        ;[display0, display1] = [pool.token1, pool.token0]
+    }
     return (
         <TableRow className="border-0">
             <TableCell className="p-3">
                 <div className="flex items-center gap-3">
                     <div className="flex -space-x-2">
                         <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-                            <AvatarImage src={pool.token0.logo} alt={pool.token0.symbol} />
+                            <AvatarImage src={display0.logo} alt={display0.symbol} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {pool.token0.symbol.slice(0, 2)}
+                                {display0.symbol.slice(0, 2)}
                             </AvatarFallback>
                         </Avatar>
                         <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-                            <AvatarImage src={pool.token1.logo} alt={pool.token1.symbol} />
+                            <AvatarImage src={display1.logo} alt={display1.symbol} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {pool.token1.symbol.slice(0, 2)}
+                                {display1.symbol.slice(0, 2)}
                             </AvatarFallback>
                         </Avatar>
                     </div>
                     <span className="font-medium">
-                        {pool.token0.symbol} / {pool.token1.symbol}
+                        {display0.symbol} / {display1.symbol}
                     </span>
                 </div>
             </TableCell>
