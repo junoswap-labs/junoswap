@@ -33,12 +33,34 @@ function formatTvl(tvlUsd: number): string {
     return `$${tvlUsd.toFixed(2)}`
 }
 
+function formatApr(apr: number | null, isLoading: boolean): React.ReactNode {
+    if (isLoading) {
+        return <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+    }
+    if (apr === null || apr === 0) {
+        return <span className="text-sm text-muted-foreground">--</span>
+    }
+    if (apr >= 100) {
+        return (
+            <span className="text-sm font-medium">
+                {apr.toLocaleString(undefined, { maximumFractionDigits: 1 })}%
+            </span>
+        )
+    }
+    if (apr >= 0.01) {
+        return <span className="text-sm font-medium">{apr.toFixed(2)}%</span>
+    }
+    return <span className="text-sm font-medium">&lt;0.01%</span>
+}
+
 function PoolRow({
     pool,
     tvlUsd,
     isLoadingTvl,
     volume,
     isLoadingVolume,
+    apr,
+    isLoadingApr,
     onConnect,
 }: {
     pool: V3PoolData
@@ -46,6 +68,8 @@ function PoolRow({
     isLoadingTvl: boolean
     volume: { volume1d: number; volume30d: number } | null
     isLoadingVolume: boolean
+    apr: number | null
+    isLoadingApr: boolean
     onConnect: () => void
 }) {
     const { isConnected } = useAccount()
@@ -104,6 +128,7 @@ function PoolRow({
                     <span className="text-sm text-muted-foreground">--</span>
                 )}
             </TableCell>
+            <TableCell className="p-3">{formatApr(apr, isLoadingApr)}</TableCell>
             <TableCell className="p-3">
                 {isLoadingVolume ? (
                     <div className="h-4 w-16 bg-muted rounded animate-pulse" />
@@ -158,6 +183,12 @@ function LoadingState() {
                     </TableCell>
                     <TableCell className="p-3">
                         <div className="h-5 w-14 bg-muted rounded animate-pulse" />
+                    </TableCell>
+                    <TableCell className="p-3">
+                        <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+                    </TableCell>
+                    <TableCell className="p-3">
+                        <div className="h-4 w-12 bg-muted rounded animate-pulse" />
                     </TableCell>
                     <TableCell className="p-3">
                         <div className="h-4 w-12 bg-muted rounded animate-pulse" />
@@ -229,6 +260,22 @@ export function PoolsList() {
     const { pools, isLoading } = useCommonPools(chainId)
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
     const { volumeByAddress, isLoading: isLoadingVol } = usePoolVolume(pools, chainId)
+    const aprByAddress = useMemo(() => {
+        const result: Record<string, number | null> = {}
+        for (const pool of pools) {
+            const addr = pool.address.toLowerCase()
+            const tvl = tvlByAddress[addr]
+            const volume = volumeByAddress[addr]
+            if (!tvl || tvl <= 0 || !volume?.volume30d || volume.volume30d <= 0) {
+                result[addr] = null
+                continue
+            }
+            const dailyAvgVolume = volume.volume30d / 30
+            result[addr] = ((dailyAvgVolume * (pool.fee / 1_000_000)) / tvl) * 365 * 100
+        }
+        return result
+    }, [pools, tvlByAddress, volumeByAddress])
+    const isLoadingApr = isLoadingTvl || isLoadingVol
     const sortedPools = useMemo(() => {
         return [...pools].sort((a, b) => {
             const aTvl = tvlByAddress[a.address.toLowerCase()] ?? 0
@@ -246,6 +293,7 @@ export function PoolsList() {
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
                             <TableHead className="py-3 px-4">TVL</TableHead>
+                            <TableHead className="py-3 px-4">APR</TableHead>
                             <TableHead className="py-3 px-4">1D Vol</TableHead>
                             <TableHead className="py-3 px-4">30D Vol</TableHead>
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
@@ -274,6 +322,7 @@ export function PoolsList() {
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
                             <TableHead className="py-3 px-4">TVL</TableHead>
+                            <TableHead className="py-3 px-4">APR</TableHead>
                             <TableHead className="py-3 px-4">1D Vol</TableHead>
                             <TableHead className="py-3 px-4">30D Vol</TableHead>
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
@@ -288,6 +337,8 @@ export function PoolsList() {
                                 isLoadingTvl={isLoadingTvl}
                                 volume={volumeByAddress[pool.address.toLowerCase()] ?? null}
                                 isLoadingVolume={isLoadingVol}
+                                apr={aprByAddress[pool.address.toLowerCase()] ?? null}
+                                isLoadingApr={isLoadingApr}
                                 onConnect={() => setIsConnectModalOpen(true)}
                             />
                         ))}
