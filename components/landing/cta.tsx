@@ -25,9 +25,6 @@ export function CTA() {
                                     Launch App
                                 </Button>
                             </Link>
-                            <Button size="xl" variant="ghost" className="w-full sm:w-auto">
-                                Read Docs
-                            </Button>
                         </div>
                     </div>
                 </div>
