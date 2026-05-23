@@ -20,6 +20,7 @@ import { ConnectModal } from '@/components/web3/connect-modal'
 import { TOKEN_LISTS, getDefaultPairTokens } from '@/lib/tokens'
 import { usePoolsForPair } from '@/hooks/usePools'
 import { usePoolTvl } from '@/hooks/usePoolTvl'
+import { usePoolVolume } from '@/hooks/usePoolVolume'
 import { useEarnStore } from '@/store/earn-store'
 import { formatFeeTier } from '@/lib/liquidity-helpers'
 import type { V3PoolData } from '@/types/earn'
@@ -36,11 +37,15 @@ function PoolRow({
     pool,
     tvlUsd,
     isLoadingTvl,
+    volume,
+    isLoadingVolume,
     onConnect,
 }: {
     pool: V3PoolData
     tvlUsd: number | null
     isLoadingTvl: boolean
+    volume: { volume1d: number; volume30d: number } | null
+    isLoadingVolume: boolean
     onConnect: () => void
 }) {
     const { isConnected } = useAccount()
@@ -99,6 +104,24 @@ function PoolRow({
                     <span className="text-sm text-muted-foreground">--</span>
                 )}
             </TableCell>
+            <TableCell className="p-3">
+                {isLoadingVolume ? (
+                    <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                ) : volume?.volume1d ? (
+                    <span className="text-sm font-medium">{formatTvl(volume.volume1d)}</span>
+                ) : (
+                    <span className="text-sm text-muted-foreground">--</span>
+                )}
+            </TableCell>
+            <TableCell className="p-3">
+                {isLoadingVolume ? (
+                    <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                ) : volume?.volume30d ? (
+                    <span className="text-sm font-medium">{formatTvl(volume.volume30d)}</span>
+                ) : (
+                    <span className="text-sm text-muted-foreground">--</span>
+                )}
+            </TableCell>
             <TableCell className="p-3 text-right">
                 <Button
                     size="sm"
@@ -135,6 +158,12 @@ function LoadingState() {
                     </TableCell>
                     <TableCell className="p-3">
                         <div className="h-5 w-14 bg-muted rounded animate-pulse" />
+                    </TableCell>
+                    <TableCell className="p-3">
+                        <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+                    </TableCell>
+                    <TableCell className="p-3">
+                        <div className="h-4 w-12 bg-muted rounded animate-pulse" />
                     </TableCell>
                     <TableCell className="p-3">
                         <div className="h-4 w-12 bg-muted rounded animate-pulse" />
@@ -199,6 +228,7 @@ export function PoolsList() {
     const chainId = useChainId()
     const { pools, isLoading } = useCommonPools(chainId)
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
+    const { volumeByAddress, isLoading: isLoadingVol } = usePoolVolume(pools, chainId)
     const sortedPools = useMemo(() => {
         return [...pools].sort((a, b) => {
             const aTvl = tvlByAddress[a.address.toLowerCase()] ?? 0
@@ -216,6 +246,8 @@ export function PoolsList() {
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
                             <TableHead className="py-3 px-4">TVL</TableHead>
+                            <TableHead className="py-3 px-4">1D Vol</TableHead>
+                            <TableHead className="py-3 px-4">30D Vol</TableHead>
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -242,6 +274,8 @@ export function PoolsList() {
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
                             <TableHead className="py-3 px-4">TVL</TableHead>
+                            <TableHead className="py-3 px-4">1D Vol</TableHead>
+                            <TableHead className="py-3 px-4">30D Vol</TableHead>
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -252,6 +286,8 @@ export function PoolsList() {
                                 pool={pool}
                                 tvlUsd={tvlByAddress[pool.address.toLowerCase()] ?? null}
                                 isLoadingTvl={isLoadingTvl}
+                                volume={volumeByAddress[pool.address.toLowerCase()] ?? null}
+                                isLoadingVolume={isLoadingVol}
                                 onConnect={() => setIsConnectModalOpen(true)}
                             />
                         ))}
