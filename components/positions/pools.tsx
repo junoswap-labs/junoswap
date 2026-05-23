@@ -199,6 +199,13 @@ export function PoolsList() {
     const chainId = useChainId()
     const { pools, isLoading } = useCommonPools(chainId)
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
+    const sortedPools = useMemo(() => {
+        return [...pools].sort((a, b) => {
+            const aTvl = tvlByAddress[a.address.toLowerCase()] ?? 0
+            const bTvl = tvlByAddress[b.address.toLowerCase()] ?? 0
+            return bTvl - aTvl
+        })
+    }, [pools, tvlByAddress])
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     if (isLoading) {
         return (
@@ -239,7 +246,7 @@ export function PoolsList() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {pools.map((pool) => (
+                        {sortedPools.map((pool) => (
                             <PoolRow
                                 key={pool.address}
                                 pool={pool}
