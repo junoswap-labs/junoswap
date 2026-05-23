@@ -5,6 +5,7 @@ import { formatEther } from 'viem'
 import type { Address } from 'viem'
 import { useReadContracts } from 'wagmi'
 import type { V3PoolData } from '@/types/earn'
+import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 
 const BALANCE_OF_ABI = [
     {
@@ -17,19 +18,22 @@ const BALANCE_OF_ABI = [
 ] as const
 
 const Q96 = 2n ** 96n
-const WRAPPED_NATIVE = '0x700d3ba307e1256e509ed3e45d6f9dff441d6907'
-const USD_STABLE = '0x70138f1b88bee73dd2cb06f24146f964dde6144e'
 const MAX_POOLS = 30
 
-function isAddr(a: string, b: string): boolean {
-    return a.toLowerCase() === b.toLowerCase()
+function isAddr(a: string, b: string | undefined): boolean {
+    return !!b && a.toLowerCase() === b.toLowerCase()
 }
 
-function deriveNativeUsdPrice(pools: V3PoolData[]): number | null {
+function deriveNativeUsdPrice(
+    pools: V3PoolData[],
+    wrappedNative: string | undefined,
+    usdStable: string | undefined
+): number | null {
+    if (!wrappedNative || !usdStable) return null
     const nativePool = pools.find(
         (p) =>
-            (isAddr(p.token0.address, WRAPPED_NATIVE) && isAddr(p.token1.address, USD_STABLE)) ||
-            (isAddr(p.token0.address, USD_STABLE) && isAddr(p.token1.address, WRAPPED_NATIVE))
+            (isAddr(p.token0.address, wrappedNative) && isAddr(p.token1.address, usdStable)) ||
+            (isAddr(p.token0.address, usdStable) && isAddr(p.token1.address, wrappedNative))
     )
     if (!nativePool) return null
 
@@ -37,7 +41,7 @@ function deriveNativeUsdPrice(pools: V3PoolData[]): number | null {
     if (sqrtPriceX96 === 0n) return null
 
     const UNIT = 10n ** 18n
-    if (isAddr(nativePool.token0.address, WRAPPED_NATIVE)) {
+    if (isAddr(nativePool.token0.address, wrappedNative)) {
         const priceRaw = (sqrtPriceX96 * sqrtPriceX96 * UNIT) / (Q96 * Q96)
         return Number(priceRaw) / 1e18
     } else {
@@ -79,6 +83,10 @@ export function usePoolTvl(
 } {
     const cappedPools = pools.length > MAX_POOLS ? pools.slice(0, MAX_POOLS) : pools
 
+    const config = INTERMEDIARY_TOKENS[chainId]
+    const wrappedNative = config?.wrappedNative?.toLowerCase()
+    const usdStable = config?.stables[0]?.toLowerCase()
+
     const balanceResults = useReadContracts({
         contracts: cappedPools.flatMap((pool) => [
             {
@@ -107,7 +115,7 @@ export function usePoolTvl(
     const tvlByAddress = useMemo(() => {
         if (!balanceResults.data || cappedPools.length === 0) return {}
 
-        const nativeUsdPrice = deriveNativeUsdPrice(cappedPools)
+        const nativeUsdPrice = deriveNativeUsdPrice(cappedPools, wrappedNative, usdStable)
         const map: Record<string, number | null> = {}
 
         for (const [i, pool] of cappedPools.entries()) {
@@ -116,8 +124,8 @@ export function usePoolTvl(
 
             if (bal0 === undefined || bal1 === undefined) continue
 
-            const isToken0Native = isAddr(pool.token0.address, WRAPPED_NATIVE)
-            const isToken1Native = isAddr(pool.token1.address, WRAPPED_NATIVE)
+            const isToken0Native = isAddr(pool.token0.address, wrappedNative)
+            const isToken1Native = isAddr(pool.token1.address, wrappedNative)
 
             if (nativeUsdPrice) {
                 map[pool.address.toLowerCase()] = computeTvlUsd(
@@ -141,7 +149,7 @@ export function usePoolTvl(
             }
         }
         return map
-    }, [balanceResults.data, cappedPools])
+    }, [balanceResults.data, cappedPools, wrappedNative, usdStable])
 
     return { tvlByAddress, isLoading }
 }
