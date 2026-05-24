@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useReadContract, useReadContracts } from 'wagmi'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
@@ -11,7 +11,9 @@ import {
 } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { useTokenList } from '@/hooks/useTokenList'
+import type { LaunchpadSortKey } from '@/types/launchpad'
 import { TokenCard } from './token-card'
+import { SortTabs } from './sort-tabs'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Coins, Loader2, SearchX } from 'lucide-react'
 
@@ -20,7 +22,8 @@ interface TokenListProps {
 }
 
 export function TokenList({ searchQuery = '' }: TokenListProps) {
-    const { tokens, isLoading } = useTokenList()
+    const { tokens, snapshotMap, isLoading } = useTokenList()
+    const [sortKey, setSortKey] = useState<LaunchpadSortKey>('last-trade')
 
     // Batch read ERC20 name/symbol for all tokens
     const { data: nameResults } = useReadContracts({
@@ -89,16 +92,36 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     })
     const virtualAmount = (virtualAmountData as bigint | undefined) ?? 0n
 
-    // Build enriched token data with ERC20 metadata
+    // Build enriched token data with ERC20 metadata + market cap
     const enrichedTokens = useMemo(() => {
-        return tokens.map((token, index) => ({
-            token,
-            tokenName: nameResults?.[index]?.result as string | undefined,
-            tokenSymbol: symbolResults?.[index]?.result as string | undefined,
-            reserveResult: reserveResults?.[index]?.result as [bigint, bigint] | undefined,
-            isGraduated: graduatedResults?.[index]?.result as boolean | undefined,
-        }))
-    }, [tokens, nameResults, symbolResults, reserveResults, graduatedResults])
+        return tokens.map((token, index) => {
+            const reserveResult = reserveResults?.[index]?.result as [bigint, bigint] | undefined
+            const nativeReserve = reserveResult?.[0]
+            const tokenReserve = reserveResult?.[1]
+
+            let marketCap: string | undefined
+            if (
+                virtualAmount > 0n &&
+                nativeReserve !== undefined &&
+                tokenReserve !== undefined &&
+                tokenReserve > 0n
+            ) {
+                const price =
+                    parseFloat(formatEther(virtualAmount + nativeReserve)) /
+                    parseFloat(formatEther(tokenReserve))
+                marketCap = String(price * 1e9)
+            }
+
+            return {
+                token,
+                tokenName: nameResults?.[index]?.result as string | undefined,
+                tokenSymbol: symbolResults?.[index]?.result as string | undefined,
+                reserveResult,
+                isGraduated: graduatedResults?.[index]?.result as boolean | undefined,
+                marketCap,
+            }
+        })
+    }, [tokens, nameResults, symbolResults, reserveResults, graduatedResults, virtualAmount])
 
     // Filter by search query
     const filtered = useMemo(() => {
@@ -112,6 +135,29 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
             return symbol.includes(q) || name.includes(q) || addr.includes(q) || creator.includes(q)
         })
     }, [enrichedTokens, searchQuery])
+
+    // Sort by selected key
+    const sorted = useMemo(() => {
+        return [...filtered].sort((a, b) => {
+            switch (sortKey) {
+                case 'last-trade': {
+                    const aLast = snapshotMap.get(a.token.address.toLowerCase())?.lastSwapAt ?? 0
+                    const bLast = snapshotMap.get(b.token.address.toLowerCase())?.lastSwapAt ?? 0
+                    if (bLast !== aLast) return bLast - aLast
+                    return b.token.createdTime - a.token.createdTime
+                }
+                case 'market-cap': {
+                    const aMc = parseFloat(a.marketCap ?? '0')
+                    const bMc = parseFloat(b.marketCap ?? '0')
+                    return bMc - aMc
+                }
+                case 'new':
+                    return b.token.createdTime - a.token.createdTime
+                case 'oldest':
+                    return a.token.createdTime - b.token.createdTime
+            }
+        })
+    }, [filtered, sortKey, snapshotMap])
 
     if (isLoading) {
         return (
@@ -146,37 +192,31 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     }
 
     return (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-            {filtered.map(({ token, tokenName, tokenSymbol, reserveResult, isGraduated }) => {
-                const nativeReserve = reserveResult?.[0]
-                const tokenReserve = reserveResult?.[1]
+        <div>
+            <div className="mb-4 flex items-center justify-between">
+                <SortTabs value={sortKey} onChange={setSortKey} />
+                <span className="text-sm text-muted-foreground">{sorted.length} tokens</span>
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                {sorted.map(
+                    ({ token, tokenName, tokenSymbol, reserveResult, isGraduated, marketCap }) => {
+                        const nativeReserve = reserveResult?.[0]
 
-                let marketCap: string | undefined
-                if (
-                    virtualAmount > 0n &&
-                    nativeReserve !== undefined &&
-                    tokenReserve !== undefined &&
-                    tokenReserve > 0n
-                ) {
-                    const price =
-                        parseFloat(formatEther(virtualAmount + nativeReserve)) /
-                        parseFloat(formatEther(tokenReserve))
-                    marketCap = String(price * 1e9)
-                }
-
-                return (
-                    <TokenCard
-                        key={token.address}
-                        token={token}
-                        tokenName={tokenName}
-                        tokenSymbol={tokenSymbol}
-                        nativeReserve={nativeReserve}
-                        graduationAmount={graduationAmount}
-                        marketCap={marketCap}
-                        isGraduated={isGraduated}
-                    />
-                )
-            })}
+                        return (
+                            <TokenCard
+                                key={token.address}
+                                token={token}
+                                tokenName={tokenName}
+                                tokenSymbol={tokenSymbol}
+                                nativeReserve={nativeReserve}
+                                graduationAmount={graduationAmount}
+                                marketCap={marketCap}
+                                isGraduated={isGraduated}
+                            />
+                        )
+                    }
+                )}
+            </div>
         </div>
     )
 }

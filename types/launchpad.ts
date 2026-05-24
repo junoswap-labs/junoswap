@@ -18,6 +18,11 @@ export interface LaunchToken {
 }
 
 /**
+ * Sort options for the launchpad token list
+ */
+export type LaunchpadSortKey = 'last-trade' | 'market-cap' | 'new' | 'oldest'
+
+/**
  * Token creation form state
  */
 export interface CreateTokenForm {

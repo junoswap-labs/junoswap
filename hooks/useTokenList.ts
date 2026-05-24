@@ -23,6 +23,13 @@ const TOKEN_LIST_QUERY = `
         isGraduated
       }
     }
+    tokenSnapshots {
+      items {
+        tokenAddr
+        lastSwapAt
+        marketCapNative
+      }
+    }
   }
 `
 
@@ -40,10 +47,23 @@ interface TokenListResponse {
             isGraduated: number
         }>
     }
+    tokenSnapshots: {
+        items: Array<{
+            tokenAddr: string
+            lastSwapAt: number
+            marketCapNative: string
+        }>
+    }
+}
+
+export interface SnapshotData {
+    lastSwapAt: number
+    marketCapNative: string
 }
 
 interface UseTokenListResult {
     tokens: LaunchToken[]
+    snapshotMap: Map<string, SnapshotData>
     isLoading: boolean
     refetch: () => void
 }
@@ -52,7 +72,7 @@ export function useTokenList(): UseTokenListResult {
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     const {
-        data: tokens = [],
+        data: result,
         isLoading,
         refetch,
     } = useQuery({
@@ -60,7 +80,7 @@ export function useTokenList(): UseTokenListResult {
         queryFn: async () => {
             try {
                 const data = await ponderRequest<TokenListResponse>(TOKEN_LIST_QUERY)
-                return data.launchTokens.items.map(
+                const tokens = data.launchTokens.items.map(
                     (t): LaunchToken => ({
                         address: t.tokenAddr as Address,
                         name: '',
@@ -75,14 +95,28 @@ export function useTokenList(): UseTokenListResult {
                         chainId: PUMP_CORE_NATIVE_CHAIN_ID,
                     })
                 )
+                const snapshotMap = new Map<string, SnapshotData>()
+                for (const s of data.tokenSnapshots.items) {
+                    snapshotMap.set(s.tokenAddr.toLowerCase(), {
+                        lastSwapAt: s.lastSwapAt,
+                        marketCapNative: s.marketCapNative,
+                    })
+                }
+                return { tokens, snapshotMap }
             } catch (e) {
                 if (!isPonderError(e) || !publicClient) throw e
-                return fetchTokenListRpc(publicClient)
+                const tokens = await fetchTokenListRpc(publicClient)
+                return { tokens, snapshotMap: new Map<string, SnapshotData>() }
             }
         },
         enabled: !!publicClient,
         staleTime: 30_000,
     })
 
-    return { tokens, isLoading, refetch }
+    return {
+        tokens: result?.tokens ?? [],
+        snapshotMap: result?.snapshotMap ?? new Map<string, SnapshotData>(),
+        isLoading,
+        refetch,
+    }
 }
