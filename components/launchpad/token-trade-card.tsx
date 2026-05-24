@@ -53,6 +53,23 @@ function PercentButtons({ onSelect }: { onSelect: (pct: number) => void }) {
     )
 }
 
+function AmountButtons({ onSelect }: { onSelect: (amount: string) => void }) {
+    const presets = ['5', '20', '50']
+    return (
+        <div className="flex gap-1.5">
+            {presets.map((amount) => (
+                <button
+                    key={amount}
+                    onClick={() => onSelect(amount)}
+                    className="flex-1 rounded-md bg-muted/60 px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors border border-transparent hover:border-border hover:bg-accent hover:text-foreground"
+                >
+                    {amount} KUB
+                </button>
+            ))}
+        </div>
+    )
+}
+
 export function TokenTradeCard({
     tokenAddr,
     tokenSymbol = 'TOKEN',
@@ -254,12 +271,6 @@ export function TokenTradeCard({
         if (isValidNumberInput(value)) setSellAmount(value)
     }
 
-    const handleBuyPercent = (pct: number) => {
-        if (!nativeBalance?.value) return
-        const amount = (nativeBalance.value * BigInt(pct)) / 100n
-        setBuyAmount(formatEther(amount))
-    }
-
     const handleSellPercent = (pct: number) => {
         if (!tokenBalance) return
         const balance = tokenBalance as bigint
@@ -424,7 +435,7 @@ export function TokenTradeCard({
                                         KUB
                                     </div>
                                 </div>
-                                <PercentButtons onSelect={handleBuyPercent} />
+                                <AmountButtons onSelect={(amt) => setBuyAmount(amt)} />
                             </div>
 
                             {buyAmountWei > 0n && (

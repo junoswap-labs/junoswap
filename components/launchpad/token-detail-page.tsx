@@ -262,7 +262,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             isGraduated={isGraduated}
                         />
                         <div className="hidden lg:block">
-                            <TokenHolders tokenAddr={tokenAddr} />
+                            <TokenHolders tokenAddr={tokenAddr} creator={tokenInfo?.creator} />
                         </div>
                     </div>
                 </div>
@@ -270,7 +270,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
 
             {/* Holders — full width at bottom on mobile/tablet */}
             <div className="lg:hidden">
-                <TokenHolders tokenAddr={tokenAddr} />
+                <TokenHolders tokenAddr={tokenAddr} creator={tokenInfo?.creator} />
             </div>
         </div>
     )
