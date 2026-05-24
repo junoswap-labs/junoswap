@@ -316,8 +316,8 @@ export function TokenTradeCard({
     if (isGraduated) {
         return (
             <Card>
-                <CardContent className="p-6">
-                    <div className="rounded-lg bg-green-500/10 p-6 text-center">
+                <CardContent className="p-4 sm:p-6">
+                    <div className="rounded-lg bg-green-500/10 p-4 sm:p-6 text-center">
                         <p className="text-lg font-semibold text-green-500">Token Graduated!</p>
                         <p className="mt-2 text-sm text-muted-foreground">
                             This token is now trading on Junoswap
@@ -333,8 +333,8 @@ export function TokenTradeCard({
         return (
             <>
                 <Card>
-                    <CardContent className="p-6">
-                        <div className="rounded-lg bg-amber-500/10 p-6 text-center space-y-4">
+                    <CardContent className="p-4 sm:p-6">
+                        <div className="rounded-lg bg-amber-500/10 p-4 sm:p-6 text-center space-y-4">
                             <div>
                                 <p className="text-lg font-semibold text-amber-500">
                                     Ready to Graduate!
@@ -376,8 +376,8 @@ export function TokenTradeCard({
     // Bonding curve — normal buy/sell
     return (
         <>
-            <Card>
-                <CardContent className="p-6">
+            <Card className="overflow-hidden">
+                <CardContent className="p-4 sm:p-6">
                     <Tabs
                         value={activeTab}
                         onValueChange={(v) => setActiveTab(v as 'buy' | 'sell')}
@@ -410,10 +410,10 @@ export function TokenTradeCard({
                         {/* Buy Tab */}
                         <TabsContent value="buy" className="mt-4 space-y-4">
                             <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
+                                <div className="flex justify-between text-sm min-w-0">
                                     <Label>Amount (KUB)</Label>
                                     <button
-                                        className="text-xs text-muted-foreground hover:text-foreground"
+                                        className="text-xs text-muted-foreground hover:text-foreground truncate ml-2"
                                         onClick={() => {
                                             if (nativeBalance?.value) {
                                                 setBuyAmount(formatEther(nativeBalance.value))
@@ -429,7 +429,7 @@ export function TokenTradeCard({
                                         placeholder="0.0"
                                         value={buyAmount}
                                         onChange={(e) => handleBuyInputChange(e.target.value)}
-                                        className="h-14 bg-muted/50 border-0 text-lg font-semibold pr-16 focus-visible:ring-1 focus-visible:ring-primary/30"
+                                        className="h-12 sm:h-14 bg-muted/50 border-0 text-base sm:text-lg font-semibold pr-12 sm:pr-16 focus-visible:ring-1 focus-visible:ring-primary/30"
                                     />
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
                                         KUB
@@ -439,23 +439,25 @@ export function TokenTradeCard({
                             </div>
 
                             {buyAmountWei > 0n && (
-                                <div className="space-y-2 rounded-lg bg-muted p-4 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
+                                <div className="space-y-2 rounded-lg bg-muted p-3 sm:p-4 text-sm">
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">
                                             You receive (est.)
                                         </span>
-                                        <span className="font-medium">
+                                        <span className="font-medium text-right min-w-0">
                                             {formatTokenAmount(buyExpectedOut)} {tokenSymbol}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Min received</span>
-                                        <span className="font-medium">
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">
+                                            Min received
+                                        </span>
+                                        <span className="font-medium text-right min-w-0">
                                             {formatTokenAmount(minTokenOut)} {tokenSymbol}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Fee</span>
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">Fee</span>
                                         <span className="font-medium">1%</span>
                                     </div>
                                 </div>
@@ -490,10 +492,10 @@ export function TokenTradeCard({
                         {/* Sell Tab */}
                         <TabsContent value="sell" className="mt-4 space-y-4">
                             <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <Label>Amount ({tokenSymbol})</Label>
+                                <div className="flex justify-between text-sm min-w-0">
+                                    <Label className="shrink-0">Amount ({tokenSymbol})</Label>
                                     <button
-                                        className="text-xs text-muted-foreground hover:text-foreground"
+                                        className="text-xs text-muted-foreground hover:text-foreground truncate ml-2"
                                         onClick={() => {
                                             if (tokenBalance) {
                                                 setSellAmount(formatEther(tokenBalance as bigint))
@@ -512,9 +514,9 @@ export function TokenTradeCard({
                                         placeholder="0.0"
                                         value={sellAmount}
                                         onChange={(e) => handleSellInputChange(e.target.value)}
-                                        className="h-14 bg-muted/50 border-0 text-lg font-semibold pr-20 focus-visible:ring-1 focus-visible:ring-primary/30"
+                                        className="h-12 sm:h-14 bg-muted/50 border-0 text-base sm:text-lg font-semibold pr-14 sm:pr-20 focus-visible:ring-1 focus-visible:ring-primary/30"
                                     />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground max-w-[80px] truncate">
                                         {tokenSymbol}
                                     </div>
                                 </div>
@@ -522,23 +524,25 @@ export function TokenTradeCard({
                             </div>
 
                             {sellAmountWei > 0n && (
-                                <div className="space-y-2 rounded-lg bg-muted p-4 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">
+                                <div className="space-y-2 rounded-lg bg-muted p-3 sm:p-4 text-sm">
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">
                                             You receive (est.)
                                         </span>
-                                        <span className="font-medium">
+                                        <span className="font-medium text-right min-w-0">
                                             {formatKub(sellExpectedOut)} KUB
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Min received</span>
-                                        <span className="font-medium">
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">
+                                            Min received
+                                        </span>
+                                        <span className="font-medium text-right min-w-0">
                                             {formatKub(minNativeOut)} KUB
                                         </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Fee</span>
+                                    <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">Fee</span>
                                         <span className="font-medium">1%</span>
                                     </div>
                                 </div>

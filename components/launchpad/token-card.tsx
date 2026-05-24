@@ -32,8 +32,9 @@ export function TokenCard({
     const name = tokenName || token.name || ''
 
     return (
-        <Link href={`/launchpad/token/${token.address}`}>
-            <Card className="overflow-hidden transition-colors hover:border-primary/50 hover:bg-accent/50">
+        <Link href={`/launchpad/token/${token.address}`} className="group relative block">
+            <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-primary to-[#FF914D] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-40" />
+            <Card className="relative transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
                 <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
                     {/* Large coin image - left side */}
                     <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted lg:h-[120px] lg:w-[120px]">

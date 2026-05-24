@@ -71,9 +71,7 @@ function TradeRow({
             </TableCell>
 
             {/* Amount (KUB) */}
-            <TableCell className="hidden font-mono tracking-tight sm:table-cell">
-                {formatKub(nativeAmount)}
-            </TableCell>
+            <TableCell className="font-mono tracking-tight">{formatKub(nativeAmount)}</TableCell>
 
             {/* Token Amount */}
             <TableCell
@@ -86,7 +84,7 @@ function TradeRow({
             </TableCell>
 
             {/* Value */}
-            <TableCell className="hidden text-right font-mono tracking-tight text-muted-foreground sm:table-cell">
+            <TableCell className="text-right font-mono tracking-tight text-muted-foreground">
                 {nativeUsdPrice !== null
                     ? `$${formatCompact(displayValue)}`
                     : `${formatCompact(displayValue)} KUB`}
@@ -102,7 +100,7 @@ function TradeRow({
 
             {/* Wallet */}
             <TableCell
-                className="hidden text-right font-mono text-muted-foreground lg:table-cell"
+                className="text-right font-mono text-muted-foreground"
                 onClick={(e) => e.stopPropagation()}
             >
                 <ExplorerLink
@@ -124,19 +122,19 @@ function LoadingState() {
                     <TableCell>
                         <div className="h-5 w-12 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                         <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
                         <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                         <div className="ml-auto h-5 w-14 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
                         <div className="ml-auto h-5 w-12 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell>
                         <div className="ml-auto h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
                 </TableRow>
@@ -158,31 +156,33 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
             </CardHeader>
             <CardContent className="p-0 pb-2">
                 {isLoading ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="text-[10px] uppercase tracking-wider">
-                                    Type
-                                </TableHead>
-                                <TableHead className="hidden text-[10px] uppercase tracking-wider sm:table-cell">
-                                    Amount (KUB)
-                                </TableHead>
-                                <TableHead className="text-[10px] uppercase tracking-wider">
-                                    {tokenSymbol}
-                                </TableHead>
-                                <TableHead className="hidden text-right text-[10px] uppercase tracking-wider sm:table-cell">
-                                    Value
-                                </TableHead>
-                                <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                    Time
-                                </TableHead>
-                                <TableHead className="hidden text-right text-[10px] uppercase tracking-wider lg:table-cell">
-                                    Wallet
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <LoadingState />
-                    </Table>
+                    <ScrollArea className="h-[240px] sm:h-[280px] md:h-[320px]">
+                        <Table className="min-w-[640px]">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-[10px] uppercase tracking-wider">
+                                        Type
+                                    </TableHead>
+                                    <TableHead className="text-[10px] uppercase tracking-wider">
+                                        Amount (KUB)
+                                    </TableHead>
+                                    <TableHead className="text-[10px] uppercase tracking-wider">
+                                        {tokenSymbol}
+                                    </TableHead>
+                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
+                                        Value
+                                    </TableHead>
+                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
+                                        Time
+                                    </TableHead>
+                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
+                                        Wallet
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <LoadingState />
+                        </Table>
+                    </ScrollArea>
                 ) : trades.length === 0 ? (
                     <EmptyState
                         compact
@@ -193,25 +193,25 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                     />
                 ) : (
                     <ScrollArea className="h-[240px] sm:h-[280px] md:h-[320px]">
-                        <Table>
+                        <Table className="min-w-[640px]">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="text-[10px] uppercase tracking-wider">
                                         Type
                                     </TableHead>
-                                    <TableHead className="hidden text-[10px] uppercase tracking-wider sm:table-cell">
+                                    <TableHead className="text-[10px] uppercase tracking-wider">
                                         Amount (KUB)
                                     </TableHead>
                                     <TableHead className="text-[10px] uppercase tracking-wider">
                                         {tokenSymbol}
                                     </TableHead>
-                                    <TableHead className="hidden text-right text-[10px] uppercase tracking-wider sm:table-cell">
+                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
                                         Value
                                     </TableHead>
                                     <TableHead className="text-right text-[10px] uppercase tracking-wider">
                                         Time
                                     </TableHead>
-                                    <TableHead className="hidden text-right text-[10px] uppercase tracking-wider lg:table-cell">
+                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
                                         Wallet
                                     </TableHead>
                                 </TableRow>

@@ -96,7 +96,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     }
 
     return (
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3 md:space-y-4 overflow-hidden">
             {/* Back button */}
             <Link
                 href="/launchpad"
@@ -107,9 +107,9 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
             </Link>
 
             {/* Two-column grid */}
-            <div className="grid gap-4 md:gap-6 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12">
                 {/* Left column — token info, chart, stats, trades */}
-                <div className="order-2 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
+                <div className="order-2 min-w-0 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
                     {/* Price header */}
                     <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 md:gap-x-6 md:gap-y-2">
                         {/* Token identity */}
@@ -156,7 +156,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                     </button>
                                 </div>
                                 {tokenInfo?.description && (
-                                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground break-words min-w-0">
                                         {tokenInfo.description}
                                     </p>
                                 )}
@@ -253,7 +253,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 </div>
 
                 {/* Right column — trade panel + holders */}
-                <div className="order-1 lg:order-2 lg:col-span-4">
+                <div className="order-1 min-w-0 lg:order-2 lg:col-span-4">
                     <div className="space-y-3 md:space-y-4 lg:sticky lg:top-20">
                         <TokenTradeCard
                             tokenAddr={tokenAddr}

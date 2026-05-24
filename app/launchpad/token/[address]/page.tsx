@@ -70,7 +70,7 @@ function TokenPageContent() {
     }
 
     return (
-        <div className="mx-auto px-4 py-6">
+        <div className="mx-auto max-w-7xl px-4 py-6">
             <TokenDetailPage tokenAddr={tokenAddr as `0x${string}`} />
         </div>
     )

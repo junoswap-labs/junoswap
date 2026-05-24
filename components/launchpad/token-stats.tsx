@@ -24,11 +24,11 @@ interface TokenStatsProps {
 
 function StatItem({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 shrink-0">
             <span className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
                 {label}
             </span>
-            <span className="text-sm font-bold tabular-nums">{value}</span>
+            <span className="text-sm font-bold tabular-nums whitespace-nowrap">{value}</span>
         </div>
     )
 }
@@ -51,7 +51,7 @@ export function TokenStats({
     return (
         <div className={cn('space-y-3', className)}>
             {/* Stats row */}
-            <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:gap-6">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:gap-6 min-w-0">
                 <StatItem
                     label="Market Cap"
                     value={

@@ -51,7 +51,7 @@ function LaunchpadContent() {
     }
 
     return (
-        <div className="mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto px-4 max-w-[1700px] py-6 sm:px-6 lg:px-8">
             {/* Live trade ticker */}
             <ActivityTicker />
 
