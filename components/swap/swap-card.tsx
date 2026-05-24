@@ -16,6 +16,7 @@ import { useUniV3SwapExecution } from '@/hooks/useUniV3SwapExecution'
 import { useUniV2SwapExecution } from '@/hooks/useUniV2SwapExecution'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useSwapUrlSync } from '@/hooks/useSwapUrlSync'
+import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import { calculateMinOutput } from '@/services/dex/uniswap-v3'
 import { calculateMinOutput as calculateMinOutputV2 } from '@/services/dex/uniswap-v2'
 import { formatBalance, formatTokenAmount, formatDisplayAmount } from '@/services/tokens'
@@ -42,7 +43,19 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
     const chainId = useChainId()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     const [isRateFlipped, setIsRateFlipped] = useState(false)
-    const tokens = tokensOverride || getTokensForChain(chainId)
+    const staticTokens = tokensOverride || getTokensForChain(chainId)
+    const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
+    const tokens = useMemo(() => {
+        const seen = new Set(staticTokens.map((t) => t.address.toLowerCase()))
+        const combined = [...staticTokens]
+        for (const t of graduatedTokens) {
+            if (!seen.has(t.address.toLowerCase())) {
+                seen.add(t.address.toLowerCase())
+                combined.push(t)
+            }
+        }
+        return combined
+    }, [staticTokens, graduatedTokens])
     const {
         tokenIn,
         tokenOut,

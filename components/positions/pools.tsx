@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { TOKEN_LISTS, getDefaultPairTokens } from '@/lib/tokens'
 import { usePoolsForPair } from '@/hooks/usePools'
+import { useGraduatedPools } from '@/hooks/useGraduatedPools'
 import { usePoolTvl } from '@/hooks/usePoolTvl'
 import { usePoolVolume } from '@/hooks/usePoolVolume'
 import { useEarnStore } from '@/store/earn-store'
@@ -299,7 +300,14 @@ function useCommonPools(chainId: number): { pools: V3PoolData[]; isLoading: bool
 
 export function PoolsList() {
     const chainId = useChainId()
-    const { pools, isLoading } = useCommonPools(chainId)
+    const { pools: commonPools, isLoading: isLoadingCommon } = useCommonPools(chainId)
+    const { pools: graduatedPools, isLoading: isLoadingGraduated } = useGraduatedPools(chainId)
+    const pools = useMemo(() => {
+        const unique = new Map<string, V3PoolData>()
+        ;[...commonPools, ...graduatedPools].forEach((p) => unique.set(p.address, p))
+        return Array.from(unique.values())
+    }, [commonPools, graduatedPools])
+    const isLoading = isLoadingCommon || isLoadingGraduated
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
     const { volumeByAddress, isLoading: isLoadingVol } = usePoolVolume(pools, chainId)
     const aprByAddress = useMemo(() => {
