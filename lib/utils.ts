@@ -10,6 +10,15 @@ export function formatAddress(address: string, startChars = 6, endChars = 4): st
     return `${address.slice(0, startChars)}...${address.slice(-endChars)}`
 }
 
+export function formatTimeAgo(timestampSeconds: number): string {
+    const d = Math.floor((Date.now() - timestampSeconds * 1000) / 1000)
+    if (d < 60) return `${d}s ago`
+    if (d < 3600) return `${Math.floor(d / 60)}m ago`
+    if (d < 86400) return `${Math.floor(d / 3600)}h ago`
+    if (d < 2592000) return `${Math.floor(d / 86400)}d ago`
+    return `${Math.floor(d / 2592000)}mo ago`
+}
+
 /**
  * Validates numeric input for token amounts
  * Allows: digits, one decimal point, leading/trailing decimal

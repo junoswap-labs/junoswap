@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { formatAddress } from '@/lib/utils'
+import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
 import type { LaunchToken } from '@/types/launchpad'
 import { GraduationProgress } from './graduation-progress'
@@ -75,7 +75,7 @@ export function TokenCard({
                             )}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            by {formatAddress(token.creator)}
+                            {formatAddress(token.creator)} · {formatTimeAgo(token.createdTime)}
                         </p>
 
                         {/* Market data */}

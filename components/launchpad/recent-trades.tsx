@@ -2,11 +2,10 @@
 
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
-import { formatDistanceToNow } from 'date-fns'
 
 import { useTokenSwapEvents } from '@/hooks/useTokenSwapEvents'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
-import { cn } from '@/lib/utils'
+import { cn, formatTimeAgo } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ExplorerLink } from '@/components/ui/explorer-link'
@@ -92,10 +91,7 @@ function TradeRow({
 
             {/* Time */}
             <TableCell className="text-right text-muted-foreground">
-                {formatDistanceToNow(trade.timestamp * 1000, {
-                    addSuffix: false,
-                    includeSeconds: true,
-                })}
+                {formatTimeAgo(trade.timestamp)}
             </TableCell>
 
             {/* Wallet */}
