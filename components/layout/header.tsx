@@ -11,7 +11,7 @@ import {
     NavigationMenuLink,
     NavigationMenuList,
 } from '@/components/ui/navigation-menu'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Menu } from 'lucide-react'
 import { useState } from 'react'
@@ -41,10 +41,15 @@ export function Header() {
                         </SheetTrigger>
                         <SheetContent
                             side="left"
-                            className="bg-background/95 backdrop-blur w-[280px] sm:w-[320px]"
+                            className="bg-background/95 backdrop-blur w-[240px] sm:w-[280px]"
                         >
+                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
                             {/* Drawer header */}
-                            <div className="flex items-center space-x-2 mt-2 mb-6">
+                            <Link
+                                href="/"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="flex items-center space-x-2 mt-2 mb-6"
+                            >
                                 <div
                                     className="bg-gradient-to-br from-primary to-[#FF914D]"
                                     style={{
@@ -61,7 +66,7 @@ export function Header() {
                                 <span className="text-lg font-bold bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-transparent">
                                     Junoswap
                                 </span>
-                            </div>
+                            </Link>
 
                             {/* Nav links */}
                             <nav className="flex flex-col gap-1">
