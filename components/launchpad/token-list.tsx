@@ -11,6 +11,7 @@ import {
 } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { useTokenList } from '@/hooks/useTokenList'
+import { useGraduatedTokenMcap } from '@/hooks/useGraduatedTokenMcap'
 import type { LaunchpadSortKey } from '@/types/launchpad'
 import { TokenCard } from './token-card'
 import { SortTabs } from './sort-tabs'
@@ -92,15 +93,28 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     })
     const virtualAmount = (virtualAmountData as bigint | undefined) ?? 0n
 
+    // Identify graduated token addresses for V3 mcap lookup
+    const graduatedAddresses = useMemo(() => {
+        if (!graduatedResults) return []
+        return tokens.filter((_, i) => graduatedResults[i]?.result === true).map((t) => t.address)
+    }, [tokens, graduatedResults])
+
+    const graduatedMcapMap = useGraduatedTokenMcap(graduatedAddresses)
+
     // Build enriched token data with ERC20 metadata + market cap
     const enrichedTokens = useMemo(() => {
         return tokens.map((token, index) => {
             const reserveResult = reserveResults?.[index]?.result as [bigint, bigint] | undefined
             const nativeReserve = reserveResult?.[0]
             const tokenReserve = reserveResult?.[1]
+            const isGraduated = graduatedResults?.[index]?.result as boolean | undefined
 
             let marketCap: string | undefined
-            if (
+            if (isGraduated) {
+                marketCap =
+                    graduatedMcapMap.get(token.address.toLowerCase()) ??
+                    snapshotMap.get(token.address.toLowerCase())?.marketCapNative
+            } else if (
                 virtualAmount > 0n &&
                 nativeReserve !== undefined &&
                 tokenReserve !== undefined &&
@@ -117,11 +131,19 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                 tokenName: nameResults?.[index]?.result as string | undefined,
                 tokenSymbol: symbolResults?.[index]?.result as string | undefined,
                 reserveResult,
-                isGraduated: graduatedResults?.[index]?.result as boolean | undefined,
+                isGraduated,
                 marketCap,
             }
         })
-    }, [tokens, nameResults, symbolResults, reserveResults, graduatedResults, virtualAmount])
+    }, [
+        tokens,
+        nameResults,
+        symbolResults,
+        reserveResults,
+        graduatedResults,
+        virtualAmount,
+        graduatedMcapMap,
+    ])
 
     // Filter by search query
     const filtered = useMemo(() => {

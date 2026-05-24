@@ -79,24 +79,22 @@ export function TokenCard({
                         </p>
 
                         {/* Market data */}
-                        {nativeReserve !== undefined && graduationAmount !== undefined && (
-                            <div className="mt-3">
-                                {marketCap && (
-                                    <div className="mb-1.5 flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">MC</span>
-                                        <span className="font-medium">
-                                            {nativeUsdPrice !== null
-                                                ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
-                                                : `${formatCompact(parseFloat(marketCap))} KUB`}
-                                        </span>
-                                    </div>
-                                )}
-                                <GraduationProgress
-                                    nativeReserve={nativeReserve}
-                                    graduationAmount={graduationAmount}
-                                    isGraduated={isGraduated ?? false}
-                                />
+                        {marketCap && (
+                            <div className="mb-1.5 mt-3 flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">MC</span>
+                                <span className="font-medium">
+                                    {nativeUsdPrice !== null
+                                        ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
+                                        : `${formatCompact(parseFloat(marketCap))} KUB`}
+                                </span>
                             </div>
+                        )}
+                        {nativeReserve !== undefined && graduationAmount !== undefined && (
+                            <GraduationProgress
+                                nativeReserve={nativeReserve}
+                                graduationAmount={graduationAmount}
+                                isGraduated={isGraduated ?? false}
+                            />
                         )}
                     </div>
                 </CardContent>
