@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { NetworkSwitcher } from '@/components/web3/network-switcher'
@@ -46,14 +45,22 @@ export function Header() {
                         >
                             {/* Drawer header */}
                             <div className="flex items-center space-x-2 mt-2 mb-6">
-                                <Image
-                                    src="/logo.svg"
-                                    alt="junoswap"
-                                    width={24}
-                                    height={24}
-                                    className="theme-logo"
+                                <div
+                                    className="bg-gradient-to-br from-primary to-[#FF914D]"
+                                    style={{
+                                        width: 24,
+                                        height: 24,
+                                        WebkitMaskImage: 'url(/logo.svg)',
+                                        maskImage: 'url(/logo.svg)',
+                                        WebkitMaskSize: 'contain',
+                                        maskSize: 'contain',
+                                        WebkitMaskRepeat: 'no-repeat',
+                                        maskRepeat: 'no-repeat',
+                                    }}
                                 />
-                                <span className="text-lg font-bold">Junoswap</span>
+                                <span className="text-lg font-bold bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-transparent">
+                                    Junoswap
+                                </span>
                             </div>
 
                             {/* Nav links */}
@@ -81,14 +88,22 @@ export function Header() {
 
                     {/* Logo */}
                     <Link href="/" className="flex items-center space-x-2">
-                        <Image
-                            src="/logo.svg"
-                            alt="junoswap"
-                            width={28}
-                            height={28}
-                            className="theme-logo"
+                        <div
+                            className="bg-gradient-to-br from-primary to-[#FF914D]"
+                            style={{
+                                width: 28,
+                                height: 28,
+                                WebkitMaskImage: 'url(/logo.svg)',
+                                maskImage: 'url(/logo.svg)',
+                                WebkitMaskSize: 'contain',
+                                maskSize: 'contain',
+                                WebkitMaskRepeat: 'no-repeat',
+                                maskRepeat: 'no-repeat',
+                            }}
                         />
-                        <span className="hidden md:inline text-xl font-bold">Junoswap</span>
+                        <span className="hidden md:inline text-xl font-bold bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-transparent">
+                            Junoswap
+                        </span>
                     </Link>
 
                     {/* Desktop navigation */}

@@ -2,7 +2,6 @@
 
 import { cn } from '@/lib/utils'
 import { calculateGraduationProgress, formatKub, isReadyToGraduate } from '@/services/launchpad'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
@@ -24,9 +23,22 @@ export function GraduationProgress({
 }: GraduationProgressProps) {
     if (isGraduated) {
         return (
-            <Badge variant="default" className="bg-green-600 text-white">
-                Graduated
-            </Badge>
+            <div className={cn('space-y-1', className)}>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                            width: '100%',
+                            background:
+                                'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                        }}
+                    />
+                </div>
+                <div className="flex justify-between text-xs">
+                    <span className="text-green-500 font-medium">Graduated</span>
+                    <span className="text-muted-foreground">100%</span>
+                </div>
+            </div>
         )
     }
 

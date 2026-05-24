@@ -2,12 +2,11 @@
 
 import Link from 'next/link'
 import { formatEther } from 'viem'
-import { formatDistanceToNow } from 'date-fns'
 import { Activity } from 'lucide-react'
 
 import { useAllSwapEvents } from '@/hooks/useAllSwapEvents'
 import { formatTokenAmount, formatCompact } from '@/services/launchpad'
-import { formatAddress, cn } from '@/lib/utils'
+import { formatAddress, cn, formatTimeAgo } from '@/lib/utils'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
@@ -62,12 +61,7 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
                 {formatAddress(event.sender)}
             </span>
             {/* Time */}
-            <span className="text-muted-foreground">
-                {formatDistanceToNow(event.timestamp * 1000, {
-                    addSuffix: false,
-                    includeSeconds: true,
-                })}
-            </span>
+            <span className="text-muted-foreground">{formatTimeAgo(event.timestamp)} </span>
         </Link>
     )
 }
