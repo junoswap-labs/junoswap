@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { Layers, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Layers, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -51,6 +51,48 @@ function formatApr(apr: number | null, isLoading: boolean): React.ReactNode {
         return <span className="text-sm font-medium">{apr.toFixed(2)}%</span>
     }
     return <span className="text-sm font-medium">&lt;0.01%</span>
+}
+
+type SortKey = 'tvl' | 'apr' | 'vol1d' | 'vol30d'
+type SortDir = 'asc' | 'desc'
+
+function SortableHeader({
+    label,
+    columnKey,
+    sortKey,
+    sortDir,
+    onSort,
+    className,
+}: {
+    label: string
+    columnKey: SortKey
+    sortKey: SortKey
+    sortDir: SortDir
+    onSort: (key: SortKey) => void
+    className?: string
+}) {
+    const isActive = sortKey === columnKey
+    return (
+        <TableHead
+            className={`cursor-pointer select-none hover:bg-muted/50 transition-colors ${className ?? ''}`}
+        >
+            <button
+                className="flex items-center gap-1 bg-transparent border-0 p-0 font-medium text-inherit cursor-pointer"
+                onClick={() => onSort(columnKey)}
+            >
+                {label}
+                {isActive ? (
+                    sortDir === 'asc' ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                    ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                    )
+                ) : (
+                    <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+                )}
+            </button>
+        </TableHead>
+    )
 }
 
 function PoolRow({
@@ -276,13 +318,42 @@ export function PoolsList() {
         return result
     }, [pools, tvlByAddress, volumeByAddress])
     const isLoadingApr = isLoadingTvl || isLoadingVol
+    const [sortKey, setSortKey] = useState<SortKey>('tvl')
+    const [sortDir, setSortDir] = useState<SortDir>('desc')
+    const handleSort = (key: SortKey) => {
+        if (key === sortKey) {
+            setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+        } else {
+            setSortKey(key)
+            setSortDir('desc')
+        }
+    }
     const sortedPools = useMemo(() => {
         return [...pools].sort((a, b) => {
-            const aTvl = tvlByAddress[a.address.toLowerCase()] ?? 0
-            const bTvl = tvlByAddress[b.address.toLowerCase()] ?? 0
-            return bTvl - aTvl
+            const aAddr = a.address.toLowerCase()
+            const bAddr = b.address.toLowerCase()
+            let cmp = 0
+            switch (sortKey) {
+                case 'tvl':
+                    cmp = (tvlByAddress[aAddr] ?? 0) - (tvlByAddress[bAddr] ?? 0)
+                    break
+                case 'apr':
+                    cmp = (aprByAddress[aAddr] ?? 0) - (aprByAddress[bAddr] ?? 0)
+                    break
+                case 'vol1d':
+                    cmp =
+                        (volumeByAddress[aAddr]?.volume1d ?? 0) -
+                        (volumeByAddress[bAddr]?.volume1d ?? 0)
+                    break
+                case 'vol30d':
+                    cmp =
+                        (volumeByAddress[aAddr]?.volume30d ?? 0) -
+                        (volumeByAddress[bAddr]?.volume30d ?? 0)
+                    break
+            }
+            return sortDir === 'asc' ? cmp : -cmp
         })
-    }, [pools, tvlByAddress])
+    }, [pools, sortKey, sortDir, tvlByAddress, aprByAddress, volumeByAddress])
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     if (isLoading) {
         return (
@@ -321,10 +392,38 @@ export function PoolsList() {
                         <TableRow>
                             <TableHead className="py-3 px-4">Pool</TableHead>
                             <TableHead className="py-3 px-4">Fee Tier</TableHead>
-                            <TableHead className="py-3 px-4">TVL</TableHead>
-                            <TableHead className="py-3 px-4">APR</TableHead>
-                            <TableHead className="py-3 px-4">1D Vol</TableHead>
-                            <TableHead className="py-3 px-4">30D Vol</TableHead>
+                            <SortableHeader
+                                label="TVL"
+                                columnKey="tvl"
+                                sortKey={sortKey}
+                                sortDir={sortDir}
+                                onSort={handleSort}
+                                className="py-3 px-4"
+                            />
+                            <SortableHeader
+                                label="APR"
+                                columnKey="apr"
+                                sortKey={sortKey}
+                                sortDir={sortDir}
+                                onSort={handleSort}
+                                className="py-3 px-4"
+                            />
+                            <SortableHeader
+                                label="1D Vol"
+                                columnKey="vol1d"
+                                sortKey={sortKey}
+                                sortDir={sortDir}
+                                onSort={handleSort}
+                                className="py-3 px-4"
+                            />
+                            <SortableHeader
+                                label="30D Vol"
+                                columnKey="vol30d"
+                                sortKey={sortKey}
+                                sortDir={sortDir}
+                                onSort={handleSort}
+                                className="py-3 px-4"
+                            />
                             <TableHead className="py-3 px-4 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
