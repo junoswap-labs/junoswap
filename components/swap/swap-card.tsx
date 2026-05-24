@@ -430,8 +430,8 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
                                             <span className="text-muted-foreground">Operation</span>
                                             <span className="font-semibold">
                                                 {wrapOperation === 'wrap'
-                                                    ? 'Wrap KUB → tKKUB'
-                                                    : 'Unwrap tKKUB → KUB'}
+                                                    ? `Wrap ${tokenOut.symbol}`
+                                                    : `Unwrap ${tokenIn.symbol}`}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
@@ -597,8 +597,8 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
                                           : isConfirmingSwap
                                             ? 'Confirming...'
                                             : wrapOperation === 'wrap'
-                                              ? 'Wrap KUB'
-                                              : 'Unwrap tKKUB'
+                                              ? `Wrap ${tokenOut?.symbol}`
+                                              : `Unwrap ${tokenIn?.symbol}`
                                   : isUnwrapping
                                     ? isApprovingUnwrap
                                         ? 'Approving KKUB...'
