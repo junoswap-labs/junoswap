@@ -15,6 +15,7 @@ interface TokenCardProps {
     nativeReserve?: bigint
     graduationAmount?: bigint
     marketCap?: string
+    athMarketCap?: string
     isGraduated?: boolean
 }
 
@@ -25,6 +26,7 @@ export function TokenCard({
     nativeReserve,
     graduationAmount,
     marketCap,
+    athMarketCap,
     isGraduated,
 }: TokenCardProps) {
     const { nativeUsdPrice } = useNativeUsdPriceContext()
@@ -79,14 +81,25 @@ export function TokenCard({
                         </p>
 
                         {/* Market data */}
-                        {marketCap && (
+                        {(marketCap ||
+                            (athMarketCap && parseFloat(athMarketCap) > 0 && !isGraduated)) && (
                             <div className="mb-1.5 mt-3 flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">MC</span>
-                                <span className="font-medium">
-                                    {nativeUsdPrice !== null
-                                        ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
-                                        : `${formatCompact(parseFloat(marketCap))} KUB`}
-                                </span>
+                                {marketCap && (
+                                    <span className="font-medium">
+                                        MC{' '}
+                                        {nativeUsdPrice !== null
+                                            ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
+                                            : `${formatCompact(parseFloat(marketCap))} KUB`}
+                                    </span>
+                                )}
+                                {athMarketCap && parseFloat(athMarketCap) > 0 && !isGraduated && (
+                                    <span className="font-medium text-muted-foreground">
+                                        ATH{' '}
+                                        {nativeUsdPrice !== null
+                                            ? `$${formatCompact(parseFloat(athMarketCap) * nativeUsdPrice)}`
+                                            : `${formatCompact(parseFloat(athMarketCap))} KUB`}
+                                    </span>
+                                )}
                             </div>
                         )}
                         {nativeReserve !== undefined && graduationAmount !== undefined && (

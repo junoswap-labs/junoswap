@@ -28,6 +28,7 @@ const TOKEN_LIST_QUERY = `
         tokenAddr
         lastSwapAt
         marketCapNative
+        athMarketCapNative
       }
     }
   }
@@ -52,6 +53,7 @@ interface TokenListResponse {
             tokenAddr: string
             lastSwapAt: number
             marketCapNative: string
+            athMarketCapNative: string
         }>
     }
 }
@@ -59,6 +61,7 @@ interface TokenListResponse {
 export interface SnapshotData {
     lastSwapAt: number
     marketCapNative: string
+    athMarketCapNative: string
 }
 
 interface UseTokenListResult {
@@ -100,6 +103,7 @@ export function useTokenList(): UseTokenListResult {
                     snapshotMap.set(s.tokenAddr.toLowerCase(), {
                         lastSwapAt: s.lastSwapAt,
                         marketCapNative: s.marketCapNative,
+                        athMarketCapNative: s.athMarketCapNative,
                     })
                 }
                 return { tokens, snapshotMap }

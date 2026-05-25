@@ -133,6 +133,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                 reserveResult,
                 isGraduated,
                 marketCap,
+                athMarketCap: snapshotMap.get(token.address.toLowerCase())?.athMarketCapNative,
             }
         })
     }, [
@@ -143,6 +144,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
         graduatedResults,
         virtualAmount,
         graduatedMcapMap,
+        snapshotMap,
     ])
 
     // Filter by search query
@@ -220,7 +222,15 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
             </div>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 {sorted.map(
-                    ({ token, tokenName, tokenSymbol, reserveResult, isGraduated, marketCap }) => {
+                    ({
+                        token,
+                        tokenName,
+                        tokenSymbol,
+                        reserveResult,
+                        isGraduated,
+                        marketCap,
+                        athMarketCap,
+                    }) => {
                         const nativeReserve = reserveResult?.[0]
 
                         return (
@@ -232,6 +242,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                                 nativeReserve={nativeReserve}
                                 graduationAmount={graduationAmount}
                                 marketCap={marketCap}
+                                athMarketCap={athMarketCap}
                                 isGraduated={isGraduated}
                             />
                         )
