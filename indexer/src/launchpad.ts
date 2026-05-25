@@ -3,25 +3,28 @@ import schema from 'ponder:schema'
 import { formatEther } from 'viem'
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
-const VIRTUAL_AMOUNT = 3400n * 10n ** 18n
+const _VIRTUAL_AMOUNT = 3400n * 10n ** 18n
 
-function calculatePrice(isBuy: boolean, amountIn: bigint, amountOut: bigint): number {
-    if (amountIn === 0n || amountOut === 0n) return 0
-    const inNum = parseFloat(formatEther(amountIn))
-    const outNum = parseFloat(formatEther(amountOut))
-    if (outNum === 0 || inNum === 0) return 0
-    return isBuy ? inNum / outNum : outNum / inNum
+function calculatePriceFromReserves(isBuy: boolean, reserveIn: bigint, reserveOut: bigint): number {
+    const nativeReserve = isBuy ? reserveIn : reserveOut
+    const tokenReserve = isBuy ? reserveOut : reserveIn
+    if (nativeReserve === 0n || tokenReserve === 0n) return 0
+    const effectiveReserve = parseFloat(formatEther(nativeReserve + _VIRTUAL_AMOUNT))
+    const tokenRes = parseFloat(formatEther(tokenReserve))
+    if (tokenRes === 0) return 0
+    return effectiveReserve / tokenRes
 }
 
-function calculateMarketCap(
-    nativeReserve: bigint,
-    tokenReserve: bigint,
-    virtualAmount: bigint
+function calculateMarketCapFromReserves(
+    isBuy: boolean,
+    reserveIn: bigint,
+    reserveOut: bigint
 ): string {
-    const effectiveReserve = virtualAmount + nativeReserve
-    const circulatingSupply = TOTAL_SUPPLY - tokenReserve
-    if (circulatingSupply <= 0n) return '0'
-    const marketCap = (effectiveReserve * TOTAL_SUPPLY) / circulatingSupply
+    if (reserveIn === 0n || reserveOut === 0n) return '0'
+    const nativeReserve = isBuy ? reserveIn : reserveOut
+    const tokenReserve = isBuy ? reserveOut : reserveIn
+    const effectiveReserve = nativeReserve + _VIRTUAL_AMOUNT
+    const marketCap = (effectiveReserve * TOTAL_SUPPLY) / tokenReserve
     return formatEther(marketCap)
 }
 
@@ -35,6 +38,7 @@ function defaultSnapshot(tokenAddr: string) {
         tokenAddr,
         lastPrice: '0',
         marketCapNative: '0',
+        athMarketCapNative: '0',
         totalBuys: 0,
         totalSells: 0,
         totalVolumeNative: '0',
@@ -89,8 +93,8 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
         transactionHash: event.transaction.hash,
     })
 
-    const price = calculatePrice(isBuy, amountIn, amountOut)
-    const marketCap = calculateMarketCap(reserveIn, reserveOut, VIRTUAL_AMOUNT)
+    const price = calculatePriceFromReserves(isBuy, BigInt(reserveIn), BigInt(reserveOut))
+    const marketCap = calculateMarketCapFromReserves(isBuy, BigInt(reserveIn), BigInt(reserveOut))
     const volume = calculateVolume(isBuy, amountIn, amountOut)
 
     // 2. Read current snapshot (from previous events), or use defaults
@@ -99,6 +103,11 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     })
     const snap = existingSnapshot ?? defaultSnapshot(tokenAddrLower)
     const isNewSnapshot = !existingSnapshot
+
+    const athMarketCap = Math.max(
+        parseFloat(marketCap),
+        parseFloat(snap.athMarketCapNative ?? '0')
+    ).toString()
 
     // 3. Read current holder state
     const holderId = `${tokenAddrLower}-${senderLower}`
@@ -124,6 +133,7 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
                 tokenAddr: tokenAddrLower,
                 lastPrice: price > 0 ? price.toString() : '0',
                 marketCapNative: marketCap,
+                athMarketCapNative: athMarketCap,
                 totalBuys: isBuy ? 1 : 0,
                 totalSells: isBuy ? 0 : 1,
                 totalVolumeNative: volume.toString(),
@@ -136,6 +146,7 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
         await context.db.update(schema.tokenSnapshot, { tokenAddr: tokenAddrLower }).set({
             lastPrice: price > 0 ? price.toString() : (snap.lastPrice ?? '0'),
             marketCapNative: marketCap,
+            athMarketCapNative: athMarketCap,
             totalBuys: (snap.totalBuys ?? 0) + (isBuy ? 1 : 0),
             totalSells: (snap.totalSells ?? 0) + (isBuy ? 0 : 1),
             totalVolumeNative: (BigInt(snap.totalVolumeNative ?? '0') + volume).toString(),

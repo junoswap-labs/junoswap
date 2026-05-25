@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { calculateGraduationProgress, formatKub, isReadyToGraduate } from '@/services/launchpad'
+import { calculateGraduationProgress, isReadyToGraduate } from '@/services/launchpad'
 import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
@@ -88,10 +88,7 @@ export function GraduationProgress({
                     }}
                 />
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-                <div className="text-xs text-muted-foreground">
-                    {formatKub(nativeReserve)} / {formatKub(graduationAmount)} KUB
-                </div>
+            <div className="flex justify-end text-xs text-muted-foreground">
                 <span>{progress.toFixed(1)}%</span>
             </div>
         </div>

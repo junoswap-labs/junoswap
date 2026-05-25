@@ -34,6 +34,7 @@ export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     tokenAddr: t.text().primaryKey(),
     lastPrice: t.text().default('0'),
     marketCapNative: t.text().default('0'),
+    athMarketCapNative: t.text().default('0'),
     totalBuys: t.integer().default(0),
     totalSells: t.integer().default(0),
     totalVolumeNative: t.text().default('0'),

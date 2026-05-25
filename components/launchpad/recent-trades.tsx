@@ -91,7 +91,7 @@ function TradeRow({
             </TableCell>
 
             {/* Value */}
-            <TableCell className="hidden py-2.5 text-right font-mono tracking-tight text-muted-foreground sm:table-cell">
+            <TableCell className="py-2.5 text-right font-mono tracking-tight text-muted-foreground">
                 {nativeUsdPrice !== null
                     ? `$${formatCompact(displayValue)}`
                     : `${formatCompact(displayValue)} KUB`}
@@ -104,7 +104,7 @@ function TradeRow({
 
             {/* Wallet */}
             <TableCell
-                className="hidden py-2.5 text-right font-mono text-xs text-muted-foreground sm:table-cell"
+                className="py-2.5 text-right font-mono text-xs text-muted-foreground"
                 onClick={(e) => e.stopPropagation()}
             >
                 <ExplorerLink
@@ -132,13 +132,13 @@ function LoadingState() {
                     <TableCell>
                         <div className="h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                         <div className="ml-auto h-5 w-14 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
                         <div className="ml-auto h-5 w-10 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell>
                         <div className="ml-auto h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
                 </TableRow>
@@ -168,13 +168,13 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider">
                     {tokenSymbol}
                 </TableHead>
-                <TableHead className="hidden text-right text-[10px] font-semibold uppercase tracking-wider sm:table-cell">
+                <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider">
                     Value
                 </TableHead>
                 <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider">
                     Time
                 </TableHead>
-                <TableHead className="hidden text-right text-[10px] font-semibold uppercase tracking-wider sm:table-cell">
+                <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider">
                     Wallet
                 </TableHead>
             </TableRow>
@@ -189,7 +189,7 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
             <CardContent className="p-0">
                 {isLoading ? (
                     <div className="px-2">
-                        <Table className="min-w-[480px] sm:min-w-[640px]">
+                        <Table>
                             {tableHeader}
                             <LoadingState />
                         </Table>
@@ -205,7 +205,7 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                 ) : (
                     <>
                         <div className="px-2">
-                            <Table className="min-w-[480px] sm:min-w-[640px]">
+                            <Table>
                                 {tableHeader}
                                 <TableBody>
                                     {trades.map((trade, i) => (

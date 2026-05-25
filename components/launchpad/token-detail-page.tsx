@@ -10,12 +10,14 @@ import { useTokenList } from '@/hooks/useTokenList'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { TokenTradeCard } from './token-trade-card'
 import { TokenChartWrapper } from './token-chart-wrapper'
 import { TokenStats } from './token-stats'
 import { RecentTrades } from './recent-trades'
 import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
+import { GraduationProgress } from './graduation-progress'
 import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -58,8 +60,9 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     } = useTokenReserves({ tokenAddr })
 
     // Get creation event data for this token
-    const { tokens: allTokens } = useTokenList()
+    const { tokens: allTokens, snapshotMap } = useTokenList()
     const tokenInfo = allTokens.find((t) => t.address.toLowerCase() === tokenAddr.toLowerCase())
+    const athMarketCap = snapshotMap.get(tokenAddr.toLowerCase())?.athMarketCapNative
 
     const marketCap =
         virtualAmount > 0n && nativeReserve > 0n && tokenReserve > 0n
@@ -168,9 +171,8 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                     {/* Inline market stats */}
                     <TokenStats
                         marketCap={marketCap}
-                        nativeReserve={nativeReserve}
                         isGraduated={isGraduated}
-                        graduationAmount={graduationAmount}
+                        athMarketCap={athMarketCap}
                     />
 
                     {/* Chart */}
@@ -270,6 +272,22 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             tokenDecimals={decimals}
                             isGraduated={isGraduated}
                         />
+                        {!isGraduated &&
+                            nativeReserve !== undefined &&
+                            graduationAmount !== undefined && (
+                                <Card>
+                                    <CardContent className="p-4">
+                                        <h4 className="mb-2 text-sm font-semibold">
+                                            Bonding Curve
+                                        </h4>
+                                        <GraduationProgress
+                                            nativeReserve={nativeReserve}
+                                            graduationAmount={graduationAmount}
+                                            isGraduated={false}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            )}
                         <div className="hidden lg:block">
                             <TokenHolders tokenAddr={tokenAddr} creator={tokenInfo?.creator} />
                         </div>
