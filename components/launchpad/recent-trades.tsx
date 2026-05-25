@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
 
@@ -18,11 +19,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { EmptyState } from '@/components/ui/empty-state'
+import { PaginationControls } from '@/components/ui/pagination'
 import { Activity } from 'lucide-react'
 import type { SwapEventData } from '@/hooks/useTokenSwapEvents'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
+
+const PAGE_SIZE = 10
 
 interface RecentTradesProps {
     tokenAddr: Address
@@ -47,7 +50,10 @@ function TradeRow({
     return (
         <TableRow
             key={`${trade.transactionHash}-${index}`}
-            className="cursor-pointer hover:bg-muted/40 transition-colors"
+            className={cn(
+                'cursor-pointer transition-colors hover:bg-muted/30',
+                index % 2 === 1 && 'bg-muted/10'
+            )}
             onClick={() =>
                 window.open(
                     getExplorerTxUrl(PUMP_CORE_NATIVE_CHAIN_ID, trade.transactionHash),
@@ -56,10 +62,10 @@ function TradeRow({
             }
         >
             {/* Type */}
-            <TableCell>
+            <TableCell className="py-2.5">
                 <span
                     className={cn(
-                        'inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold',
+                        'inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold',
                         trade.isBuy
                             ? 'bg-emerald-500/15 text-emerald-400'
                             : 'bg-red-500/15 text-red-400'
@@ -70,12 +76,14 @@ function TradeRow({
             </TableCell>
 
             {/* Amount (KUB) */}
-            <TableCell className="font-mono tracking-tight">{formatKub(nativeAmount)}</TableCell>
+            <TableCell className="py-2.5 font-mono tracking-tight">
+                {formatKub(nativeAmount)}
+            </TableCell>
 
             {/* Token Amount */}
             <TableCell
                 className={cn(
-                    'font-mono tracking-tight',
+                    'py-2.5 font-mono tracking-tight',
                     trade.isBuy ? 'text-emerald-400' : 'text-red-400'
                 )}
             >
@@ -83,20 +91,20 @@ function TradeRow({
             </TableCell>
 
             {/* Value */}
-            <TableCell className="text-right font-mono tracking-tight text-muted-foreground">
+            <TableCell className="hidden py-2.5 text-right font-mono tracking-tight text-muted-foreground sm:table-cell">
                 {nativeUsdPrice !== null
                     ? `$${formatCompact(displayValue)}`
                     : `${formatCompact(displayValue)} KUB`}
             </TableCell>
 
             {/* Time */}
-            <TableCell className="text-right text-muted-foreground">
+            <TableCell className="py-2.5 text-right text-xs text-muted-foreground">
                 {formatTimeAgo(trade.timestamp)}
             </TableCell>
 
             {/* Wallet */}
             <TableCell
-                className="text-right font-mono text-muted-foreground"
+                className="hidden py-2.5 text-right font-mono text-xs text-muted-foreground sm:table-cell"
                 onClick={(e) => e.stopPropagation()}
             >
                 <ExplorerLink
@@ -113,25 +121,25 @@ function TradeRow({
 function LoadingState() {
     return (
         <TableBody>
-            {[1, 2, 3, 4, 5].map((i) => (
+            {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                     <TableCell>
                         <div className="h-5 w-12 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
-                        <div className="h-5 w-20 animate-pulse rounded bg-muted" />
+                        <div className="h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
-                        <div className="h-5 w-20 animate-pulse rounded bg-muted" />
+                        <div className="h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                         <div className="ml-auto h-5 w-14 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
-                        <div className="ml-auto h-5 w-12 animate-pulse rounded bg-muted" />
+                        <div className="ml-auto h-5 w-10 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell>
-                        <div className="ml-auto h-5 w-20 animate-pulse rounded bg-muted" />
+                    <TableCell className="hidden sm:table-cell">
+                        <div className="ml-auto h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
                 </TableRow>
             ))}
@@ -140,45 +148,52 @@ function LoadingState() {
 }
 
 export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTradesProps) {
-    const { data: events, isLoading } = useTokenSwapEvents(tokenAddr)
+    const [page, setPage] = useState(1)
+    const { data: result, isLoading } = useTokenSwapEvents(tokenAddr, page, PAGE_SIZE)
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
-    const trades = events ? [...events].sort((a, b) => b.timestamp - a.timestamp).slice(0, 20) : []
+    const trades = result?.data ?? []
+    const totalCount = result?.totalCount ?? 0
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+    const tableHeader = (
+        <TableHeader>
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider">
+                    Type
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider">
+                    Amount (KUB)
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider">
+                    {tokenSymbol}
+                </TableHead>
+                <TableHead className="hidden text-right text-[10px] font-semibold uppercase tracking-wider sm:table-cell">
+                    Value
+                </TableHead>
+                <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider">
+                    Time
+                </TableHead>
+                <TableHead className="hidden text-right text-[10px] font-semibold uppercase tracking-wider sm:table-cell">
+                    Wallet
+                </TableHead>
+            </TableRow>
+        </TableHeader>
+    )
 
     return (
         <Card className={className}>
             <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold">Recent Trades</CardTitle>
             </CardHeader>
-            <CardContent className="p-0 pb-2">
+            <CardContent className="p-0">
                 {isLoading ? (
-                    <ScrollArea className="h-[240px] sm:h-[280px] md:h-[320px]">
-                        <Table className="min-w-[640px]">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        Type
-                                    </TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        Amount (KUB)
-                                    </TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        {tokenSymbol}
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        Value
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        Time
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        Wallet
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
+                    <div className="px-2">
+                        <Table className="min-w-[480px] sm:min-w-[640px]">
+                            {tableHeader}
                             <LoadingState />
                         </Table>
-                    </ScrollArea>
+                    </div>
                 ) : trades.length === 0 ? (
                     <EmptyState
                         compact
@@ -188,42 +203,32 @@ export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTrades
                         description="Trades will appear here once the token is traded"
                     />
                 ) : (
-                    <ScrollArea className="h-[240px] sm:h-[280px] md:h-[320px]">
-                        <Table className="min-w-[640px]">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        Type
-                                    </TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        Amount (KUB)
-                                    </TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        {tokenSymbol}
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        Value
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        Time
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        Wallet
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {trades.map((trade, i) => (
-                                    <TradeRow
-                                        key={`${trade.transactionHash}-${i}`}
-                                        trade={trade}
-                                        index={i}
-                                        nativeUsdPrice={nativeUsdPrice}
-                                    />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
+                    <>
+                        <div className="px-2">
+                            <Table className="min-w-[480px] sm:min-w-[640px]">
+                                {tableHeader}
+                                <TableBody>
+                                    {trades.map((trade, i) => (
+                                        <TradeRow
+                                            key={`${trade.transactionHash}-${i}`}
+                                            trade={trade}
+                                            index={i}
+                                            nativeUsdPrice={nativeUsdPrice}
+                                        />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center border-t border-border/40 px-3 py-2.5">
+                                <PaginationControls
+                                    currentPage={page}
+                                    totalPages={totalPages}
+                                    onPageChange={setPage}
+                                />
+                            </div>
+                        )}
+                    </>
                 )}
             </CardContent>
         </Card>

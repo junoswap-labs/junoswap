@@ -217,7 +217,6 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <SortTabs value={sortKey} onChange={setSortKey} />
-                <span className="text-sm text-muted-foreground">{sorted.length} tokens</span>
             </div>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 {sorted.map(

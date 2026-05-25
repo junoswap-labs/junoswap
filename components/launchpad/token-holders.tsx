@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { Address } from 'viem'
 import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
@@ -16,8 +17,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { EmptyState } from '@/components/ui/empty-state'
+import { PaginationControls } from '@/components/ui/pagination'
+import { cn } from '@/lib/utils'
+
+const PAGE_SIZE = 10
 
 interface TokenHoldersProps {
     tokenAddr: Address
@@ -35,9 +39,13 @@ function HolderRow({
     isCreator: boolean
 }) {
     return (
-        <TableRow>
-            <TableCell className="w-8 text-muted-foreground">{rank}</TableCell>
-            <TableCell className="font-mono text-xs">
+        <TableRow
+            className={cn('transition-colors hover:bg-muted/30', rank % 2 === 0 && 'bg-muted/10')}
+        >
+            <TableCell className="w-8 py-2.5 text-xs text-muted-foreground">
+                <span className={cn(rank <= 3 && 'font-bold text-foreground')}>{rank}</span>
+            </TableCell>
+            <TableCell className="py-2.5 font-mono text-xs">
                 <div className="flex items-center gap-1.5">
                     <ExplorerLink
                         value={holder.address}
@@ -46,13 +54,13 @@ function HolderRow({
                         compact
                     />
                     {isCreator && (
-                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-medium">
+                        <Badge variant="outline" className="h-4 px-1 py-0 text-[9px] font-medium">
                             Creator
                         </Badge>
                     )}
                 </div>
             </TableCell>
-            <TableCell className="w-24 text-right text-xs tabular-nums text-muted-foreground">
+            <TableCell className="w-24 py-2.5 text-right text-xs tabular-nums text-muted-foreground">
                 {holder.percentage.toFixed(2)}%
             </TableCell>
         </TableRow>
@@ -62,7 +70,7 @@ function HolderRow({
 function LoadingState() {
     return (
         <TableBody>
-            {[1, 2, 3, 4, 5].map((i) => (
+            {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                     <TableCell>
                         <div className="h-4 w-4 animate-pulse rounded bg-muted" />
@@ -71,7 +79,7 @@ function LoadingState() {
                         <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
-                        <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                        <div className="ml-auto h-4 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
                 </TableRow>
             ))}
@@ -80,14 +88,22 @@ function LoadingState() {
 }
 
 export function TokenHolders({ tokenAddr, creator, className }: TokenHoldersProps) {
+    const [page, setPage] = useState(1)
     const { holders, holderCount, isLoading } = useTokenHolders(tokenAddr)
+
+    const totalPages = Math.ceil(holders.length / PAGE_SIZE)
+    const paginatedHolders = holders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
     const tableHeader = (
         <TableHeader>
-            <TableRow>
-                <TableHead className="w-8 text-[10px] uppercase tracking-wider">#</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Address</TableHead>
-                <TableHead className="w-24 text-right text-[10px] uppercase tracking-wider">
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="w-8 text-[10px] font-semibold uppercase tracking-wider">
+                    #
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider">
+                    Address
+                </TableHead>
+                <TableHead className="w-28 text-right text-[10px] font-semibold uppercase tracking-wider">
                     % of Supply
                 </TableHead>
             </TableRow>
@@ -106,12 +122,14 @@ export function TokenHolders({ tokenAddr, creator, className }: TokenHoldersProp
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="p-0 pb-2">
+            <CardContent className="p-0">
                 {isLoading ? (
-                    <Table>
-                        {tableHeader}
-                        <LoadingState />
-                    </Table>
+                    <div className="px-2">
+                        <Table>
+                            {tableHeader}
+                            <LoadingState />
+                        </Table>
+                    </div>
                 ) : holders.length === 0 ? (
                     <EmptyState
                         compact
@@ -121,24 +139,40 @@ export function TokenHolders({ tokenAddr, creator, className }: TokenHoldersProp
                         description="Holders will appear here once the token is traded"
                     />
                 ) : (
-                    <ScrollArea className="h-[240px] sm:h-[280px] md:h-[320px]">
-                        <Table>
-                            {tableHeader}
-                            <TableBody>
-                                {holders.map((holder, i) => (
-                                    <HolderRow
-                                        key={holder.address}
-                                        holder={holder}
-                                        rank={i + 1}
-                                        isCreator={
-                                            !!creator &&
-                                            holder.address.toLowerCase() === creator.toLowerCase()
-                                        }
-                                    />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
+                    <>
+                        <div className="px-2">
+                            <Table>
+                                {tableHeader}
+                                <TableBody>
+                                    {paginatedHolders.map((holder, i) => (
+                                        <HolderRow
+                                            key={holder.address}
+                                            holder={holder}
+                                            rank={(page - 1) * PAGE_SIZE + i + 1}
+                                            isCreator={
+                                                !!creator &&
+                                                holder.address.toLowerCase() ===
+                                                    creator.toLowerCase()
+                                            }
+                                        />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-border/40 px-3 py-2.5">
+                                <span className="text-xs text-muted-foreground">
+                                    {(page - 1) * PAGE_SIZE + 1}&ndash;
+                                    {Math.min(page * PAGE_SIZE, holders.length)} of {holders.length}
+                                </span>
+                                <PaginationControls
+                                    currentPage={page}
+                                    totalPages={totalPages}
+                                    onPageChange={setPage}
+                                />
+                            </div>
+                        )}
+                    </>
                 )}
             </CardContent>
         </Card>
