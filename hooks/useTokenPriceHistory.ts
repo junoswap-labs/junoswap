@@ -18,6 +18,8 @@ const TOKEN_PRICE_HISTORY_QUERY = `
         isBuy
         amountIn
         amountOut
+        reserveIn
+        reserveOut
       }
     }
   }
@@ -30,6 +32,8 @@ interface PriceHistoryResponse {
             isBuy: number
             amountIn: string
             amountOut: string
+            reserveIn: string
+            reserveOut: string
         }>
     }
 }
@@ -63,6 +67,8 @@ export function useTokenPriceHistory(tokenAddr: Address | undefined) {
                     isBuy: e.isBuy === 1,
                     amountIn: BigInt(e.amountIn),
                     amountOut: BigInt(e.amountOut),
+                    reserveIn: BigInt(e.reserveIn),
+                    reserveOut: BigInt(e.reserveOut),
                 }))
             } catch (e) {
                 if (!isPonderError(e) || !publicClient) throw e
@@ -72,6 +78,8 @@ export function useTokenPriceHistory(tokenAddr: Address | undefined) {
                     isBuy: e.isBuy,
                     amountIn: e.amountIn,
                     amountOut: e.amountOut,
+                    reserveIn: e.reserveIn,
+                    reserveOut: e.reserveOut,
                 }))
             }
         },

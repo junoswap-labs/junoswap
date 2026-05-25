@@ -5,19 +5,26 @@ import { formatEther } from 'viem'
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
 const _VIRTUAL_AMOUNT = 3400n * 10n ** 18n
 
-function calculatePrice(isBuy: boolean, amountIn: bigint, amountOut: bigint): number {
-    if (amountIn === 0n || amountOut === 0n) return 0
-    const inNum = parseFloat(formatEther(amountIn))
-    const outNum = parseFloat(formatEther(amountOut))
-    if (outNum === 0 || inNum === 0) return 0
-    return isBuy ? inNum / outNum : outNum / inNum
+function calculatePriceFromReserves(isBuy: boolean, reserveIn: bigint, reserveOut: bigint): number {
+    const nativeReserve = isBuy ? reserveIn : reserveOut
+    const tokenReserve = isBuy ? reserveOut : reserveIn
+    if (nativeReserve === 0n || tokenReserve === 0n) return 0
+    const effectiveReserve = parseFloat(formatEther(nativeReserve + _VIRTUAL_AMOUNT))
+    const tokenRes = parseFloat(formatEther(tokenReserve))
+    if (tokenRes === 0) return 0
+    return effectiveReserve / tokenRes
 }
 
-function calculateMarketCapFromSwap(isBuy: boolean, amountIn: bigint, amountOut: bigint): string {
-    if (amountIn === 0n || amountOut === 0n) return '0'
-    const marketCap = isBuy
-        ? (amountIn * TOTAL_SUPPLY) / amountOut
-        : (amountOut * TOTAL_SUPPLY) / amountIn
+function calculateMarketCapFromReserves(
+    isBuy: boolean,
+    reserveIn: bigint,
+    reserveOut: bigint
+): string {
+    if (reserveIn === 0n || reserveOut === 0n) return '0'
+    const nativeReserve = isBuy ? reserveIn : reserveOut
+    const tokenReserve = isBuy ? reserveOut : reserveIn
+    const effectiveReserve = nativeReserve + _VIRTUAL_AMOUNT
+    const marketCap = (effectiveReserve * TOTAL_SUPPLY) / tokenReserve
     return formatEther(marketCap)
 }
 
@@ -86,8 +93,8 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
         transactionHash: event.transaction.hash,
     })
 
-    const price = calculatePrice(isBuy, amountIn, amountOut)
-    const marketCap = calculateMarketCapFromSwap(isBuy, amountIn, amountOut)
+    const price = calculatePriceFromReserves(isBuy, BigInt(reserveIn), BigInt(reserveOut))
+    const marketCap = calculateMarketCapFromReserves(isBuy, BigInt(reserveIn), BigInt(reserveOut))
     const volume = calculateVolume(isBuy, amountIn, amountOut)
 
     // 2. Read current snapshot (from previous events), or use defaults
