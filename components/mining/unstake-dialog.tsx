@@ -121,6 +121,7 @@ export function UnstakeDialog() {
                 </div>
                 <DialogFooter>
                     <Button
+                        size="lg"
                         onClick={unstake}
                         disabled={isLoading}
                         variant={incentive.isActive ? 'destructive' : 'default'}

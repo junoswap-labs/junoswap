@@ -185,7 +185,11 @@ export function RemoveLiquidityDialog() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleRemove} disabled={isLoading || liquidityToRemove === 0n}>
+                    <Button
+                        size="lg"
+                        onClick={handleRemove}
+                        disabled={isLoading || liquidityToRemove === 0n}
+                    >
                         {getButtonText()}
                     </Button>
                 </DialogFooter>

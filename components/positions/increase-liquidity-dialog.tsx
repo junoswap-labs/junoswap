@@ -373,7 +373,12 @@ export function IncreaseLiquidityDialog() {
                             />
                         </div>
                     </div>
-                    <Button className="w-full" onClick={handleSubmit} disabled={isButtonDisabled()}>
+                    <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handleSubmit}
+                        disabled={isButtonDisabled()}
+                    >
                         {getButtonText()}
                     </Button>
                 </div>

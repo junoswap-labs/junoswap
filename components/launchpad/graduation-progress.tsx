@@ -64,8 +64,9 @@ export function GraduationProgress({
                 </div>
                 {onGraduate && (
                     <Button
+                        variant="warning"
                         size="sm"
-                        className="w-full bg-amber-500 text-white hover:bg-amber-600"
+                        className="w-full"
                         onClick={onGraduate}
                         disabled={isGraduating}
                     >

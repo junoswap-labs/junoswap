@@ -13,7 +13,7 @@ import { uploadToPinata } from '@/app/actions/upload-to-pinata'
 import { getChainMetadata } from '@/lib/wagmi'
 import { formatKub, formatTokenAmount } from '@/services/launchpad'
 import type { CreateTokenForm } from '@/types/launchpad'
-import { Globe, Twitter, MessageCircle, Loader2, Coins } from 'lucide-react'
+import { Globe, Twitter, MessageCircle, Coins } from 'lucide-react'
 import { LogoUpload } from './logo-upload'
 
 export function CreateTokenDialog() {
@@ -247,10 +247,14 @@ export function CreateTokenDialog() {
                         <span className="font-semibold">{formatKub(totalCost)} KUB</span>
                     </div>
 
-                    <Button className="w-full" onClick={handleCreate} disabled={isButtonDisabled}>
-                        {(isExecuting || isConfirming) && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
+                    <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handleCreate}
+                        disabled={isButtonDisabled}
+                        isLoading={isExecuting || isConfirming}
+                        loadingText={getButtonText()}
+                    >
                         {getButtonText()}
                     </Button>
                 </div>

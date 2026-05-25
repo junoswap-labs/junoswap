@@ -174,7 +174,7 @@ export function StakeDialog() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleStake} disabled={!canStake}>
+                    <Button size="lg" onClick={handleStake} disabled={!canStake}>
                         {getButtonText()}
                     </Button>
                 </DialogFooter>

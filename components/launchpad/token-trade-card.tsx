@@ -16,7 +16,7 @@ import { useGraduate } from '@/hooks/useGraduate'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
-import { isValidNumberInput, cn } from '@/lib/utils'
+import { isValidNumberInput } from '@/lib/utils'
 import { formatKub, formatTokenAmount, isReadyToGraduate } from '@/services/launchpad'
 import { toastSuccess, toastError } from '@/lib/toast'
 import { getChainMetadata } from '@/lib/wagmi'
@@ -345,8 +345,9 @@ export function TokenTradeCard({
                                 </p>
                             </div>
                             <Button
-                                size="xl"
-                                className="w-full bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700"
+                                variant="warning"
+                                size="lg"
+                                className="w-full"
                                 onClick={handleGraduate}
                                 disabled={
                                     isGraduatePreparing ||
@@ -464,15 +465,9 @@ export function TokenTradeCard({
                             )}
 
                             <Button
-                                size="xl"
-                                className={cn(
-                                    'w-full bg-green-600 text-white hover:bg-green-700 active:bg-green-800',
-                                    (isBuyPreparing ||
-                                        isBuyExecuting ||
-                                        isBuyConfirming ||
-                                        buyAmountWei === 0n) &&
-                                        'opacity-50 cursor-not-allowed'
-                                )}
+                                variant="success"
+                                size="lg"
+                                className="w-full"
                                 onClick={handleBuy}
                                 disabled={
                                     isBuyPreparing ||
@@ -555,17 +550,9 @@ export function TokenTradeCard({
                             )}
 
                             <Button
-                                size="xl"
-                                className={cn(
-                                    'w-full bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-                                    (isSellPreparing ||
-                                        isSellExecuting ||
-                                        isSellConfirming ||
-                                        isApprovingSell ||
-                                        isConfirmingApproval ||
-                                        sellAmountWei === 0n) &&
-                                        'opacity-50 cursor-not-allowed'
-                                )}
+                                variant="danger"
+                                size="lg"
+                                className="w-full"
                                 onClick={handleSell}
                                 disabled={
                                     isSellPreparing ||

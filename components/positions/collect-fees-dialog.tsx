@@ -92,7 +92,7 @@ export function CollectFeesDialog() {
                     )}
                 </div>
                 <DialogFooter>
-                    <Button onClick={collect} disabled={isLoading || !hasFees}>
+                    <Button size="lg" onClick={collect} disabled={isLoading || !hasFees}>
                         {getButtonText()}
                     </Button>
                 </DialogFooter>

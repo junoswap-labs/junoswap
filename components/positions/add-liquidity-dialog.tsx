@@ -5,7 +5,7 @@ import { useAccount, useChainId } from 'wagmi'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, ArrowUpDown } from 'lucide-react'
+import { ArrowUpDown } from 'lucide-react'
 import { RangeSelector } from './range-selector'
 import { TokenSelect } from '@/components/swap/token-select'
 import { useEarnStore, useRangeConfig } from '@/store/earn-store'
@@ -542,11 +542,13 @@ export function AddLiquidityDialog() {
 
                     {/* Submit */}
                     <Button
-                        className="w-full h-12 text-sm font-semibold"
+                        className="w-full"
+                        size="lg"
                         onClick={handleSubmit}
                         disabled={isButtonDisabled()}
+                        isLoading={isLoading}
+                        loadingText={getButtonText()}
                     >
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {getButtonText()}
                     </Button>
                 </div>
