@@ -1,34 +1,21 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import {
-    formatKub,
-    calculateGraduationProgress,
-    formatCompact,
-    isReadyToGraduate,
-} from '@/services/launchpad'
+import { formatCompact } from '@/services/launchpad'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface TokenStatsProps {
     marketCap: string
-    nativeReserve: bigint
     isGraduated: boolean
-    graduationAmount: bigint
+    athMarketCap?: string
     className?: string
 }
 
-export function TokenStats({
-    marketCap,
-    nativeReserve,
-    isGraduated,
-    graduationAmount,
-    className,
-}: TokenStatsProps) {
-    const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
-    const ready = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
+export function TokenStats({ marketCap, isGraduated, athMarketCap, className }: TokenStatsProps) {
     const { nativeUsdPrice } = useNativeUsdPriceContext()
     const mcapNum = parseFloat(marketCap)
     const displayMcap = nativeUsdPrice !== null ? mcapNum * nativeUsdPrice : mcapNum
+    const athNum = athMarketCap ? parseFloat(athMarketCap) : 0
 
     return (
         <div className={cn('flex items-center justify-between gap-6', className)}>
@@ -42,27 +29,28 @@ export function TokenStats({
                 <div className="text-xs text-muted-foreground uppercase">mcap</div>
             </div>
 
-            {/* Right — progress bar */}
+            {/* Right — ATH progress bar or Graduated */}
             {isGraduated ? (
                 <div className="w-1/3 text-sm font-semibold text-emerald-400">Graduated</div>
-            ) : graduationAmount > 0n ? (
+            ) : athNum > 0 ? (
                 <div className="w-1/3 space-y-1.5">
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                         <div
                             className="h-full rounded-full transition-all duration-300"
                             style={{
-                                width: `${Math.min(progress, 100)}%`,
-                                background: ready
-                                    ? 'linear-gradient(90deg, rgb(245 158 11 / 0.3), rgb(245 158 11))'
-                                    : `linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--primary)))`,
+                                width: `${Math.min((mcapNum / athNum) * 100, 100)}%`,
+                                background:
+                                    'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
                             }}
                         />
                     </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="flex justify-end text-xs text-muted-foreground">
                         <span>
-                            {formatKub(nativeReserve)} / {formatKub(graduationAmount)} KUB
+                            ATH{' '}
+                            {nativeUsdPrice !== null
+                                ? `$${formatCompact(athNum * nativeUsdPrice)}`
+                                : `${formatCompact(athNum)} KUB`}
                         </span>
-                        <span>{ready ? '100%' : `${progress.toFixed(1)}%`}</span>
                     </div>
                 </div>
             ) : null}
