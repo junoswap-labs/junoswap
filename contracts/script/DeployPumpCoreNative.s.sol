@@ -13,7 +13,7 @@ contract DeployPumpCoreNative is Script {
     // Curve parameters
     uint256 constant INITIAL_NATIVE = 0;
     uint256 constant VIRTUAL_AMOUNT = 3400000000000000000000;
-    uint256 constant GRADUATION_AMOUNT = 47800000000000000000000;
+    uint256 constant GRADUATION_AMOUNT = 4000000000000000000000;
 
     // Fee parameters
     uint256 constant CREATE_FEE = 0.1 ether;

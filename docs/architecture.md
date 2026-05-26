@@ -308,7 +308,7 @@ Graduation (automatic when threshold reached)
 |-----------|-------|-------------|
 | Contract | `0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9` | PumpCoreNative on KUB Testnet (25925) |
 | virtualAmount | 3,400 native | Virtual reserve for bonding curve math |
-| graduationAmount | 47,800 native | Native reserve threshold for graduation |
+| graduationAmount | 4,000 native | Native reserve threshold for graduation |
 | createFee | 0.1 native | Fee paid to feeCollector on token creation |
 | pumpFee | 100 (1%) | Basis points fee on buy/sell |
 | INITIALTOKEN | 1,000,000,000 | Token supply at creation (18 decimals) |
