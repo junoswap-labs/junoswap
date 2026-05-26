@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import {
     createChart,
     CandlestickSeries,
@@ -25,11 +25,13 @@ import type { ChartMode } from '@/types/chart'
 import { TIMEFRAME_DURATIONS } from '@/types/chart'
 import { cn } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
-import { calculatePriceFromSqrtPrice } from '@/services/chart'
+import { calculatePriceFromSqrtPrice, computeDailyMetrics } from '@/services/chart'
+import type { DailyMetrics } from '@/services/chart'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
+import { formatCompact } from '@/services/launchpad'
 
 const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
 
@@ -41,6 +43,7 @@ interface TokenChartProps {
     isGraduated?: boolean
     poolAddress?: Address
     graduatedAt?: number | null
+    onDailyMetricsChange?: (metrics: DailyMetrics | null) => void
     className?: string
 }
 
@@ -93,6 +96,7 @@ export function TokenChart({
     isGraduated,
     poolAddress,
     graduatedAt,
+    onDailyMetricsChange,
     className,
 }: TokenChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
@@ -120,6 +124,7 @@ export function TokenChart({
 
     const chartColors = useChartColors()
     const { nativeUsdPrice } = useNativeUsdPriceContext()
+    const [vol1d, setVol1d] = useState<number | null>(null)
 
     const displayData = useMemo(() => {
         let result = data
@@ -322,12 +327,12 @@ export function TokenChart({
         })
 
         const candleSeries = chart.addSeries(CandlestickSeries, {
-            upColor: 'hsl(153, 80%, 45%)',
-            downColor: 'hsl(0, 72%, 42%)',
-            borderUpColor: 'hsl(153, 80%, 55%)',
-            borderDownColor: 'hsl(0, 72%, 50%)',
-            wickUpColor: 'hsl(153, 60%, 40%)',
-            wickDownColor: 'hsl(0, 60%, 38%)',
+            upColor: 'rgb(34, 197, 94)',
+            downColor: 'rgb(239, 68, 68)',
+            borderUpColor: 'rgb(34, 197, 94)',
+            borderDownColor: 'rgb(239, 68, 68)',
+            wickUpColor: 'rgb(34, 197, 94)',
+            wickDownColor: 'rgb(239, 68, 68)',
             lastValueVisible: false,
             priceLineVisible: false,
         })
@@ -438,7 +443,7 @@ export function TokenChart({
             const isUp = lastCandle.close >= lastCandle.open
             priceLineRef.current = candleSeriesRef.current.createPriceLine({
                 price: lastCandle.close,
-                color: isUp ? 'hsl(153, 80%, 45%)' : 'hsl(0, 72%, 42%)',
+                color: isUp ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)',
                 lineWidth: 1,
                 lineStyle: 2, // dashed
                 axisLabelVisible: true,
@@ -461,8 +466,12 @@ export function TokenChart({
             updateOhlcvDom.current(ohlcv)
         }
 
+        const metrics = computeDailyMetrics(displayData, nativeUsdPrice)
+        setVol1d(metrics?.volume1d ?? null)
+        onDailyMetricsChange?.(metrics)
+
         chartRef.current?.timeScale().fitContent()
-    }, [displayData, chartMode, nativeUsdPrice, chartColors])
+    }, [displayData, chartMode, nativeUsdPrice, chartColors, onDailyMetricsChange])
 
     return (
         <div className={cn('relative rounded-lg border border-border/60 bg-card', className)}>
@@ -516,6 +525,15 @@ export function TokenChart({
 
                 {/* Right side */}
                 <div className="ml-auto flex items-center gap-2">
+                    {vol1d !== null && (
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                            Vol 1D{' '}
+                            <span className="text-foreground font-medium">
+                                {nativeUsdPrice !== null ? '$' : ''}
+                                {formatCompact(vol1d)}
+                            </span>
+                        </span>
+                    )}
                     {isLoading && (
                         <span className="animate-pulse text-[11px] text-muted-foreground">
                             Loading...

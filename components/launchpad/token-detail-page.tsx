@@ -22,9 +22,10 @@ import { RecentTrades } from './recent-trades'
 import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
+import type { DailyMetrics } from '@/services/chart'
 import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 
 interface TokenDetailPageProps {
     tokenAddr: Address
@@ -138,6 +139,11 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const decimals = (tokenDecimals as number) || 18
 
     const [copied, setCopied] = useState(false)
+    const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null)
+
+    const handleDailyMetricsChange = useCallback((metrics: DailyMetrics | null) => {
+        setDailyMetrics(metrics)
+    }, [])
 
     const copyAddress = () => {
         navigator.clipboard.writeText(tokenAddr)
@@ -161,7 +167,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
             </Link>
 
             {/* Two-column grid */}
-            <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12 items-start">
                 {/* Left column — token info, chart, stats, trades */}
                 <div className="order-2 min-w-0 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
                     {/* Price header */}
@@ -233,6 +239,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         marketCap={marketCap}
                         isGraduated={isGraduated}
                         athMarketCap={athMarketCap}
+                        priceChange1dPct={dailyMetrics?.priceChange1dPct ?? null}
                     />
 
                     {/* Chart */}
@@ -244,6 +251,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         isGraduated={isGraduated}
                         poolAddress={poolAddress}
                         graduatedAt={tokenInfo?.graduatedAt ?? null}
+                        onDailyMetricsChange={handleDailyMetricsChange}
                     />
 
                     {/* About token */}
@@ -342,22 +350,18 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             poolAddress={poolAddress}
                             poolFee={isGraduated ? 10000 : undefined}
                         />
-                        {!isGraduated &&
-                            nativeReserve !== undefined &&
-                            graduationAmount !== undefined && (
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <h4 className="mb-2 text-sm font-semibold">
-                                            Bonding Curve
-                                        </h4>
-                                        <GraduationProgress
-                                            nativeReserve={nativeReserve}
-                                            graduationAmount={graduationAmount}
-                                            isGraduated={false}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            )}
+                        {nativeReserve !== undefined && graduationAmount !== undefined && (
+                            <Card>
+                                <CardContent className="p-4">
+                                    <h4 className="mb-2 text-sm font-semibold">Bonding Curve</h4>
+                                    <GraduationProgress
+                                        nativeReserve={nativeReserve}
+                                        graduationAmount={graduationAmount}
+                                        isGraduated={!!isGraduated}
+                                    />
+                                </CardContent>
+                            </Card>
+                        )}
                         <div className="hidden lg:block">
                             <TokenHolders
                                 tokenAddr={tokenAddr}

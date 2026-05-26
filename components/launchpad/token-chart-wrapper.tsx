@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import type { Address } from 'viem'
+import type { DailyMetrics } from '@/services/chart'
 import { Loader2 } from 'lucide-react'
 
 const TokenChart = dynamic(() => import('./token-chart').then((mod) => mod.TokenChart), {
@@ -25,6 +26,7 @@ interface TokenChartWrapperProps {
     isGraduated?: boolean
     poolAddress?: Address
     graduatedAt?: number | null
+    onDailyMetricsChange?: (metrics: DailyMetrics | null) => void
     className?: string
 }
 

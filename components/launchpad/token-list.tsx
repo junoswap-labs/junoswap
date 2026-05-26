@@ -82,7 +82,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
         query: { enabled: tokens.length > 0 },
     })
 
-    const graduationAmount = graduationAmountResult?.[0]?.result as bigint | undefined
+    const _graduationAmount = graduationAmountResult?.[0]?.result as bigint | undefined
 
     const { data: virtualAmountData } = useReadContract({
         address: PUMP_CORE_NATIVE_ADDRESS as Address,
@@ -231,7 +231,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                         marketCap,
                         athMarketCap,
                     }) => {
-                        const nativeReserve = reserveResult?.[0]
+                        const _nativeReserve = reserveResult?.[0]
 
                         return (
                             <TokenCard
@@ -239,8 +239,6 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                                 token={token}
                                 tokenName={tokenName}
                                 tokenSymbol={tokenSymbol}
-                                nativeReserve={nativeReserve}
-                                graduationAmount={graduationAmount}
                                 marketCap={marketCap}
                                 athMarketCap={athMarketCap}
                                 isGraduated={isGraduated}

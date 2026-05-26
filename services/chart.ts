@@ -226,3 +226,45 @@ export function stitchCandlesticks(
 
     return [...preGrad, ...postGrad]
 }
+
+export interface DailyMetrics {
+    volume1d: number
+    priceChange1dPct: number
+}
+
+export function computeDailyMetrics(
+    candles: CandlestickData[],
+    usdPrice: number | null
+): DailyMetrics | null {
+    if (candles.length === 0) return null
+
+    const now = Math.floor(Date.now() / 1000)
+    const cutoff = now - 86400
+
+    let volume1d = 0
+    for (const c of candles) {
+        if (c.time >= cutoff) {
+            volume1d += c.volume
+        }
+    }
+    if (usdPrice !== null) {
+        volume1d *= usdPrice
+    }
+
+    const sortedBefore = candles.filter((c) => c.time <= cutoff).sort((a, b) => b.time - a.time)
+    const priceThen = sortedBefore.length > 0 ? sortedBefore[0]!.close : null
+
+    const priceNow = candles[candles.length - 1]!.close
+
+    let priceChange1dPct = 0
+    if (priceThen !== null && priceThen > 0) {
+        priceChange1dPct = ((priceNow - priceThen) / priceThen) * 100
+    } else {
+        const firstOpen = candles[0]!.open
+        if (firstOpen > 0) {
+            priceChange1dPct = ((priceNow - firstOpen) / firstOpen) * 100
+        }
+    }
+
+    return { volume1d, priceChange1dPct }
+}

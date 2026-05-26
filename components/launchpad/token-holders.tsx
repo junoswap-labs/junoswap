@@ -97,7 +97,16 @@ export function TokenHolders({
     className,
 }: TokenHoldersProps) {
     const [page, setPage] = useState(1)
-    const { holders, holderCount, isLoading } = useTokenHolders(tokenAddr, poolAddress, isGraduated)
+    const {
+        holders: rawHolders,
+        holderCount: rawHolderCount,
+        isLoading,
+    } = useTokenHolders(tokenAddr, poolAddress, isGraduated)
+    const filteredPool = isGraduated && poolAddress
+    const holders = filteredPool
+        ? rawHolders.filter((h) => h.address.toLowerCase() !== poolAddress!.toLowerCase())
+        : rawHolders
+    const holderCount = filteredPool ? Math.max(0, rawHolderCount - 1) : rawHolderCount
 
     const totalPages = Math.ceil(holders.length / PAGE_SIZE)
     const paginatedHolders = holders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

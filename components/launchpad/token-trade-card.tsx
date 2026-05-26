@@ -547,8 +547,8 @@ export function TokenTradeCard({
                                         <span className="text-muted-foreground shrink-0">Fee</span>
                                         <span className="font-medium">
                                             {isGraduated
-                                                ? `${((poolFee ?? 10000) / 100).toFixed(0)}%`
-                                                : '1%'}
+                                                ? `${((poolFee ?? 10000) / 10000).toFixed(2)}%`
+                                                : '2%'}
                                         </span>
                                     </div>
                                 </div>
@@ -630,8 +630,8 @@ export function TokenTradeCard({
                                         <span className="text-muted-foreground shrink-0">Fee</span>
                                         <span className="font-medium">
                                             {isGraduated
-                                                ? `${((poolFee ?? 10000) / 100).toFixed(0)}%`
-                                                : '1%'}
+                                                ? `${((poolFee ?? 10000) / 10000).toFixed(2)}%`
+                                                : '2%'}
                                         </span>
                                     </div>
                                 </div>

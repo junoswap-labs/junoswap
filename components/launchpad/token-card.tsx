@@ -5,15 +5,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
 import type { LaunchToken } from '@/types/launchpad'
-import { GraduationProgress } from './graduation-progress'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface TokenCardProps {
     token: LaunchToken
     tokenName?: string
     tokenSymbol?: string
-    nativeReserve?: bigint
-    graduationAmount?: bigint
     marketCap?: string
     athMarketCap?: string
     isGraduated?: boolean
@@ -23,8 +20,6 @@ export function TokenCard({
     token,
     tokenName,
     tokenSymbol,
-    nativeReserve,
-    graduationAmount,
     marketCap,
     athMarketCap,
     isGraduated,
@@ -101,13 +96,34 @@ export function TokenCard({
                                 )}
                             </div>
                         )}
-                        {nativeReserve !== undefined && graduationAmount !== undefined && (
-                            <GraduationProgress
-                                nativeReserve={nativeReserve}
-                                graduationAmount={graduationAmount}
-                                isGraduated={isGraduated ?? false}
-                            />
-                        )}
+                        {athMarketCap &&
+                            parseFloat(athMarketCap) > 0 &&
+                            marketCap &&
+                            (() => {
+                                const progress = Math.min(
+                                    (parseFloat(marketCap) / parseFloat(athMarketCap)) * 100,
+                                    100
+                                )
+                                return (
+                                    <div className="space-y-1">
+                                        <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                                            <div
+                                                className="h-full rounded-full transition-all duration-300"
+                                                style={{
+                                                    width: `${progress}%`,
+                                                    background:
+                                                        'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                                                }}
+                                            />
+                                        </div>
+                                        {isGraduated && (
+                                            <span className="text-xs text-green-500 font-medium">
+                                                Graduated
+                                            </span>
+                                        )}
+                                    </div>
+                                )
+                            })()}
                     </div>
                 </CardContent>
             </Card>
