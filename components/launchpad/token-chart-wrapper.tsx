@@ -22,6 +22,9 @@ interface TokenChartWrapperProps {
     nativeReserve?: bigint
     tokenReserve?: bigint
     virtualAmount?: bigint
+    isGraduated?: boolean
+    poolAddress?: Address
+    graduatedAt?: number | null
     className?: string
 }
 

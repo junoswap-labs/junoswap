@@ -21,6 +21,7 @@ const TOKEN_LIST_QUERY = `
         link3
         createdTime
         isGraduated
+        graduatedAt
       }
     }
     tokenSnapshots {
@@ -46,6 +47,7 @@ interface TokenListResponse {
             link3: string
             createdTime: number
             isGraduated: number
+            graduatedAt: number | null
         }>
     }
     tokenSnapshots: {
@@ -96,6 +98,7 @@ export function useTokenList(): UseTokenListResult {
                         creator: t.creator as Address,
                         createdTime: t.createdTime,
                         chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                        graduatedAt: t.graduatedAt ?? null,
                     })
                 )
                 const snapshotMap = new Map<string, SnapshotData>()

@@ -5,6 +5,10 @@ import type { Address } from 'viem'
 import { formatEther } from 'viem'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { getV3Config } from '@/lib/dex-config'
+import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
+import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
+import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
@@ -20,7 +24,7 @@ import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
 import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 interface TokenDetailPageProps {
     tokenAddr: Address
@@ -64,14 +68,70 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const tokenInfo = allTokens.find((t) => t.address.toLowerCase() === tokenAddr.toLowerCase())
     const athMarketCap = snapshotMap.get(tokenAddr.toLowerCase())?.athMarketCapNative
 
-    const marketCap =
-        virtualAmount > 0n && nativeReserve > 0n && tokenReserve > 0n
-            ? String(
-                  (parseFloat(formatEther(virtualAmount + nativeReserve)) /
-                      parseFloat(formatEther(tokenReserve))) *
-                      1e9
-              )
-            : '0'
+    // Resolve V3 pool address for graduated tokens
+    const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
+    const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
+
+    const { data: poolAddressData } = useReadContract({
+        address: v3Config!.factory as Address,
+        abi: UNISWAP_V3_FACTORY_ABI,
+        functionName: 'getPool' as const,
+        args: tokenAddr && wrappedNative ? [tokenAddr, wrappedNative as Address, 10000] : undefined,
+        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        query: { enabled: !!isGraduated && !!tokenAddr && !!wrappedNative },
+    })
+
+    const poolAddress =
+        poolAddressData && poolAddressData !== '0x0000000000000000000000000000000000000000'
+            ? (poolAddressData as Address)
+            : undefined
+
+    // Read V3 pool slot0 for graduated tokens
+    const { data: slot0 } = useReadContract({
+        address: poolAddress,
+        abi: UNISWAP_V3_POOL_ABI,
+        functionName: 'slot0' as const,
+        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        query: { enabled: !!isGraduated && !!poolAddress },
+    })
+
+    const marketCap = useMemo(() => {
+        if (isGraduated && poolAddress && slot0 && wrappedNative) {
+            const sqrtPriceX96 = (
+                slot0 as [bigint, number, number, number, number, number, boolean]
+            )[0]
+            if (sqrtPriceX96 > 0n) {
+                const Q96 = 2n ** 96n
+                const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
+                let priceRaw: bigint
+                if (tokenIsToken0) {
+                    priceRaw = (sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / (Q96 * Q96)
+                } else {
+                    priceRaw = (Q96 * Q96 * 10n ** 18n) / (sqrtPriceX96 * sqrtPriceX96)
+                }
+                const priceNative = Number(priceRaw) / 1e18
+                return String(priceNative * 1e9)
+            }
+        }
+        // Fallback to bonding curve mcap
+        if (virtualAmount > 0n && nativeReserve > 0n && tokenReserve > 0n) {
+            return String(
+                (parseFloat(formatEther(virtualAmount + nativeReserve)) /
+                    parseFloat(formatEther(tokenReserve))) *
+                    1e9
+            )
+        }
+        return '0'
+    }, [
+        isGraduated,
+        poolAddress,
+        slot0,
+        wrappedNative,
+        tokenAddr,
+        virtualAmount,
+        nativeReserve,
+        tokenReserve,
+    ])
 
     const symbol = (tokenSymbol as string) || 'TOKEN'
     const name = (tokenName as string) || 'Unknown Token'
@@ -181,6 +241,9 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         nativeReserve={nativeReserve}
                         tokenReserve={tokenReserve}
                         virtualAmount={virtualAmount}
+                        isGraduated={isGraduated}
+                        poolAddress={poolAddress}
+                        graduatedAt={tokenInfo?.graduatedAt ?? null}
                     />
 
                     {/* About token */}

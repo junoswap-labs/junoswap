@@ -15,6 +15,7 @@ export interface LaunchToken {
     creator: Address
     createdTime: number
     chainId: number
+    graduatedAt?: number | null
 }
 
 /**

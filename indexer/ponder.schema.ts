@@ -50,6 +50,22 @@ export const tokenHolder = onchainTable('token_holder', (t) => ({
     balance: t.text().notNull(),
 }))
 
+export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
+    id: t.text().primaryKey(),
+    poolAddress: t.text().notNull(),
+    tokenAddr: t.text().notNull(),
+    sender: t.text().notNull(),
+    recipient: t.text().notNull(),
+    amount0: t.text().notNull(),
+    amount1: t.text().notNull(),
+    sqrtPriceX96: t.text().notNull(),
+    liquidity: t.text().notNull(),
+    tick: t.integer().notNull(),
+    blockNumber: t.integer().notNull(),
+    timestamp: t.integer().notNull(),
+    transactionHash: t.text().notNull(),
+}))
+
 export const v3Pool = onchainTable('v3_pool', (t) => ({
     id: t.text().primaryKey(),
     chainId: t.integer().notNull(),

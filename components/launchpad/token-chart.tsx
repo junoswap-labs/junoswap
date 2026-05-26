@@ -19,18 +19,28 @@ import type {
 import type { Address } from 'viem'
 import { formatEther } from 'viem'
 import { useTheme } from 'next-themes'
+import { useReadContract } from 'wagmi'
 import { useTokenPriceHistory, TIMEFRAMES } from '@/hooks/useTokenPriceHistory'
 import type { ChartMode } from '@/types/chart'
 import { TIMEFRAME_DURATIONS } from '@/types/chart'
 import { cn } from '@/lib/utils'
 import { BarChart3 } from 'lucide-react'
+import { calculatePriceFromSqrtPrice } from '@/services/chart'
+import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
+import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
+
+const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
 
 interface TokenChartProps {
     tokenAddr: Address
     nativeReserve?: bigint
     tokenReserve?: bigint
     virtualAmount?: bigint
+    isGraduated?: boolean
+    poolAddress?: Address
+    graduatedAt?: number | null
     className?: string
 }
 
@@ -80,6 +90,9 @@ export function TokenChart({
     nativeReserve,
     tokenReserve,
     virtualAmount,
+    isGraduated,
+    poolAddress,
+    graduatedAt,
     className,
 }: TokenChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
@@ -91,7 +104,20 @@ export function TokenChart({
     )
 
     const { data, isLoading, timeframe, setTimeframe, chartMode, setChartMode } =
-        useTokenPriceHistory(tokenAddr)
+        useTokenPriceHistory(tokenAddr, isGraduated, graduatedAt)
+
+    // Read V3 pool slot0 for live price when graduated
+    const { data: slot0 } = useReadContract({
+        address: poolAddress,
+        abi: UNISWAP_V3_POOL_ABI,
+        functionName: 'slot0' as const,
+        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        query: {
+            enabled: !!isGraduated && !!poolAddress,
+            refetchInterval: 15_000,
+        },
+    })
+
     const chartColors = useChartColors()
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
@@ -111,14 +137,38 @@ export function TokenChart({
 
         if (result.length === 0) return result
 
-        // Step 1: Update last trade candle with live bonding curve spot price
-        if (
+        // Step 1: Update last trade candle with live spot price
+        if (isGraduated && poolAddress && slot0) {
+            // V3 live price from slot0
+            const sqrtPriceX96 = (
+                slot0 as [bigint, number, number, number, number, number, boolean]
+            )[0]
+            if (sqrtPriceX96 && sqrtPriceX96 > 0n && WRAPPED_NATIVE) {
+                const tokenIsToken0 = tokenAddr.toLowerCase() < WRAPPED_NATIVE.toLowerCase()
+                const price = calculatePriceFromSqrtPrice(sqrtPriceX96, tokenIsToken0)
+                const value = chartMode === 'mcap' ? price * 1e9 : price
+                const displayValue = nativeUsdPrice !== null ? value * nativeUsdPrice : value
+                const lastIdx = result.length - 1
+
+                result = result.map((d, i) =>
+                    i === lastIdx
+                        ? {
+                              ...d,
+                              close: displayValue,
+                              high: Math.max(d.high, displayValue),
+                              low: Math.min(d.low, displayValue),
+                          }
+                        : d
+                )
+            }
+        } else if (
             virtualAmount !== undefined &&
             nativeReserve !== undefined &&
             nativeReserve > 0n &&
             tokenReserve !== undefined &&
             tokenReserve > 0n
         ) {
+            // Bonding curve live price from reserves
             const price =
                 parseFloat(formatEther(virtualAmount + nativeReserve)) /
                 parseFloat(formatEther(tokenReserve))
@@ -159,7 +209,19 @@ export function TokenChart({
         }
 
         return result
-    }, [data, nativeUsdPrice, virtualAmount, nativeReserve, tokenReserve, chartMode, timeframe])
+    }, [
+        data,
+        nativeUsdPrice,
+        virtualAmount,
+        nativeReserve,
+        tokenReserve,
+        chartMode,
+        timeframe,
+        isGraduated,
+        poolAddress,
+        slot0,
+        tokenAddr,
+    ])
 
     // OHLCV overlay - updated via DOM to avoid re-render loops
     const ohlcvRef = useRef<HTMLDivElement>(null)
