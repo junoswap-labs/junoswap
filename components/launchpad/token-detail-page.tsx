@@ -339,6 +339,8 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             tokenSymbol={symbol}
                             tokenDecimals={decimals}
                             isGraduated={isGraduated}
+                            poolAddress={poolAddress}
+                            poolFee={isGraduated ? 10000 : undefined}
                         />
                         {!isGraduated &&
                             nativeReserve !== undefined &&

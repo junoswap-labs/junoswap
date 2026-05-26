@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useBondingCurveBuy } from '@/hooks/useBondingCurveBuy'
 import { useBondingCurveSell } from '@/hooks/useBondingCurveSell'
+import { useV3PoolBuy } from '@/hooks/useV3PoolBuy'
+import { useV3PoolSell } from '@/hooks/useV3PoolSell'
 import { useGraduate } from '@/hooks/useGraduate'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { ERC20_ABI } from '@/lib/abis/erc20'
@@ -23,12 +25,16 @@ import { getChainMetadata } from '@/lib/wagmi'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { SettingsDialog } from '@/components/swap/settings-dialog'
 import { useLaunchpadStore } from '@/store/launchpad-store'
+import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
+import { getV3Config } from '@/lib/dex-config'
 
 interface TokenTradeCardProps {
     tokenAddr: Address
     tokenSymbol?: string
     tokenDecimals?: number
     isGraduated: boolean
+    poolAddress?: Address
+    poolFee?: number
 }
 
 function PercentButtons({ onSelect }: { onSelect: (pct: number) => void }) {
@@ -75,6 +81,8 @@ export function TokenTradeCard({
     tokenSymbol = 'TOKEN',
     tokenDecimals = 18,
     isGraduated: _initialIsGraduated,
+    poolAddress,
+    poolFee,
 }: TokenTradeCardProps) {
     const { address, isConnected } = useAccount()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
@@ -82,6 +90,10 @@ export function TokenTradeCard({
     const [buyAmount, setBuyAmount] = useState('')
     const [sellAmount, setSellAmount] = useState('')
     const { settings, setSlippageBps } = useLaunchpadStore()
+
+    const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative as
+        | Address
+        | undefined
 
     const {
         nativeReserve,
@@ -144,18 +156,18 @@ export function TokenTradeCard({
         }
     }, [sellAmount, tokenDecimals])
 
-    // Buy hook
+    // Bonding curve buy hook
     const {
-        buy,
-        expectedOut: buyExpectedOut,
-        minTokenOut,
-        isPreparing: isBuyPreparing,
-        isExecuting: isBuyExecuting,
-        isConfirming: isBuyConfirming,
-        isSuccess: isBuySuccess,
-        isError: isBuyError,
-        error: buyError,
-        hash: buyHash,
+        buy: bcBuy,
+        expectedOut: bcBuyExpectedOut,
+        minTokenOut: bcMinTokenOut,
+        isPreparing: isBuyPreparingBC,
+        isExecuting: isBuyExecutingBC,
+        isConfirming: isBuyConfirmingBC,
+        isSuccess: isBuySuccessBC,
+        isError: isBuyErrorBC,
+        error: buyErrorBC,
+        hash: buyHashBC,
     } = useBondingCurveBuy({
         tokenAddr,
         nativeAmount: buyAmountWei,
@@ -165,18 +177,38 @@ export function TokenTradeCard({
         enabled: !isGraduated && !readyToGraduate,
     })
 
-    // Sell hook
+    // V3 pool buy hook
     const {
-        sell,
-        expectedOut: sellExpectedOut,
-        minNativeOut,
-        isPreparing: isSellPreparing,
-        isExecuting: isSellExecuting,
-        isConfirming: isSellConfirming,
-        isSuccess: isSellSuccess,
-        isError: isSellError,
-        error: sellError,
-        hash: sellHash,
+        buy: v3Buy,
+        expectedOut: v3BuyExpectedOut,
+        minTokenOut: v3MinTokenOut,
+        isPreparing: isBuyPreparingV3,
+        isExecuting: isBuyExecutingV3,
+        isConfirming: isBuyConfirmingV3,
+        isSuccess: isBuySuccessV3,
+        isError: isBuyErrorV3,
+        error: buyErrorV3,
+        hash: buyHashV3,
+    } = useV3PoolBuy({
+        tokenAddr,
+        wrappedNative: wrappedNative!,
+        nativeAmount: buyAmountWei,
+        poolFee: poolFee ?? 10000,
+        enabled: isGraduated && !!poolAddress && !!wrappedNative,
+    })
+
+    // Bonding curve sell hook
+    const {
+        sell: bcSell,
+        expectedOut: bcSellExpectedOut,
+        minNativeOut: bcMinNativeOut,
+        isPreparing: isSellPreparingBC,
+        isExecuting: isSellExecutingBC,
+        isConfirming: isSellConfirmingBC,
+        isSuccess: isSellSuccessBC,
+        isError: isSellErrorBC,
+        error: sellErrorBC,
+        hash: sellHashBC,
     } = useBondingCurveSell({
         tokenAddr,
         tokenAmount: sellAmountWei,
@@ -186,7 +218,53 @@ export function TokenTradeCard({
         enabled: !isGraduated,
     })
 
-    // Token approval for selling
+    // V3 pool sell hook
+    const {
+        sell: v3Sell,
+        expectedOut: v3SellExpectedOut,
+        minNativeOut: v3MinNativeOut,
+        isPreparing: isSellPreparingV3,
+        isExecuting: isSellExecutingV3,
+        isConfirming: isSellConfirmingV3,
+        isSuccess: isSellSuccessV3,
+        isError: isSellErrorV3,
+        error: sellErrorV3,
+        hash: sellHashV3,
+    } = useV3PoolSell({
+        tokenAddr,
+        wrappedNative: wrappedNative!,
+        tokenAmount: sellAmountWei,
+        poolFee: poolFee ?? 10000,
+        enabled: isGraduated && !!poolAddress && !!wrappedNative,
+    })
+
+    // Resolve active hook values
+    const buyExpectedOut = isGraduated ? v3BuyExpectedOut : bcBuyExpectedOut
+    const minTokenOut = isGraduated ? v3MinTokenOut : bcMinTokenOut
+    const isBuyPreparing = isGraduated ? isBuyPreparingV3 : isBuyPreparingBC
+    const isBuyExecuting = isGraduated ? isBuyExecutingV3 : isBuyExecutingBC
+    const isBuyConfirming = isGraduated ? isBuyConfirmingV3 : isBuyConfirmingBC
+    const isBuySuccess = isGraduated ? isBuySuccessV3 : isBuySuccessBC
+    const isBuyError = isGraduated ? isBuyErrorV3 : isBuyErrorBC
+    const buyError = isGraduated ? buyErrorV3 : buyErrorBC
+    const buyHash = isGraduated ? buyHashV3 : buyHashBC
+
+    const sellExpectedOut = isGraduated ? v3SellExpectedOut : bcSellExpectedOut
+    const minNativeOut = isGraduated ? v3MinNativeOut : bcMinNativeOut
+    const isSellPreparing = isGraduated ? isSellPreparingV3 : isSellPreparingBC
+    const isSellExecuting = isGraduated ? isSellExecutingV3 : isSellExecutingBC
+    const isSellConfirming = isGraduated ? isSellConfirmingV3 : isSellConfirmingBC
+    const isSellSuccess = isGraduated ? isSellSuccessV3 : isSellSuccessBC
+    const isSellError = isGraduated ? isSellErrorV3 : isSellErrorBC
+    const sellError = isGraduated ? sellErrorV3 : sellErrorBC
+    const sellHash = isGraduated ? sellHashV3 : sellHashBC
+
+    // Token approval — target V3 SwapRouter for graduated tokens, PumpCoreNative otherwise
+    const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
+    const sellSpender = isGraduated
+        ? (v3Config?.swapRouter ?? PUMP_CORE_NATIVE_ADDRESS)
+        : PUMP_CORE_NATIVE_ADDRESS
+
     const {
         needsApproval: needsSellApproval,
         isApproving: isApprovingSell,
@@ -201,7 +279,7 @@ export function TokenTradeCard({
             chainId: PUMP_CORE_NATIVE_CHAIN_ID,
         },
         owner: address,
-        spender: PUMP_CORE_NATIVE_ADDRESS,
+        spender: sellSpender,
         amountToApprove: sellAmountWei,
     })
 
@@ -283,7 +361,11 @@ export function TokenTradeCard({
             setIsConnectModalOpen(true)
             return
         }
-        buy()
+        if (isGraduated) {
+            v3Buy()
+        } else {
+            bcBuy()
+        }
     }
 
     const handleSell = () => {
@@ -295,7 +377,11 @@ export function TokenTradeCard({
             approveSell()
             return
         }
-        sell()
+        if (isGraduated) {
+            v3Sell()
+        } else {
+            bcSell()
+        }
     }
 
     const handleGraduate = () => {
@@ -311,22 +397,6 @@ export function TokenTradeCard({
         !readyToGraduate &&
         graduationAmount > 0n &&
         nativeReserve >= (graduationAmount * 90n) / 100n
-
-    // Graduated — show final state
-    if (isGraduated) {
-        return (
-            <Card>
-                <CardContent className="p-4 sm:p-6">
-                    <div className="rounded-lg bg-green-500/10 p-4 sm:p-6 text-center">
-                        <p className="text-lg font-semibold text-green-500">Token Graduated!</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            This token is now trading on Junoswap
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    }
 
     // Ready to graduate — show graduate button
     if (readyToGraduate) {
@@ -374,7 +444,23 @@ export function TokenTradeCard({
         )
     }
 
-    // Bonding curve — normal buy/sell
+    // Graduated but pool not found — show message
+    if (isGraduated && !poolAddress) {
+        return (
+            <Card>
+                <CardContent className="p-4 sm:p-6">
+                    <div className="rounded-lg bg-green-500/10 p-4 sm:p-6 text-center">
+                        <p className="text-lg font-semibold text-green-500">Token Graduated!</p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            V3 pool not found. Trading unavailable.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    // Bonding curve or V3 — full buy/sell UI
     return (
         <>
             <Card className="overflow-hidden">
@@ -459,7 +545,11 @@ export function TokenTradeCard({
                                     </div>
                                     <div className="flex justify-between gap-2">
                                         <span className="text-muted-foreground shrink-0">Fee</span>
-                                        <span className="font-medium">1%</span>
+                                        <span className="font-medium">
+                                            {isGraduated
+                                                ? `${((poolFee ?? 10000) / 100).toFixed(0)}%`
+                                                : '1%'}
+                                        </span>
                                     </div>
                                 </div>
                             )}
@@ -538,7 +628,11 @@ export function TokenTradeCard({
                                     </div>
                                     <div className="flex justify-between gap-2">
                                         <span className="text-muted-foreground shrink-0">Fee</span>
-                                        <span className="font-medium">1%</span>
+                                        <span className="font-medium">
+                                            {isGraduated
+                                                ? `${((poolFee ?? 10000) / 100).toFixed(0)}%`
+                                                : '1%'}
+                                        </span>
                                     </div>
                                 </div>
                             )}
