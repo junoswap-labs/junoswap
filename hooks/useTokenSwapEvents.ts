@@ -5,7 +5,11 @@ import { usePublicClient } from 'wagmi'
 import type { Address } from 'viem'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { fetchTokenSwapEventsRpc, type SwapEventData } from '@/lib/rpc/launchpad-queries'
+import {
+    fetchTokenSwapEventsRpc,
+    fetchV3PoolSwapEvents,
+    type SwapEventData,
+} from '@/lib/rpc/launchpad-queries'
 
 export type { SwapEventData }
 
@@ -64,17 +68,36 @@ interface TokenSwapEventsResponse {
 export function useTokenSwapEvents(
     tokenAddr: Address | undefined,
     page: number = 1,
-    pageSize: number = 10
+    pageSize: number = 10,
+    poolAddress?: Address,
+    isGraduated?: boolean
 ) {
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     return useQuery({
-        queryKey: ['token-swap-events', tokenAddr?.toLowerCase(), page, pageSize],
+        queryKey: [
+            'token-swap-events',
+            tokenAddr?.toLowerCase(),
+            page,
+            pageSize,
+            poolAddress?.toLowerCase(),
+            isGraduated,
+        ],
         queryFn: async (): Promise<{ data: SwapEventData[]; totalCount: number }> => {
-            if (!tokenAddr) return { data: [], totalCount: 0 }
+            if (!tokenAddr || !publicClient) return { data: [], totalCount: 0 }
 
             const offset = (page - 1) * pageSize
 
+            // For graduated tokens with a V3 pool, fetch V3 swap events directly
+            if (isGraduated && poolAddress) {
+                const allEvents = await fetchV3PoolSwapEvents(publicClient, poolAddress, tokenAddr)
+                return {
+                    data: allEvents.slice(offset, offset + pageSize),
+                    totalCount: allEvents.length,
+                }
+            }
+
+            // Non-graduated: Ponder primary, RPC fallback
             try {
                 const result = await ponderRequest<TokenSwapEventsResponse>(
                     TOKEN_SWAP_EVENTS_QUERY,

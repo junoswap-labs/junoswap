@@ -323,7 +323,12 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                     )}
 
                     {/* Recent trades */}
-                    <RecentTrades tokenAddr={tokenAddr} tokenSymbol={symbol} />
+                    <RecentTrades
+                        tokenAddr={tokenAddr}
+                        tokenSymbol={symbol}
+                        poolAddress={poolAddress}
+                        isGraduated={isGraduated}
+                    />
                 </div>
 
                 {/* Right column — trade panel + holders */}
@@ -352,7 +357,12 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                 </Card>
                             )}
                         <div className="hidden lg:block">
-                            <TokenHolders tokenAddr={tokenAddr} creator={tokenInfo?.creator} />
+                            <TokenHolders
+                                tokenAddr={tokenAddr}
+                                creator={tokenInfo?.creator}
+                                poolAddress={poolAddress}
+                                isGraduated={isGraduated}
+                            />
                         </div>
                     </div>
                 </div>
@@ -360,7 +370,12 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
 
             {/* Holders — full width at bottom on mobile/tablet */}
             <div className="lg:hidden">
-                <TokenHolders tokenAddr={tokenAddr} creator={tokenInfo?.creator} />
+                <TokenHolders
+                    tokenAddr={tokenAddr}
+                    creator={tokenInfo?.creator}
+                    poolAddress={poolAddress}
+                    isGraduated={isGraduated}
+                />
             </div>
         </div>
     )

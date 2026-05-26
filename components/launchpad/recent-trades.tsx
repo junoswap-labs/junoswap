@@ -30,6 +30,8 @@ const PAGE_SIZE = 10
 interface RecentTradesProps {
     tokenAddr: Address
     tokenSymbol: string
+    poolAddress?: Address
+    isGraduated?: boolean
     className?: string
 }
 
@@ -147,9 +149,21 @@ function LoadingState() {
     )
 }
 
-export function RecentTrades({ tokenAddr, tokenSymbol, className }: RecentTradesProps) {
+export function RecentTrades({
+    tokenAddr,
+    tokenSymbol,
+    poolAddress,
+    isGraduated,
+    className,
+}: RecentTradesProps) {
     const [page, setPage] = useState(1)
-    const { data: result, isLoading } = useTokenSwapEvents(tokenAddr, page, PAGE_SIZE)
+    const { data: result, isLoading } = useTokenSwapEvents(
+        tokenAddr,
+        page,
+        PAGE_SIZE,
+        poolAddress,
+        isGraduated
+    )
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
     const trades = result?.data ?? []

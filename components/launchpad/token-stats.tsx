@@ -6,12 +6,12 @@ import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 interface TokenStatsProps {
     marketCap: string
-    isGraduated: boolean
+    isGraduated?: boolean
     athMarketCap?: string
     className?: string
 }
 
-export function TokenStats({ marketCap, isGraduated, athMarketCap, className }: TokenStatsProps) {
+export function TokenStats({ marketCap, athMarketCap, className }: TokenStatsProps) {
     const { nativeUsdPrice } = useNativeUsdPriceContext()
     const mcapNum = parseFloat(marketCap)
     const displayMcap = nativeUsdPrice !== null ? mcapNum * nativeUsdPrice : mcapNum
@@ -29,10 +29,8 @@ export function TokenStats({ marketCap, isGraduated, athMarketCap, className }: 
                 <div className="text-xs text-muted-foreground uppercase">mcap</div>
             </div>
 
-            {/* Right — ATH progress bar or Graduated */}
-            {isGraduated ? (
-                <div className="w-1/3 text-sm font-semibold text-emerald-400">Graduated</div>
-            ) : athNum > 0 ? (
+            {/* Right — ATH progress bar */}
+            {athNum > 0 ? (
                 <div className="w-1/3 space-y-1.5">
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                         <div

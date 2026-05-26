@@ -81,8 +81,7 @@ export function TokenCard({
                         </p>
 
                         {/* Market data */}
-                        {(marketCap ||
-                            (athMarketCap && parseFloat(athMarketCap) > 0 && !isGraduated)) && (
+                        {(marketCap || (athMarketCap && parseFloat(athMarketCap) > 0)) && (
                             <div className="mb-1.5 mt-3 flex items-center justify-between text-sm">
                                 {marketCap && (
                                     <span className="font-medium">
@@ -92,7 +91,7 @@ export function TokenCard({
                                             : `${formatCompact(parseFloat(marketCap))} KUB`}
                                     </span>
                                 )}
-                                {athMarketCap && parseFloat(athMarketCap) > 0 && !isGraduated && (
+                                {athMarketCap && parseFloat(athMarketCap) > 0 && (
                                     <span className="font-medium text-muted-foreground">
                                         ATH{' '}
                                         {nativeUsdPrice !== null

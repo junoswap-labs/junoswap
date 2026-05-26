@@ -2,6 +2,7 @@ import { parseAbiItem } from 'viem'
 import type { Address, PublicClient } from 'viem'
 import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
+import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { calculatePrice } from '@/services/chart'
 import type { LaunchToken, EnrichedSwapEvent } from '@/types/launchpad'
 
@@ -13,6 +14,14 @@ const CREATION_EVENT = parseAbiItem(
 
 const SWAP_EVENT = parseAbiItem(
     'event Swap(address indexed sender, bool indexed isBuy, address indexed tokenAddr, uint256 amountIn, uint256 amountOut, uint256 reserveIn, uint256 reserveOut)'
+)
+
+const V3_SWAP_EVENT = parseAbiItem(
+    'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)'
+)
+
+const ERC20_TRANSFER_EVENT = parseAbiItem(
+    'event Transfer(address indexed from, address indexed to, uint256 value)'
 )
 
 export interface SwapEventData {
@@ -218,4 +227,92 @@ export function computePriceFromEvents(events: SwapEventData[]): {
         priceChangePercent24h,
         isPositive,
     }
+}
+
+function absBigInt(n: bigint): bigint {
+    return n < 0n ? -n : n
+}
+
+export async function fetchV3PoolSwapEvents(
+    publicClient: PublicClient,
+    poolAddress: Address,
+    tokenAddr: Address
+): Promise<SwapEventData[]> {
+    const [token0] = await publicClient.readContract({
+        address: poolAddress,
+        abi: UNISWAP_V3_POOL_ABI,
+        functionName: 'token0',
+    })
+
+    const tokenIsToken0 = tokenAddr.toLowerCase() === (token0 as string).toLowerCase()
+
+    const logs = await publicClient.getLogs({
+        address: poolAddress,
+        event: V3_SWAP_EVENT,
+        fromBlock: 0n,
+        toBlock: 'latest',
+    })
+
+    if (logs.length === 0) return []
+
+    const blockNumbers = [...new Set(logs.map((l) => l.blockNumber))]
+    const blockMap = new Map<bigint, number>()
+
+    await Promise.all(
+        blockNumbers.map(async (bn) => {
+            const block = await publicClient.getBlock({ blockNumber: bn })
+            blockMap.set(bn, Number(block.timestamp))
+        })
+    )
+
+    return logs
+        .map((log) => {
+            const amount0 = log.args.amount0 ?? 0n
+            const amount1 = log.args.amount1 ?? 0n
+
+            const tokenAmount = tokenIsToken0 ? amount0 : amount1
+            const nativeAmount = tokenIsToken0 ? amount1 : amount0
+
+            const isBuy = tokenAmount < 0n
+
+            return {
+                blockNumber: log.blockNumber,
+                timestamp: blockMap.get(log.blockNumber) ?? 0,
+                sender: (log.args.recipient ??
+                    log.args.sender ??
+                    '0x0000000000000000000000000000000000000000') as Address,
+                isBuy,
+                tokenAddr,
+                amountIn: isBuy ? absBigInt(nativeAmount) : absBigInt(tokenAmount),
+                amountOut: isBuy ? absBigInt(tokenAmount) : absBigInt(nativeAmount),
+                reserveIn: 0n,
+                reserveOut: 0n,
+                transactionHash: log.transactionHash,
+            }
+        })
+        .sort((a, b) => Number(b.blockNumber - a.blockNumber))
+}
+
+export async function fetchTokenTransferAddresses(
+    publicClient: PublicClient,
+    tokenAddr: Address
+): Promise<Address[]> {
+    const logs = await publicClient.getLogs({
+        address: tokenAddr,
+        event: ERC20_TRANSFER_EVENT,
+        fromBlock: 0n,
+        toBlock: 'latest',
+    })
+
+    const addresses = new Set<Address>()
+    const zeroAddr = '0x0000000000000000000000000000000000000000'
+
+    for (const log of logs) {
+        const from = log.args.from
+        const to = log.args.to
+        if (from && from !== zeroAddr) addresses.add(from)
+        if (to && to !== zeroAddr) addresses.add(to)
+    }
+
+    return Array.from(addresses)
 }

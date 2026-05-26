@@ -7,7 +7,11 @@ import type { Address } from 'viem'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { fetchTokenSwapEventsRpc, computeHoldersFromEvents } from '@/lib/rpc/launchpad-queries'
+import {
+    fetchTokenSwapEventsRpc,
+    fetchTokenTransferAddresses,
+    computeHoldersFromEvents,
+} from '@/lib/rpc/launchpad-queries'
 import type { HolderData } from '@/lib/rpc/launchpad-queries'
 
 export type { HolderData }
@@ -78,34 +82,49 @@ async function fetchRealBalances(
     return holders
 }
 
-export function useTokenHolders(tokenAddr: Address | undefined) {
+export function useTokenHolders(
+    tokenAddr: Address | undefined,
+    poolAddress?: Address,
+    isGraduated?: boolean
+) {
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     const { data, isLoading } = useQuery({
-        queryKey: ['token-holders', tokenAddr?.toLowerCase()],
+        queryKey: [
+            'token-holders',
+            tokenAddr?.toLowerCase(),
+            poolAddress?.toLowerCase(),
+            isGraduated,
+        ],
         queryFn: async () => {
             if (!tokenAddr || !publicClient) return { holders: [], holderCount: 0 }
 
-            // Step 1: Get holder addresses (from Ponder or RPC fallback)
             let addresses: Address[]
             let holderCount: number
 
-            try {
-                const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
-                    tokenAddr: tokenAddr.toLowerCase(),
-                })
-                addresses = result.tokenHolders.items.map((h) => h.address as Address)
-                holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
-            } catch (e) {
-                if (!isPonderError(e)) throw e
-                console.warn('[useTokenHolders] Ponder error, falling back to RPC:', e)
-                const events = await fetchTokenSwapEventsRpc(publicClient, tokenAddr)
-                const computed = computeHoldersFromEvents(events)
-                addresses = computed.holders.map((h) => h.address)
-                holderCount = computed.holderCount
+            if (isGraduated) {
+                // For graduated tokens, use ERC20 Transfer events to find all holders
+                addresses = await fetchTokenTransferAddresses(publicClient, tokenAddr)
+                holderCount = addresses.length
+            } else {
+                // Non-graduated: Ponder primary, RPC fallback
+                try {
+                    const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
+                        tokenAddr: tokenAddr.toLowerCase(),
+                    })
+                    addresses = result.tokenHolders.items.map((h) => h.address as Address)
+                    holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
+                } catch (e) {
+                    if (!isPonderError(e)) throw e
+                    console.warn('[useTokenHolders] Ponder error, falling back to RPC:', e)
+                    const events = await fetchTokenSwapEventsRpc(publicClient, tokenAddr)
+                    const computed = computeHoldersFromEvents(events)
+                    addresses = computed.holders.map((h) => h.address)
+                    holderCount = computed.holderCount
+                }
             }
 
-            // Step 2: Always fetch real on-chain balances via balanceOf
+            // Always fetch real on-chain balances via balanceOf
             const allAddresses = [...new Set(addresses)] as Address[]
             const holders = await fetchRealBalances(publicClient, tokenAddr, allAddresses)
 
