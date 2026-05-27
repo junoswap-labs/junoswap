@@ -10,6 +10,7 @@ import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@/lib/abis/nonfungible-positio
 import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { TOKEN_LISTS } from '@/lib/tokens'
+import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import {
     isInRange,
     tickToSqrtPriceX96,
@@ -18,11 +19,18 @@ import {
     tickToPrice,
 } from '@/lib/liquidity-helpers'
 
-function findTokenInfo(address: Address, chainId: number): Token | null {
-    const tokens = TOKEN_LISTS[chainId]
-    if (!tokens) return null
-    const found = tokens.find((t) => t.address.toLowerCase() === address.toLowerCase())
-    return found ?? null
+function buildTokenMap(chainId: number, graduatedTokens: Token[]): Map<string, Token> {
+    const map = new Map<string, Token>()
+    const staticTokens = TOKEN_LISTS[chainId] ?? []
+    for (const t of staticTokens) {
+        map.set(t.address.toLowerCase(), t)
+    }
+    for (const t of graduatedTokens) {
+        if (!map.has(t.address.toLowerCase())) {
+            map.set(t.address.toLowerCase(), t)
+        }
+    }
+    return map
 }
 
 function createPlaceholderToken(address: Address, chainId: number): Token {
@@ -49,6 +57,11 @@ export function useUserPositions(
     const dexConfig = getV3Config(effectiveChainId)
     const positionManager = dexConfig?.positionManager
     const isEnabled = !!owner && !!positionManager
+    const { tokens: graduatedTokens } = useGraduatedTokens(effectiveChainId)
+    const tokenMap = useMemo(
+        () => buildTokenMap(effectiveChainId, graduatedTokens),
+        [effectiveChainId, graduatedTokens]
+    )
     const {
         data: balance,
         isLoading: isLoadingBalance,
@@ -227,10 +240,10 @@ export function useUserPositions(
     const positions = useMemo<PositionWithTokens[]>(() => {
         return rawPositions.map((position) => {
             const token0Info =
-                findTokenInfo(position.token0, effectiveChainId) ??
+                tokenMap.get(position.token0.toLowerCase()) ??
                 createPlaceholderToken(position.token0, effectiveChainId)
             const token1Info =
-                findTokenInfo(position.token1, effectiveChainId) ??
+                tokenMap.get(position.token1.toLowerCase()) ??
                 createPlaceholderToken(position.token1, effectiveChainId)
             const poolKey = `${position.token0}-${position.token1}-${position.fee}`
             const poolState = poolStateMap.get(poolKey)
@@ -266,7 +279,7 @@ export function useUserPositions(
                 uncollectedFees1: position.tokensOwed1,
             }
         })
-    }, [rawPositions, effectiveChainId, poolStateMap, poolAddresses, uniquePoolKeys])
+    }, [rawPositions, effectiveChainId, tokenMap, poolStateMap, poolAddresses, uniquePoolKeys])
     const refetch = () => {
         refetchBalance()
         refetchTokenIds()
@@ -300,6 +313,11 @@ export function usePositionDetails(
     const dexConfig = getV3Config(effectiveChainId)
     const positionManager = dexConfig?.positionManager
     const isEnabled = tokenId !== undefined && !!positionManager
+    const { tokens: graduatedTokens } = useGraduatedTokens(effectiveChainId)
+    const tokenMap = useMemo(
+        () => buildTokenMap(effectiveChainId, graduatedTokens),
+        [effectiveChainId, graduatedTokens]
+    )
     const {
         data: positionData,
         isLoading: isLoadingPosition,
@@ -383,10 +401,10 @@ export function usePositionDetails(
     const position = useMemo<PositionDetails | null>(() => {
         if (!rawPosition) return null
         const token0Info =
-            findTokenInfo(rawPosition.token0, effectiveChainId) ??
+            tokenMap.get(rawPosition.token0.toLowerCase()) ??
             createPlaceholderToken(rawPosition.token0, effectiveChainId)
         const token1Info =
-            findTokenInfo(rawPosition.token1, effectiveChainId) ??
+            tokenMap.get(rawPosition.token1.toLowerCase()) ??
             createPlaceholderToken(rawPosition.token1, effectiveChainId)
         const slot0 = poolState?.[0]?.result as
             | [bigint, number, number, number, number, number, boolean]
@@ -435,7 +453,7 @@ export function usePositionDetails(
             priceUpper,
             currentPrice,
         }
-    }, [rawPosition, effectiveChainId, poolState, poolAddress])
+    }, [rawPosition, effectiveChainId, tokenMap, poolState, poolAddress])
     return {
         position,
         isLoading: isLoadingPosition || isLoadingPoolAddress || isLoadingPoolState,
@@ -455,6 +473,11 @@ export function usePositionsByTokenIds(
     const effectiveChainId = chainId ?? currentChainId
     const dexConfig = getV3Config(effectiveChainId)
     const positionManager = dexConfig?.positionManager
+    const { tokens: graduatedTokens } = useGraduatedTokens(effectiveChainId)
+    const tokenMap = useMemo(
+        () => buildTokenMap(effectiveChainId, graduatedTokens),
+        [effectiveChainId, graduatedTokens]
+    )
     const {
         data: positionData,
         isLoading: isLoadingPositions,
@@ -594,10 +617,10 @@ export function usePositionsByTokenIds(
     const positions = useMemo<PositionWithTokens[]>(() => {
         return rawPositions.map((position) => {
             const token0Info =
-                findTokenInfo(position.token0, effectiveChainId) ??
+                tokenMap.get(position.token0.toLowerCase()) ??
                 createPlaceholderToken(position.token0, effectiveChainId)
             const token1Info =
-                findTokenInfo(position.token1, effectiveChainId) ??
+                tokenMap.get(position.token1.toLowerCase()) ??
                 createPlaceholderToken(position.token1, effectiveChainId)
             const poolKey = `${position.token0}-${position.token1}-${position.fee}`
             const poolState = poolStateMap.get(poolKey)
@@ -633,7 +656,7 @@ export function usePositionsByTokenIds(
                 uncollectedFees1: position.tokensOwed1,
             }
         })
-    }, [rawPositions, effectiveChainId, poolStateMap, poolAddresses, uniquePoolKeys])
+    }, [rawPositions, effectiveChainId, tokenMap, poolStateMap, poolAddresses, uniquePoolKeys])
     const refetch = () => {
         refetchPositions()
         refetchPoolAddresses()
