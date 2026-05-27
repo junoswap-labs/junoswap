@@ -15,8 +15,9 @@ import { useGraduatedTokenMcap } from '@/hooks/useGraduatedTokenMcap'
 import type { LaunchpadSortKey } from '@/types/launchpad'
 import { TokenCard } from './token-card'
 import { SortTabs } from './sort-tabs'
+import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Coins, Loader2, SearchX } from 'lucide-react'
+import { Coins, SearchX } from 'lucide-react'
 
 interface TokenListProps {
     searchQuery?: string
@@ -184,15 +185,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     }, [filtered, sortKey, snapshotMap])
 
     if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center gap-3 py-16">
-                <div className="relative flex h-12 w-12 items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-muted/40" />
-                    <Loader2 className="relative h-6 w-6 animate-spin text-primary" />
-                </div>
-                <span className="text-sm text-muted-foreground">Loading tokens...</span>
-            </div>
-        )
+        return <TokenListSkeleton />
     }
 
     if (tokens.length === 0) {
@@ -246,6 +239,38 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                         )
                     }
                 )}
+            </div>
+        </div>
+    )
+}
+
+function TokenListSkeleton() {
+    return (
+        <div>
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex gap-2">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="h-8 w-20 rounded-full bg-muted animate-pulse" />
+                    ))}
+                </div>
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <Card key={i}>
+                        <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+                            <div className="h-24 w-24 shrink-0 animate-pulse rounded-xl bg-muted lg:h-[120px] lg:w-[120px]" />
+                            <div className="min-w-0 flex-1 space-y-2 py-0.5">
+                                <div className="h-5 w-20 animate-pulse rounded bg-muted" />
+                                <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                                <div className="mt-3 flex items-center justify-between">
+                                    <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                                    <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                                </div>
+                                <div className="h-2 w-full animate-pulse rounded-full bg-muted" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
         </div>
     )

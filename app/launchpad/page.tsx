@@ -6,22 +6,53 @@ import { kubTestnet } from '@/lib/wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Card, CardContent } from '@/components/ui/card'
 import { TokenList } from '@/components/launchpad/token-list'
 import { CreateTokenDialog } from '@/components/launchpad/create-token-dialog'
 import { ActivityTicker } from '@/components/launchpad/activity-feed'
 import { useLaunchpadStore } from '@/store/launchpad-store'
-import { Plus, Search, Unplug, Loader2 } from 'lucide-react'
+import { Plus, Search, Unplug } from 'lucide-react'
 
 export default function LaunchpadPage() {
     return (
         <Suspense
             fallback={
-                <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-                    <div className="relative flex h-16 w-16 items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-muted/40" />
-                        <Loader2 className="relative h-8 w-8 animate-spin text-primary" />
+                <div className="mx-auto px-4 max-w-[1700px] py-6 sm:px-6 lg:px-8">
+                    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-28 animate-pulse rounded-lg bg-muted" />
+                            <div className="h-10 w-full animate-pulse rounded-md bg-muted sm:max-w-sm" />
+                        </div>
+                        <div className="h-10 w-32 animate-pulse rounded-md bg-muted" />
                     </div>
-                    <span className="text-sm text-muted-foreground">Loading launchpad...</span>
+                    <div className="mb-4 flex items-center justify-between">
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div
+                                    key={i}
+                                    className="h-8 w-20 animate-pulse rounded-full bg-muted"
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                            <Card key={i}>
+                                <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+                                    <div className="h-24 w-24 shrink-0 animate-pulse rounded-xl bg-muted lg:h-[120px] lg:w-[120px]" />
+                                    <div className="min-w-0 flex-1 space-y-2 py-0.5">
+                                        <div className="h-5 w-20 animate-pulse rounded bg-muted" />
+                                        <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                                            <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                                        </div>
+                                        <div className="h-2 w-full animate-pulse rounded-full bg-muted" />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                 </div>
             }
         >
