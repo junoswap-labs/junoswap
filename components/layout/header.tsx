@@ -24,6 +24,7 @@ export function Header() {
         { href: '/earn', label: 'Earn' },
         { href: '/bridge', label: 'Bridge' },
         { href: '/launchpad', label: 'Launchpad' },
+        { href: '/portfolio', label: 'Portfolio' },
         { href: '/points', label: 'Points' },
     ]
     return (
