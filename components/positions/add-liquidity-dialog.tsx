@@ -29,6 +29,7 @@ import {
     MAX_TICK,
 } from '@/lib/liquidity-helpers'
 import { TOKEN_LISTS } from '@/lib/tokens'
+import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import type { AddLiquidityParams } from '@/types/earn'
 import { toastError } from '@/lib/toast'
 import { toast } from 'sonner'
@@ -45,6 +46,19 @@ export function AddLiquidityDialog() {
     const chainId = useChainId()
     const { refetch: refetchPositions } = useUserPositions(address, chainId)
     const dexConfig = getV3Config(chainId)
+    const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
+    const allTokens = useMemo(() => {
+        const staticTokens = TOKEN_LISTS[chainId] ?? []
+        const seen = new Set(staticTokens.map((t) => t.address.toLowerCase()))
+        const combined = [...staticTokens]
+        for (const t of graduatedTokens) {
+            if (!seen.has(t.address.toLowerCase())) {
+                seen.add(t.address.toLowerCase())
+                combined.push(t)
+            }
+        }
+        return combined
+    }, [chainId, graduatedTokens])
 
     const {
         isAddLiquidityOpen,
@@ -346,7 +360,7 @@ export function AddLiquidityDialog() {
                             <div className="flex-1">
                                 <TokenSelect
                                     token={token0}
-                                    tokens={TOKEN_LISTS[chainId] ?? []}
+                                    tokens={allTokens}
                                     onSelect={setToken0}
                                     className="w-full h-11 rounded-xl bg-muted/40 border-border/40 hover:bg-muted/60 justify-between pr-3"
                                 />
@@ -361,7 +375,7 @@ export function AddLiquidityDialog() {
                             <div className="flex-1">
                                 <TokenSelect
                                     token={token1}
-                                    tokens={TOKEN_LISTS[chainId] ?? []}
+                                    tokens={allTokens}
                                     onSelect={setToken1}
                                     className="w-full h-11 rounded-xl bg-muted/40 border-border/40 hover:bg-muted/60 justify-between pr-3"
                                 />
