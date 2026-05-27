@@ -82,10 +82,15 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
                             {filteredTokens.map((token) => {
                                 const isSelected = selectedToken?.address === token.address
                                 return (
-                                    <button
+                                    <div
                                         key={token.address}
+                                        role="button"
+                                        tabIndex={isSelected ? -1 : 0}
                                         onClick={() => onSelect(token)}
-                                        disabled={isSelected}
+                                        aria-disabled={isSelected}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') onSelect(token)
+                                        }}
                                         className={cn(
                                             'flex items-center gap-3 w-full p-2 rounded-xl transition-all duration-150',
                                             isSelected
@@ -139,7 +144,7 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
                                                 <Check className="h-3 w-3 text-foreground" />
                                             </div>
                                         )}
-                                    </button>
+                                    </div>
                                 )
                             })}
                         </div>
