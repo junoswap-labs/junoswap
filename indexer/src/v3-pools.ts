@@ -7,6 +7,31 @@ const WRAPPED_NATIVE = '0x700d3ba307e1256e509ed3e45d6f9dff441d6907'
 const GRADUATED_FEE_TIER = 10000
 const SECONDS_PER_DAY = 86400
 
+const WRAPPED_NATIVE_ADDRESSES: Record<number, string> = {
+    25925: '0x700d3ba307e1256e509ed3e45d6f9dff441d6907',
+    96: '0x67ebd850304c70d983b2d1b93ea79c7cd6c3f6b5',
+    8899: '0xc4b7c87510675167643e3de6eeed4d2c06a9e747',
+}
+
+const STABLECOIN_ADDRESSES: Record<number, Set<string>> = {
+    25925: new Set(['0x70138f1b88bee73dd2cb06f24146f964dde6144e']),
+    96: new Set(['0x7d984c24d2499d840eb3b7016077164e15e5faa6']),
+    8899: new Set([
+        '0x24599b658b57f91e7643f4f154b16bcd2884f9ac',
+        '0xfd8ef75c1cb00a594d02df48addc27414bd07f8a',
+    ]),
+}
+
+function computePriceFromSqrtPriceX96(sqrtPriceX96: bigint, tokenIsToken0: boolean): number {
+    let priceRaw: bigint
+    if (tokenIsToken0) {
+        priceRaw = (sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / (Q96 * Q96)
+    } else {
+        priceRaw = (Q96 * Q96 * 10n ** 18n) / (sqrtPriceX96 * sqrtPriceX96)
+    }
+    return Number(priceRaw) / 1e18
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function upsertToken(context: any, chainId: number, address: string, timestamp: number) {
     const id = `${chainId}-${address}`
@@ -78,6 +103,102 @@ async function upsertPoolDayVolume(
     }
 }
 
+async function updateNativeUsdPrice(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    context: any,
+    chainId: number,
+    poolAddress: string,
+    poolRecord: { token0: string; token1: string },
+    sqrtPriceX96: bigint,
+    timestamp: number
+) {
+    const wn = WRAPPED_NATIVE_ADDRESSES[chainId]
+    const stables = STABLECOIN_ADDRESSES[chainId]
+    if (!wn || !stables) return
+
+    const { token0, token1 } = poolRecord
+    let nativeIsToken0 = false
+    let isNativeStablePool = false
+
+    if (token0 === wn && stables.has(token1)) {
+        nativeIsToken0 = true
+        isNativeStablePool = true
+    } else if (token1 === wn && stables.has(token0)) {
+        nativeIsToken0 = false
+        isNativeStablePool = true
+    }
+
+    if (!isNativeStablePool) return
+
+    const price = computePriceFromSqrtPriceX96(sqrtPriceX96, nativeIsToken0)
+
+    await context.db
+        .insert(schema.nativeUsdPrice)
+        .values({
+            chainId,
+            price: price.toString(),
+            poolAddress,
+            updatedAt: timestamp,
+        })
+        .onConflictDoUpdate({
+            price: price.toString(),
+            poolAddress,
+            updatedAt: timestamp,
+        })
+}
+
+async function updateV3TokenSnapshot(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    context: any,
+    chainId: number,
+    poolAddress: string,
+    poolRecord: { token0: string; token1: string },
+    sqrtPriceX96: bigint,
+    timestamp: number
+) {
+    const wn = WRAPPED_NATIVE_ADDRESSES[chainId]
+    if (!wn) return
+
+    const { token0, token1 } = poolRecord
+    let tokenAddr: string | null = null
+    let tokenIsToken0 = false
+
+    if (token1 === wn) {
+        tokenAddr = token0
+        tokenIsToken0 = true
+    } else if (token0 === wn) {
+        tokenAddr = token1
+        tokenIsToken0 = false
+    }
+
+    if (!tokenAddr) return
+
+    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, tokenIsToken0)
+
+    const nativePrice = await context.db.find(schema.nativeUsdPrice, { chainId })
+    const nativeUsd = nativePrice ? parseFloat(nativePrice.price) : 0
+    const priceUsd = nativeUsd > 0 ? priceNative * nativeUsd : 0
+
+    const id = `${chainId}-${tokenAddr}`
+    await context.db
+        .insert(schema.v3TokenSnapshot)
+        .values({
+            id,
+            chainId,
+            tokenAddr,
+            lastPriceNative: priceNative.toString(),
+            lastPriceUsd: priceUsd.toString(),
+            lastSwapAt: timestamp,
+            updatedAt: timestamp,
+        })
+        .onConflictDoUpdate({
+            lastPriceNative: priceNative.toString(),
+            lastPriceUsd: priceUsd.toString(),
+            lastSwapAt: timestamp,
+            updatedAt: timestamp,
+        })
+}
+
 // kubTestnet (25925)
 ponder.on('V3Factory:PoolCreated', async ({ event, context }) => {
     const { token0, token1, fee, tickSpacing, pool } = event.args
@@ -114,12 +235,21 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
     const absAmount0 = amount0 < 0n ? -amount0 : amount0
     const absAmount1 = amount1 < 0n ? -amount1 : amount1
 
-    // 1. Existing: daily volume aggregation
+    // 1. Daily volume aggregation
     await upsertPoolDayVolume(context, 25925, poolAddress, timestamp, absAmount0, absAmount1)
 
-    // 2. Check if this pool contains a graduated launch token
+    // 2. Get pool record (needed for all subsequent logic)
     const poolRecord = await context.db.find(schema.v3Pool, { id: `25925-${poolAddress}` })
-    if (!poolRecord || poolRecord.fee !== GRADUATED_FEE_TIER) return
+    if (!poolRecord) return
+
+    // 3. Update native USD price if this is a native/stablecoin pool
+    await updateNativeUsdPrice(context, 25925, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+
+    // 4. Update v3_token_snapshot for pools containing wrapped native
+    await updateV3TokenSnapshot(context, 25925, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+
+    // 5. Graduated launch token tracking (swap events + tokenSnapshot)
+    if (poolRecord.fee !== GRADUATED_FEE_TIER) return
 
     const { token0, token1 } = poolRecord
     let launchTokenAddr: string | null = null
@@ -141,7 +271,7 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
 
     if (!launchTokenAddr) return
 
-    // 3. Insert v3_swap_event
+    // Insert v3_swap_event
     const id = `v3-${event.block.number}-${event.log.logIndex}`
     await context.db
         .insert(schema.v3SwapEvent)
@@ -162,15 +292,13 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
         })
         .onConflictDoNothing()
 
-    // 4. Compute price from sqrtPriceX96 and update token_snapshot
-    let priceRaw: bigint
-    if (tokenIsToken0) {
-        priceRaw = (sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / (Q96 * Q96)
-    } else {
-        priceRaw = (Q96 * Q96 * 10n ** 18n) / (sqrtPriceX96 * sqrtPriceX96)
-    }
-    const priceNative = Number(priceRaw) / 1e18
+    // Compute price and update token_snapshot
+    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, tokenIsToken0)
     const marketCap = priceNative * 1_000_000_000
+
+    const nativePriceRecord = await context.db.find(schema.nativeUsdPrice, { chainId: 25925 })
+    const nativeUsd = nativePriceRecord ? parseFloat(nativePriceRecord.price) : 0
+    const priceUsd = nativeUsd > 0 ? priceNative * nativeUsd : 0
 
     const nativeVolume = tokenIsToken0 ? absAmount1 : absAmount0
     const tokenAmount = tokenIsToken0 ? amount0 : amount1
@@ -188,6 +316,7 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
 
     await context.db.update(schema.tokenSnapshot, { tokenAddr: launchTokenAddr }).set({
         lastPrice: priceNative > 0 ? priceNative.toString() : existingSnapshot.lastPrice,
+        lastPriceUsd: priceUsd > 0 ? priceUsd.toString() : (existingSnapshot.lastPriceUsd ?? '0'),
         marketCapNative: marketCap.toString(),
         athMarketCapNative: athMarketCap,
         totalBuys: (existingSnapshot.totalBuys ?? 0) + (isBuy ? 1 : 0),
@@ -230,17 +359,20 @@ ponder.on('V3FactoryBitkub:PoolCreated', async ({ event, context }) => {
 })
 
 ponder.on('V3PoolBitkub:Swap', async ({ event, context }) => {
+    const { sqrtPriceX96 } = event.args
     const { amount0, amount1 } = event.args
+    const poolAddress = event.log.address.toLowerCase()
+    const timestamp = Number(event.block.timestamp)
     const absAmount0 = amount0 < 0n ? -amount0 : amount0
     const absAmount1 = amount1 < 0n ? -amount1 : amount1
-    await upsertPoolDayVolume(
-        context,
-        96,
-        event.log.address.toLowerCase(),
-        Number(event.block.timestamp),
-        absAmount0,
-        absAmount1
-    )
+
+    await upsertPoolDayVolume(context, 96, poolAddress, timestamp, absAmount0, absAmount1)
+
+    const poolRecord = await context.db.find(schema.v3Pool, { id: `96-${poolAddress}` })
+    if (!poolRecord) return
+
+    await updateNativeUsdPrice(context, 96, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await updateV3TokenSnapshot(context, 96, poolAddress, poolRecord, sqrtPriceX96, timestamp)
 })
 
 // JBC (8899)
@@ -273,15 +405,18 @@ ponder.on('V3FactoryJbc:PoolCreated', async ({ event, context }) => {
 })
 
 ponder.on('V3PoolJbc:Swap', async ({ event, context }) => {
+    const { sqrtPriceX96 } = event.args
     const { amount0, amount1 } = event.args
+    const poolAddress = event.log.address.toLowerCase()
+    const timestamp = Number(event.block.timestamp)
     const absAmount0 = amount0 < 0n ? -amount0 : amount0
     const absAmount1 = amount1 < 0n ? -amount1 : amount1
-    await upsertPoolDayVolume(
-        context,
-        8899,
-        event.log.address.toLowerCase(),
-        Number(event.block.timestamp),
-        absAmount0,
-        absAmount1
-    )
+
+    await upsertPoolDayVolume(context, 8899, poolAddress, timestamp, absAmount0, absAmount1)
+
+    const poolRecord = await context.db.find(schema.v3Pool, { id: `8899-${poolAddress}` })
+    if (!poolRecord) return
+
+    await updateNativeUsdPrice(context, 8899, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await updateV3TokenSnapshot(context, 8899, poolAddress, poolRecord, sqrtPriceX96, timestamp)
 })

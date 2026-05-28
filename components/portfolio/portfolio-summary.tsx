@@ -1,6 +1,5 @@
 'use client'
 
-import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import type { PortfolioSummary } from '@/types/portfolio'
 import { cn } from '@/lib/utils'
@@ -39,8 +38,7 @@ export function PortfolioSummary({ summary, isLoading }: PortfolioSummaryProps) 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
                 <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
+                    <div className="mb-2">
                         <span className="text-sm text-muted-foreground font-medium">Net Worth</span>
                     </div>
                     <div className="flex items-baseline gap-3">
@@ -57,12 +55,7 @@ export function PortfolioSummary({ summary, isLoading }: PortfolioSummaryProps) 
 
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
                 <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        {isPositive ? (
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                        )}
+                    <div className="mb-2">
                         <span className="text-sm text-muted-foreground font-medium">Total PNL</span>
                     </div>
                     <div className="flex items-baseline gap-3">

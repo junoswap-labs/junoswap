@@ -1,48 +1,54 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useChainId } from 'wagmi'
-import { parseEther, formatEther } from 'viem'
+import { useQuery } from '@tanstack/react-query'
 import { NATIVE_USD_STABLE } from '@/lib/routing-config'
-import { useUniV3Quote } from '@/hooks/useUniV3Quote'
-import { TOKEN_LISTS } from '@/lib/tokens'
-import type { Token } from '@/types/tokens'
+import { ponderRequest, isPonderError } from '@/lib/ponder-client'
+import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 
-/**
- * Returns the USD price of 1 native token by quoting wrapped-native → USDT
- * via the V3 quoter. Returns null if no USDT is configured for the chain.
- */
+interface NativeUsdPriceResponse {
+    nativeUsdPrices: {
+        items: Array<{ chainId: number; price: string }>
+    }
+}
+
+const NATIVE_USD_PRICE_QUERY = `
+  query NativeUsdPrice($chainId: Int!) {
+    nativeUsdPrices(where: { chainId: $chainId }, limit: 1) {
+      items {
+        chainId
+        price
+      }
+    }
+  }
+`
+
 export function useNativeUsdPrice(chainId?: number) {
     const currentChainId = useChainId()
     const targetChainId = chainId ?? currentChainId
 
-    const usdtConfig = NATIVE_USD_STABLE[targetChainId]
+    const hasStablePool =
+        !!NATIVE_USD_STABLE[targetChainId] ||
+        (INTERMEDIARY_TOKENS[targetChainId]?.stables?.length ?? 0) > 0
 
-    // Build Token objects from the token list
-    const tokens = TOKEN_LISTS[targetChainId]
-    const wrappedNative = useMemo<Token | null>(() => {
-        if (!tokens || tokens.length < 2) return null
-        return tokens[1]! // index 1 = wrapped native
-    }, [tokens])
-
-    const usdtToken = useMemo<Token | null>(() => {
-        if (!usdtConfig || !tokens) return null
-        return (
-            tokens.find((t) => t.address.toLowerCase() === usdtConfig.address.toLowerCase()) ?? null
-        )
-    }, [usdtConfig, tokens])
-
-    const { quote, isLoading } = useUniV3Quote({
-        tokenIn: wrappedNative,
-        tokenOut: usdtToken,
-        amountIn: parseEther('1'),
-        enabled: !!usdtConfig,
+    const { data, isLoading } = useQuery({
+        queryKey: ['native-usd-price', targetChainId],
+        queryFn: async () => {
+            try {
+                const result = await ponderRequest<NativeUsdPriceResponse>(NATIVE_USD_PRICE_QUERY, {
+                    chainId: targetChainId,
+                })
+                const item = result.nativeUsdPrices.items[0]
+                return item ? parseFloat(item.price) : null
+            } catch (e) {
+                if (isPonderError(e)) return null
+                throw e
+            }
+        },
+        staleTime: 30_000,
+        refetchInterval: 30_000,
+        enabled: hasStablePool,
     })
 
-    const nativeUsdPrice = useMemo(() => {
-        if (!quote || !usdtConfig) return null
-        return parseFloat(formatEther(quote.amountOut))
-    }, [quote, usdtConfig])
-
-    return { nativeUsdPrice, isLoading }
+    return { nativeUsdPrice: data ?? null, isLoading }
 }

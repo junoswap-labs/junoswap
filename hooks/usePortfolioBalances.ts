@@ -1,20 +1,15 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useBalance, useReadContracts, useAccount } from 'wagmi'
-import type { Address } from 'viem'
-import type { Token } from '@/types/tokens'
-import { formatTokenAmount } from '@/services/tokens'
+import { useAccount, useBalance } from 'wagmi'
 import { isNativeToken } from '@/lib/wagmi'
-import { ERC20_ABI } from '@/lib/abis/erc20'
+import { formatTokenAmount } from '@/services/tokens'
+import type { Token } from '@/types/tokens'
+import { useMultiBalances, type TokenHolding } from '@/hooks/use-multi-balances'
 
-export interface TokenHolding {
-    token: Token
-    rawBalance: bigint
-    formattedBalance: string
-}
+export type { TokenHolding }
 
-export function usePortfolioBalances(tokens: Token[]) {
+export function usePortfolioBalances(tokens: Token[], chainId: number) {
     const { address } = useAccount()
     const nativeToken = useMemo(
         () => tokens.find((t) => isNativeToken(t.address)) ?? null,
@@ -28,21 +23,21 @@ export function usePortfolioBalances(tokens: Token[]) {
         query: { enabled: !!nativeToken && !!address },
     })
 
-    const erc20Balances = useReadContracts({
-        contracts: erc20Tokens.map((token) => ({
-            address: token.address as Address,
-            abi: ERC20_ABI,
-            functionName: 'balanceOf' as const,
-            args: [address as Address],
-            chainId: token.chainId,
-        })),
-        query: { enabled: erc20Tokens.length > 0 && !!address },
-    })
+    const addresses = useMemo(() => (address ? [address as `0x${string}`] : []), [address])
+    const { holdings: erc20Holdings, isLoading: isErc20Loading } = useMultiBalances(
+        erc20Tokens,
+        addresses,
+        chainId
+    )
 
     const holdings = useMemo(() => {
         const map = new Map<string, TokenHolding>()
 
-        if (nativeToken && nativeBalance.data?.value !== undefined) {
+        if (
+            nativeToken &&
+            nativeBalance.data?.value !== undefined &&
+            nativeBalance.data.value > 0n
+        ) {
             map.set(nativeToken.address.toLowerCase(), {
                 token: nativeToken,
                 rawBalance: nativeBalance.data.value,
@@ -50,24 +45,21 @@ export function usePortfolioBalances(tokens: Token[]) {
             })
         }
 
-        erc20Tokens.forEach((token, index) => {
-            const result = erc20Balances.data?.[index]
-            const balance = result?.result as bigint | undefined
-            if (balance !== undefined && typeof balance === 'bigint' && balance > 0n) {
-                map.set(token.address.toLowerCase(), {
-                    token,
-                    rawBalance: balance,
-                    formattedBalance: formatTokenAmount(balance, token.decimals),
-                })
+        if (address) {
+            const userHoldings = erc20Holdings.get(address.toLowerCase())
+            if (userHoldings) {
+                for (const [key, holding] of userHoldings) {
+                    map.set(key, holding)
+                }
             }
-        })
+        }
 
         return map
-    }, [nativeToken, nativeBalance.data, erc20Tokens, erc20Balances.data])
+    }, [nativeToken, nativeBalance.data, erc20Holdings, address])
 
     const isLoading =
         (nativeToken ? nativeBalance.isLoading : false) ||
-        (erc20Tokens.length > 0 ? erc20Balances.isLoading : false)
+        (erc20Tokens.length > 0 ? isErc20Loading : false)
 
     return { holdings, isLoading }
 }
