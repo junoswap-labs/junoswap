@@ -19,3 +19,7 @@ contracts/      Foundry Solidity project (PumpCoreNative bonding curve) — git 
 
 - Runtime: **bun only** — never use npm, yarn, or pnpm. Lockfile is `bun.lock`.
 - Tests: test business logic, not framework behavior — skip tautologies, passthroughs, exact duplicates, and trivial defaults.
+
+## Notes
+
+- **kub mainnet/testnet RPC** (`rpc.bitkubchain.io`) is NOT a full archive node. Historical `eth_call` reads fail with "missing trie node".

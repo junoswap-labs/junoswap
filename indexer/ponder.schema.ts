@@ -66,6 +66,16 @@ export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
     transactionHash: t.text().notNull(),
 }))
 
+export const v3Token = onchainTable('v3_token', (t) => ({
+    id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
+    address: t.text().notNull(),
+    symbol: t.text().default(''),
+    name: t.text().default(''),
+    decimals: t.integer().default(18),
+    createdAt: t.integer().notNull(),
+}))
+
 export const v3Pool = onchainTable('v3_pool', (t) => ({
     id: t.text().primaryKey(),
     chainId: t.integer().notNull(),

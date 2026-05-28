@@ -1,10 +1,36 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
+import { readERC20Metadata } from './erc20-read.js'
 
 const Q96 = 2n ** 96n
 const WRAPPED_NATIVE = '0x700d3ba307e1256e509ed3e45d6f9dff441d6907'
 const GRADUATED_FEE_TIER = 10000
 const SECONDS_PER_DAY = 86400
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function upsertToken(context: any, chainId: number, address: string, timestamp: number) {
+    const id = `${chainId}-${address}`
+    const existing = await context.db.find(schema.v3Token, { id })
+    if (existing) return
+
+    // Use standalone viem client — Ponder's context.client forces historical block numbers,
+    // which fail on non-archive nodes (bitkub, kubTestnet). Token metadata is immutable,
+    // so reading at latest block is always safe.
+    const meta = await readERC20Metadata(chainId, address)
+
+    await context.db
+        .insert(schema.v3Token)
+        .values({
+            id,
+            chainId,
+            address,
+            name: meta.name,
+            symbol: meta.symbol,
+            decimals: meta.decimals,
+            createdAt: timestamp,
+        })
+        .onConflictDoNothing()
+}
 
 function getDayTimestamp(timestamp: number): number {
     return Math.floor(timestamp / SECONDS_PER_DAY) * SECONDS_PER_DAY
@@ -56,18 +82,27 @@ async function upsertPoolDayVolume(
 ponder.on('V3Factory:PoolCreated', async ({ event, context }) => {
     const { token0, token1, fee, tickSpacing, pool } = event.args
     const address = pool.toLowerCase()
+    const timestamp = Number(event.block.timestamp)
+    const t0 = token0.toLowerCase()
+    const t1 = token1.toLowerCase()
+
+    await Promise.all([
+        upsertToken(context, 25925, t0, timestamp),
+        upsertToken(context, 25925, t1, timestamp),
+    ])
+
     await context.db
         .insert(schema.v3Pool)
         .values({
             id: `25925-${address}`,
             chainId: 25925,
             address,
-            token0: token0.toLowerCase(),
-            token1: token1.toLowerCase(),
+            token0: t0,
+            token1: t1,
             fee: Number(fee),
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
-            createdAtTimestamp: Number(event.block.timestamp),
+            createdAtTimestamp: timestamp,
         })
         .onConflictDoNothing()
 })
@@ -169,18 +204,27 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
 ponder.on('V3FactoryBitkub:PoolCreated', async ({ event, context }) => {
     const { token0, token1, fee, tickSpacing, pool } = event.args
     const address = pool.toLowerCase()
+    const timestamp = Number(event.block.timestamp)
+    const t0 = token0.toLowerCase()
+    const t1 = token1.toLowerCase()
+
+    await Promise.all([
+        upsertToken(context, 96, t0, timestamp),
+        upsertToken(context, 96, t1, timestamp),
+    ])
+
     await context.db
         .insert(schema.v3Pool)
         .values({
             id: `96-${address}`,
             chainId: 96,
             address,
-            token0: token0.toLowerCase(),
-            token1: token1.toLowerCase(),
+            token0: t0,
+            token1: t1,
             fee: Number(fee),
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
-            createdAtTimestamp: Number(event.block.timestamp),
+            createdAtTimestamp: timestamp,
         })
         .onConflictDoNothing()
 })
@@ -203,18 +247,27 @@ ponder.on('V3PoolBitkub:Swap', async ({ event, context }) => {
 ponder.on('V3FactoryJbc:PoolCreated', async ({ event, context }) => {
     const { token0, token1, fee, tickSpacing, pool } = event.args
     const address = pool.toLowerCase()
+    const timestamp = Number(event.block.timestamp)
+    const t0 = token0.toLowerCase()
+    const t1 = token1.toLowerCase()
+
+    await Promise.all([
+        upsertToken(context, 8899, t0, timestamp),
+        upsertToken(context, 8899, t1, timestamp),
+    ])
+
     await context.db
         .insert(schema.v3Pool)
         .values({
             id: `8899-${address}`,
             chainId: 8899,
             address,
-            token0: token0.toLowerCase(),
-            token1: token1.toLowerCase(),
+            token0: t0,
+            token1: t1,
             fee: Number(fee),
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
-            createdAtTimestamp: Number(event.block.timestamp),
+            createdAtTimestamp: timestamp,
         })
         .onConflictDoNothing()
 })

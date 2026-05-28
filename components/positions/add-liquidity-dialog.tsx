@@ -28,8 +28,7 @@ import {
     MIN_TICK,
     MAX_TICK,
 } from '@/lib/liquidity-helpers'
-import { TOKEN_LISTS } from '@/lib/tokens'
-import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
+import { useChainTokens } from '@/hooks/useChainTokens'
 import type { AddLiquidityParams } from '@/types/earn'
 import { toastError } from '@/lib/toast'
 import { toast } from 'sonner'
@@ -46,19 +45,7 @@ export function AddLiquidityDialog() {
     const chainId = useChainId()
     const { refetch: refetchPositions } = useUserPositions(address, chainId)
     const dexConfig = getV3Config(chainId)
-    const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
-    const allTokens = useMemo(() => {
-        const staticTokens = TOKEN_LISTS[chainId] ?? []
-        const seen = new Set(staticTokens.map((t) => t.address.toLowerCase()))
-        const combined = [...staticTokens]
-        for (const t of graduatedTokens) {
-            if (!seen.has(t.address.toLowerCase())) {
-                seen.add(t.address.toLowerCase())
-                combined.push(t)
-            }
-        }
-        return combined
-    }, [chainId, graduatedTokens])
+    const { tokens: allTokens } = useChainTokens(chainId)
 
     const {
         isAddLiquidityOpen,

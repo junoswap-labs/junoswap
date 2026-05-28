@@ -16,13 +16,13 @@ import { useUniV3SwapExecution } from '@/hooks/useUniV3SwapExecution'
 import { useUniV2SwapExecution } from '@/hooks/useUniV2SwapExecution'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useSwapUrlSync } from '@/hooks/useSwapUrlSync'
-import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
+import { useChainTokens } from '@/hooks/useChainTokens'
 import { calculateMinOutput } from '@/services/dex/uniswap-v3'
 import { calculateMinOutput as calculateMinOutputV2 } from '@/services/dex/uniswap-v2'
 import { formatBalance, formatTokenAmount, formatDisplayAmount } from '@/services/tokens'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { toastError } from '@/lib/toast'
-import { getTokensForChain, findTokenByAddress, KUSDT_ADDRESS } from '@/lib/tokens'
+import { findTokenByAddress, KUSDT_ADDRESS } from '@/lib/tokens'
 import { getDexConfig, isV2Config, getDefaultDexForChain, getSupportedDexs } from '@/lib/dex-config'
 import { TokenSelect } from './token-select'
 import { SettingsDialog } from './settings-dialog'
@@ -43,19 +43,8 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
     const chainId = useChainId()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     const [isRateFlipped, setIsRateFlipped] = useState(false)
-    const staticTokens = tokensOverride || getTokensForChain(chainId)
-    const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
-    const tokens = useMemo(() => {
-        const seen = new Set(staticTokens.map((t) => t.address.toLowerCase()))
-        const combined = [...staticTokens]
-        for (const t of graduatedTokens) {
-            if (!seen.has(t.address.toLowerCase())) {
-                seen.add(t.address.toLowerCase())
-                combined.push(t)
-            }
-        }
-        return combined
-    }, [staticTokens, graduatedTokens])
+    const { tokens: chainTokens } = useChainTokens(chainId)
+    const tokens = tokensOverride || chainTokens
     const {
         tokenIn,
         tokenOut,

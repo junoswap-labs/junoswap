@@ -20,6 +20,7 @@ import { ConnectModal } from '@/components/web3/connect-modal'
 import { TOKEN_LISTS, getDefaultPairTokens } from '@/lib/tokens'
 import { usePoolsForPair } from '@/hooks/usePools'
 import { useGraduatedPools } from '@/hooks/useGraduatedPools'
+import { useAllPools, PONDER_INDEXED_CHAINS } from '@/hooks/useAllPools'
 import { usePoolTvl } from '@/hooks/usePoolTvl'
 import { usePoolVolume } from '@/hooks/usePoolVolume'
 import { useEarnStore } from '@/store/earn-store'
@@ -298,16 +299,8 @@ function useCommonPools(chainId: number): { pools: V3PoolData[]; isLoading: bool
     }
 }
 
-export function PoolsList() {
+function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading: boolean }) {
     const chainId = useChainId()
-    const { pools: commonPools, isLoading: isLoadingCommon } = useCommonPools(chainId)
-    const { pools: graduatedPools, isLoading: isLoadingGraduated } = useGraduatedPools(chainId)
-    const pools = useMemo(() => {
-        const unique = new Map<string, V3PoolData>()
-        ;[...commonPools, ...graduatedPools].forEach((p) => unique.set(p.address, p))
-        return Array.from(unique.values())
-    }, [commonPools, graduatedPools])
-    const isLoading = isLoadingCommon || isLoadingGraduated
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
     const { volumeByAddress, isLoading: isLoadingVol } = usePoolVolume(pools, chainId)
     const aprByAddress = useMemo(() => {
@@ -455,4 +448,28 @@ export function PoolsList() {
             <ConnectModal open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen} />
         </>
     )
+}
+
+function PoolsListPonder({ chainId }: { chainId: number }) {
+    const { pools, isLoading } = useAllPools(chainId)
+    return <PoolsListContent pools={pools} isLoading={isLoading} />
+}
+
+function PoolsListLegacy({ chainId }: { chainId: number }) {
+    const { pools: commonPools, isLoading: isLoadingCommon } = useCommonPools(chainId)
+    const { pools: graduatedPools, isLoading: isLoadingGraduated } = useGraduatedPools(chainId)
+    const pools = useMemo(() => {
+        const unique = new Map<string, V3PoolData>()
+        ;[...commonPools, ...graduatedPools].forEach((p) => unique.set(p.address, p))
+        return Array.from(unique.values())
+    }, [commonPools, graduatedPools])
+    return <PoolsListContent pools={pools} isLoading={isLoadingCommon || isLoadingGraduated} />
+}
+
+export function PoolsList() {
+    const chainId = useChainId()
+    if (PONDER_INDEXED_CHAINS.has(chainId)) {
+        return <PoolsListPonder chainId={chainId} />
+    }
+    return <PoolsListLegacy chainId={chainId} />
 }

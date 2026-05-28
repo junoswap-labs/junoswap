@@ -14,7 +14,7 @@ import { useBridgeExecution } from '@/hooks/useBridgeExecution'
 import { formatBalance, formatTokenAmount, formatDisplayAmount } from '@/services/tokens'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { toastError } from '@/lib/toast'
-import { getTokensForChain } from '@/lib/tokens'
+import { useChainTokens } from '@/hooks/useChainTokens'
 import { getChainMetadata } from '@/lib/wagmi'
 import { ChainSelect } from './chain-select'
 import { TokenSelect } from '@/components/swap/token-select'
@@ -48,8 +48,8 @@ export function BridgeCard() {
         swapDirection,
     } = useBridgeStore()
 
-    const fromTokens = useMemo(() => getTokensForChain(fromChainId), [fromChainId])
-    const toTokens = useMemo(() => getTokensForChain(toChainId), [toChainId])
+    const { tokens: fromTokens } = useChainTokens(fromChainId)
+    const { tokens: toTokens } = useChainTokens(toChainId)
 
     // Initialize default tokens when chains change
     const hasInitializedRef = useRef(false)

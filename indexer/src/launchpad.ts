@@ -1,6 +1,7 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { formatEther } from 'viem'
+import { readERC20Metadata } from './erc20-read.js'
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
 const _VIRTUAL_AMOUNT = 3400n * 10n ** 18n
@@ -50,14 +51,18 @@ function defaultSnapshot(tokenAddr: string) {
 
 ponder.on('PumpCoreNative:Creation', async ({ event, context }) => {
     const { creator, tokenAddr, logo, description, link1, link2, link3, createdTime } = event.args
+    const tokenAddrLower = tokenAddr.toLowerCase()
+
+    // Use standalone viem client — Ponder's context.client forces historical block numbers
+    const meta = await readERC20Metadata(25925, tokenAddrLower)
 
     await context.db
         .insert(schema.launchToken)
         .values({
-            tokenAddr: tokenAddr.toLowerCase(),
+            tokenAddr: tokenAddrLower,
             creator: creator.toLowerCase(),
-            name: '',
-            symbol: '',
+            name: meta.name,
+            symbol: meta.symbol,
             logo: logo ?? '',
             description: description ?? '',
             link1: link1 ?? '',

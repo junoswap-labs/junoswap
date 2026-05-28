@@ -8,10 +8,8 @@ import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { getTokensForChain } from '@/lib/tokens'
 import { isNativeToken } from '@/lib/wagmi'
-import { getV3Config } from '@/lib/dex-config'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ERC20_ABI } from '@/lib/abis/erc20'
-import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import { getTimeThreshold, fetchSwapEvents, safeFormatEther } from '@/lib/leaderboard-utils'
@@ -19,7 +17,6 @@ import type { LeaderboardTimePeriod, TraderSortKey, SortDirection } from '@/type
 import type { Token } from '@/types/tokens'
 
 const Q96 = 2n ** 96n
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'KUSDT', 'JUSDT', 'DAI', 'BUSD'])
 
 const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
@@ -51,6 +48,39 @@ interface HoldersResponse {
 interface SnapshotsResponse {
     tokenSnapshots: { items: SnapshotRow[] }
 }
+
+interface V3PoolResponse {
+    v3Pools: {
+        items: Array<{
+            address: string
+            token0: string
+            token1: string
+            fee: number
+        }>
+    }
+}
+
+const V3_POOLS_QUERY = `
+  query V3Pools($chainId: Int!, $wrappedNative: String!) {
+    v3Pools(
+      where: {
+        chainId: $chainId,
+        or: [
+          { token0: $wrappedNative },
+          { token1: $wrappedNative }
+        ]
+      },
+      limit: 500
+    ) {
+      items {
+        address
+        token0
+        token1
+        fee
+      }
+    }
+  }
+`
 
 export interface TraderAgg {
     rank: number
@@ -109,9 +139,7 @@ export function useLeaderboardTraders(
     page: number,
     nativeUsdPrice: number | null
 ) {
-    const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
     const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
-    const feeTiers = useMemo(() => v3Config?.feeTiers ?? [3000], [v3Config])
 
     const { tokens: graduatedTokens } = useGraduatedTokens(PUMP_CORE_NATIVE_CHAIN_ID)
 
@@ -139,16 +167,6 @@ export function useLeaderboardTraders(
         }
         return merged
     }, [staticErc20Tokens, graduatedTokens])
-
-    const v3PricedTokens = useMemo(
-        () =>
-            allErc20Tokens.filter(
-                (t) =>
-                    !isWrappedNative(t, PUMP_CORE_NATIVE_CHAIN_ID) &&
-                    !STABLECOIN_SYMBOLS.has(t.symbol.toUpperCase())
-            ),
-        [allErc20Tokens]
-    )
 
     // --- Step 1: Fetch Ponder data ---
     const { data: raw, isLoading: isPonderLoading } = useQuery({
@@ -302,43 +320,40 @@ export function useLeaderboardTraders(
         return map
     }, [bcBalanceResults, uniqueAddresses, bondingCurveTokenAddrs])
 
-    // --- Step 5: V3 pool discovery for non-trivial static tokens ---
-    const poolDiscoveryCalls = useMemo(() => {
-        const calls: Array<{ tokenAddr: string; feeTier: number }> = []
-        for (const token of v3PricedTokens) {
-            for (const fee of feeTiers) {
-                calls.push({ tokenAddr: token.address.toLowerCase(), feeTier: fee })
+    // --- Step 5: V3 pool discovery via Ponder (replaces factory.getPool on-chain reads) ---
+    const { data: ponderPools } = useQuery({
+        queryKey: ['v3-pools-for-pricing', PUMP_CORE_NATIVE_CHAIN_ID, wrappedNative],
+        queryFn: async () => {
+            if (!wrappedNative) return []
+            try {
+                const data = await ponderRequest<V3PoolResponse>(V3_POOLS_QUERY, {
+                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    wrappedNative: wrappedNative.toLowerCase(),
+                })
+                return data.v3Pools.items
+            } catch (e) {
+                if (isPonderError(e)) return []
+                throw e
             }
-        }
-        return calls
-    }, [v3PricedTokens, feeTiers])
-
-    const { data: poolAddressResults } = useReadContracts({
-        contracts:
-            v3Config && wrappedNative
-                ? poolDiscoveryCalls.map(({ tokenAddr, feeTier }) => ({
-                      address: v3Config.factory as Address,
-                      abi: UNISWAP_V3_FACTORY_ABI,
-                      functionName: 'getPool' as const,
-                      args: [tokenAddr as Address, wrappedNative as Address, feeTier],
-                      chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-                  }))
-                : [],
-        query: { enabled: poolDiscoveryCalls.length > 0 && !!v3Config && !!wrappedNative },
+        },
+        enabled: !!wrappedNative,
+        staleTime: 60_000,
     })
 
     const poolMap = useMemo(() => {
         const map = new Map<string, Address>()
-        if (!poolAddressResults) return map
-        for (const [i, { tokenAddr }] of poolDiscoveryCalls.entries()) {
-            if (map.has(tokenAddr)) continue
-            const pool = poolAddressResults[i]?.result as Address | undefined
-            if (pool && pool.toLowerCase() !== ZERO_ADDRESS) {
-                map.set(tokenAddr, pool)
+        if (!ponderPools || !wrappedNative) return map
+        const wn = wrappedNative.toLowerCase()
+        for (const pool of ponderPools) {
+            const token0 = pool.token0.toLowerCase()
+            const token1 = pool.token1.toLowerCase()
+            const tokenAddr = token0 === wn ? token1 : token0 === wn ? token0 : null
+            if (tokenAddr && !map.has(tokenAddr)) {
+                map.set(tokenAddr, pool.address as Address)
             }
         }
         return map
-    }, [poolAddressResults, poolDiscoveryCalls])
+    }, [ponderPools, wrappedNative])
 
     const poolAddresses = useMemo(() => [...poolMap.values()], [poolMap])
 

@@ -3,9 +3,7 @@
 import { useMemo } from 'react'
 import { useReadContracts } from 'wagmi'
 import type { Address } from 'viem'
-import { getV3Config } from '@/lib/dex-config'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
-import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { isNativeToken } from '@/lib/wagmi'
 import { useQuery } from '@tanstack/react-query'
@@ -17,13 +15,22 @@ import type { TokenType } from '@/types/portfolio'
 
 const Q96 = 2n ** 96n
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-
 interface SnapshotResponse {
     tokenSnapshots: {
         items: Array<{
             tokenAddr: string
             lastPrice: string
+        }>
+    }
+}
+
+interface V3PoolResponse {
+    v3Pools: {
+        items: Array<{
+            address: string
+            token0: string
+            token1: string
+            fee: number
         }>
     }
 }
@@ -39,16 +46,36 @@ const SNAPSHOTS_QUERY = `
   }
 `
 
+const V3_POOLS_QUERY = `
+  query V3Pools($chainId: Int!, $wrappedNative: String!) {
+    v3Pools(
+      where: {
+        chainId: $chainId,
+        or: [
+          { token0: $wrappedNative },
+          { token1: $wrappedNative }
+        ]
+      },
+      limit: 500
+    ) {
+      items {
+        address
+        token0
+        token1
+        fee
+      }
+    }
+  }
+`
+
 export function usePortfolioPrices(
     holdings: Map<string, TokenHolding>,
     nativeUsdPrice: number | null,
     chainId: number,
     getTokenType: (token: Token) => TokenType
 ) {
-    const v3Config = getV3Config(chainId)
     const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
     const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
-    const feeTiers = v3Config?.feeTiers ?? [3000]
 
     const pricedTokens = useMemo(() => {
         const tokens: Array<{ address: string; token: Token; tokenType: TokenType }> = []
@@ -67,44 +94,46 @@ export function usePortfolioPrices(
         return tokens
     }, [holdings, getTokenType, chainId])
 
-    const poolDiscoveryCalls = useMemo(() => {
-        const calls: Array<{ tokenAddr: string; feeTier: number }> = []
-        for (const { address } of pricedTokens) {
-            for (const fee of feeTiers) {
-                calls.push({ tokenAddr: address, feeTier: fee })
+    // Replace factory.getPool() calls with a single Ponder query
+    const { data: ponderPools } = useQuery({
+        queryKey: ['v3-pools-for-pricing', chainId, wrappedNative],
+        queryFn: async () => {
+            if (!wrappedNative) return []
+            try {
+                const data = await ponderRequest<V3PoolResponse>(V3_POOLS_QUERY, {
+                    chainId,
+                    wrappedNative: wrappedNative.toLowerCase(),
+                })
+                return data.v3Pools.items
+            } catch (e) {
+                if (isPonderError(e)) return []
+                throw e
             }
-        }
-        return calls
-    }, [pricedTokens, feeTiers])
-
-    const { data: poolAddressResults } = useReadContracts({
-        contracts: poolDiscoveryCalls.map(({ tokenAddr, feeTier }) => ({
-            address: v3Config!.factory as Address,
-            abi: UNISWAP_V3_FACTORY_ABI,
-            functionName: 'getPool' as const,
-            args: [tokenAddr as Address, wrappedNative as Address, feeTier],
-            chainId,
-        })),
-        query: {
-            enabled: poolDiscoveryCalls.length > 0 && !!v3Config && !!wrappedNative,
         },
+        enabled: pricedTokens.length > 0 && !!wrappedNative,
+        staleTime: 60_000,
     })
 
+    // Build pool map: tokenAddr → best pool address (first fee tier found)
     const poolMap = useMemo(() => {
         const map = new Map<string, Address>()
-        if (!poolAddressResults) return map
-        for (const [i, { tokenAddr }] of poolDiscoveryCalls.entries()) {
-            if (map.has(tokenAddr)) continue
-            const pool = poolAddressResults[i]?.result as Address | undefined
-            if (pool && pool.toLowerCase() !== ZERO_ADDRESS) {
-                map.set(tokenAddr, pool)
+        if (!ponderPools || !wrappedNative) return map
+
+        const wn = wrappedNative.toLowerCase()
+        for (const pool of ponderPools) {
+            const token0 = pool.token0.toLowerCase()
+            const token1 = pool.token1.toLowerCase()
+            const tokenAddr = token0 === wn ? token1 : token0 === wn ? token0 : null
+            if (tokenAddr && !map.has(tokenAddr)) {
+                map.set(tokenAddr, pool.address as Address)
             }
         }
         return map
-    }, [poolAddressResults, poolDiscoveryCalls])
+    }, [ponderPools, wrappedNative])
 
     const poolAddresses = useMemo(() => [...poolMap.values()], [poolMap])
 
+    // Still need on-chain slot0() for live sqrtPriceX96
     const { data: slot0Results } = useReadContracts({
         contracts: poolAddresses.map((poolAddr) => ({
             address: poolAddr,
