@@ -25,6 +25,7 @@ export function Header() {
         { href: '/bridge', label: 'Bridge' },
         { href: '/launchpad', label: 'Launchpad' },
         { href: '/portfolio', label: 'Portfolio' },
+        { href: '/leaderboard', label: 'Leaderboard' },
         { href: '/points', label: 'Points' },
     ]
     return (
