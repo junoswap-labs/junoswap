@@ -58,4 +58,10 @@ export const DEX_REGISTRY: Record<string, DEXMetadata> = {
         displayName: 'PancakeSwap V3',
         description: 'Uniswap V3 DEX',
     },
+    kublerx: {
+        id: 'kublerx',
+        name: 'kublerx',
+        displayName: 'Kublerx',
+        description: 'Uniswap V3 DEX',
+    },
 }
