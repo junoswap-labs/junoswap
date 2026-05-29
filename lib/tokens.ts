@@ -148,6 +148,22 @@ const KUB_MAINNET_TOKENS: Token[] = [
         logo: 'https://cmswap.mypinata.cloud/ipfs/bafkreieg7yf6iwx7obygg62hz252bwnaddedanvlizonaawagk7eze4qcu',
     },
     {
+        address: '0x21cdc3706b8c7b1836df0e533dd884069521350b' as const,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        decimals: 6,
+        chainId: bitkub.id,
+        logo: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    },
+    {
+        address: '0x31929a0fd776F971C5dd14bF03e1F9fF69D9c91c' as const,
+        symbol: 'USDC.e',
+        name: 'USD Coin (Bridged)',
+        decimals: 6,
+        chainId: bitkub.id,
+        logo: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
+    },
+    {
         address: '0x9B005000A10Ac871947D99001345b01C1cEf2790' as const,
         symbol: 'CMM',
         name: 'CMM',
