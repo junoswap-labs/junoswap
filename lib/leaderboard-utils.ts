@@ -41,9 +41,9 @@ interface V3SwapEventsResponse {
 }
 
 export async function fetchSwapEvents(sinceTimestamp: number): Promise<SwapEventRow[]> {
-    const where = sinceTimestamp > 0 ? `(where: { timestamp_gte: ${sinceTimestamp} })` : ''
+    const where = sinceTimestamp > 0 ? `where: { timestamp_gte: ${sinceTimestamp} }, ` : ''
     const query = `{
-        swapEvents${where}(orderBy: "timestamp", orderDirection: "desc", limit: 1000) {
+        swapEvents(${where}orderBy: "timestamp", orderDirection: "desc", limit: 1000) {
             items { tokenAddr sender isBuy amountIn amountOut timestamp }
         }
     }`
@@ -57,9 +57,9 @@ export async function fetchSwapEvents(sinceTimestamp: number): Promise<SwapEvent
 }
 
 export async function fetchV3SwapEvents(sinceTimestamp: number): Promise<SwapEventRow[]> {
-    const where = sinceTimestamp > 0 ? `(where: { timestamp_gte: ${sinceTimestamp} })` : ''
+    const where = sinceTimestamp > 0 ? `where: { timestamp_gte: ${sinceTimestamp} }, ` : ''
     const query = `{
-        v3SwapEvents${where}(orderBy: "timestamp", orderDirection: "desc", limit: 1000) {
+        v3SwapEvents(${where}orderBy: "timestamp", orderDirection: "desc", limit: 1000) {
             items { tokenAddr sender amount0 amount1 timestamp }
         }
     }`

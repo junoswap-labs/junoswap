@@ -41,25 +41,21 @@ function RankCell({ rank }: { rank: number }) {
 
 function PnlCell({
     pnlNative,
-    pnlPercent,
     nativeUsdPrice,
 }: {
     pnlNative: number
-    pnlPercent: number
     nativeUsdPrice: number | null
 }) {
     const isPositive = pnlNative >= 0
     const colorClass = isPositive ? 'text-emerald-400' : 'text-red-400'
     const usd = nativeUsdPrice !== null ? Math.abs(pnlNative * nativeUsdPrice) : Math.abs(pnlNative)
     const prefix = nativeUsdPrice !== null ? '$' : ''
-    const pctStr = pnlPercent !== 0 ? ` (${isPositive ? '+' : ''}${pnlPercent.toFixed(1)}%)` : ''
 
     return (
         <span className={cn('font-mono tracking-tight text-sm', colorClass)}>
             {isPositive ? '+' : '-'}
             {prefix}
             {formatCompact(usd)}
-            {pctStr}
         </span>
     )
 }
@@ -243,7 +239,6 @@ export function TraderLeaderboardTable({
                             <TableCell className="py-2.5" onClick={(e) => e.stopPropagation()}>
                                 <PnlCell
                                     pnlNative={trader.pnlNative}
-                                    pnlPercent={trader.pnlPercent}
                                     nativeUsdPrice={nativeUsdPrice}
                                 />
                             </TableCell>

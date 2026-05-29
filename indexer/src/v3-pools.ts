@@ -248,39 +248,29 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
     // 4. Update v3_token_snapshot for pools containing wrapped native
     await updateV3TokenSnapshot(context, 25925, poolAddress, poolRecord, sqrtPriceX96, timestamp)
 
-    // 5. Graduated launch token tracking (swap events + tokenSnapshot)
-    if (poolRecord.fee !== GRADUATED_FEE_TIER) return
-
+    // 5. Determine tokenAddr for the swap event
     const { token0, token1 } = poolRecord
-    let launchTokenAddr: string | null = null
-    let tokenIsToken0 = false
+    let tokenAddr: string
 
     if (token1 === WRAPPED_NATIVE) {
-        const launchToken = await context.db.find(schema.launchToken, { tokenAddr: token0 })
-        if (launchToken?.isGraduated === 1) {
-            launchTokenAddr = token0
-            tokenIsToken0 = true
-        }
+        tokenAddr = token0
     } else if (token0 === WRAPPED_NATIVE) {
-        const launchToken = await context.db.find(schema.launchToken, { tokenAddr: token1 })
-        if (launchToken?.isGraduated === 1) {
-            launchTokenAddr = token1
-            tokenIsToken0 = false
-        }
+        tokenAddr = token1
+    } else {
+        tokenAddr = token0
     }
 
-    if (!launchTokenAddr) return
-
-    // Insert v3_swap_event
+    // 6. Insert v3_swap_event for ALL swaps
     const id = `v3-${event.block.number}-${event.log.logIndex}`
     await context.db
         .insert(schema.v3SwapEvent)
         .values({
             id,
             poolAddress,
-            tokenAddr: launchTokenAddr,
+            tokenAddr,
             sender: sender.toLowerCase(),
             recipient: recipient.toLowerCase(),
+            txFrom: event.transaction.from.toLowerCase(),
             amount0: amount0.toString(),
             amount1: amount1.toString(),
             sqrtPriceX96: sqrtPriceX96.toString(),
@@ -292,16 +282,38 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
         })
         .onConflictDoNothing()
 
+    // 7. Graduated launch token tracking (token_snapshot updates only for fee=10000 graduated tokens)
+    if (poolRecord.fee !== GRADUATED_FEE_TIER) return
+
+    let launchTokenAddr: string | null = null
+    let launchTokenIsToken0 = false
+
+    if (token1 === WRAPPED_NATIVE) {
+        const launchToken = await context.db.find(schema.launchToken, { tokenAddr: token0 })
+        if (launchToken?.isGraduated === 1) {
+            launchTokenAddr = token0
+            launchTokenIsToken0 = true
+        }
+    } else if (token0 === WRAPPED_NATIVE) {
+        const launchToken = await context.db.find(schema.launchToken, { tokenAddr: token1 })
+        if (launchToken?.isGraduated === 1) {
+            launchTokenAddr = token1
+            launchTokenIsToken0 = false
+        }
+    }
+
+    if (!launchTokenAddr) return
+
     // Compute price and update token_snapshot
-    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, tokenIsToken0)
+    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, launchTokenIsToken0)
     const marketCap = priceNative * 1_000_000_000
 
     const nativePriceRecord = await context.db.find(schema.nativeUsdPrice, { chainId: 25925 })
     const nativeUsd = nativePriceRecord ? parseFloat(nativePriceRecord.price) : 0
     const priceUsd = nativeUsd > 0 ? priceNative * nativeUsd : 0
 
-    const nativeVolume = tokenIsToken0 ? absAmount1 : absAmount0
-    const tokenAmount = tokenIsToken0 ? amount0 : amount1
+    const nativeVolume = launchTokenIsToken0 ? absAmount1 : absAmount0
+    const tokenAmount = launchTokenIsToken0 ? amount0 : amount1
     const isBuy = tokenAmount < 0n
 
     const existingSnapshot = await context.db.find(schema.tokenSnapshot, {

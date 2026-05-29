@@ -40,6 +40,26 @@ interface V3SwapEventsPage {
 
 const PAGE_SIZE = 500
 
+const V3_SWAP_EVENTS_QUERY = `
+  query V3SwapEventsPage($sender: String!, $after: String) {
+    v3SwapEvents(
+      where: { txFrom: $sender },
+      orderBy: "timestamp",
+      orderDirection: "asc",
+      limit: ${PAGE_SIZE},
+      after: $after
+    ) {
+      items {
+        id
+        tokenAddr
+        amount0
+        amount1
+        timestamp
+      }
+    }
+  }
+`
+
 async function fetchAllSwapEvents(sender: string): Promise<UserSwapEvent[]> {
     const events: UserSwapEvent[] = []
     let after: string | undefined
@@ -90,26 +110,7 @@ async function fetchAllV3SwapEvents(sender: string): Promise<UserSwapEvent[]> {
     let after: string | undefined
 
     for (;;) {
-        const query = `
-          query V3SwapEventsPage($sender: String!, $after: String) {
-            v3SwapEvents(
-              where: { recipient: $sender },
-              orderBy: "timestamp",
-              orderDirection: "asc",
-              limit: ${PAGE_SIZE},
-              after: $after
-            ) {
-              items {
-                id
-                tokenAddr
-                amount0
-                amount1
-                timestamp
-              }
-            }
-          }
-        `
-        const data = await ponderRequest<V3SwapEventsPage>(query, { sender, after })
+        const data = await ponderRequest<V3SwapEventsPage>(V3_SWAP_EVENTS_QUERY, { sender, after })
         const items = data.v3SwapEvents.items
         for (const e of items) {
             const amount0 = BigInt(e.amount0)

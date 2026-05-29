@@ -57,6 +57,7 @@ export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
     tokenAddr: t.text().notNull(),
     sender: t.text().notNull(),
     recipient: t.text().notNull(),
+    txFrom: t.text().notNull(),
     amount0: t.text().notNull(),
     amount1: t.text().notNull(),
     sqrtPriceX96: t.text().notNull(),
