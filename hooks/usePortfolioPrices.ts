@@ -241,7 +241,7 @@ export function usePortfolioPrices(
     ])
 }
 
-const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'KUSDT', 'JUSDT', 'DAI', 'BUSD'])
+const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'USDC.E', 'KUSDT', 'JUSDT', 'DAI', 'BUSD'])
 
 function isStablecoin(token: Token): boolean {
     return STABLECOIN_SYMBOLS.has(token.symbol.toUpperCase())

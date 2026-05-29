@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useChainId } from 'wagmi'
-import { parseEther, formatEther } from 'viem'
+import { parseEther } from 'viem'
 import { NATIVE_USD_STABLE } from '@/lib/routing-config'
 import { useUniV3Quote } from '@/hooks/useUniV3Quote'
 import { TOKEN_LISTS } from '@/lib/tokens'
@@ -41,7 +41,8 @@ export function useNativeUsdPrice(chainId?: number) {
 
     const nativeUsdPrice = useMemo(() => {
         if (!quote || !usdtConfig) return null
-        return parseFloat(formatEther(quote.amountOut))
+        const divisor = 10 ** usdtConfig.decimals
+        return Number(quote.amountOut) / divisor
     }, [quote, usdtConfig])
 
     return { nativeUsdPrice, isLoading }

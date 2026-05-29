@@ -11,6 +11,10 @@ export const NATIVE_USD_STABLE: Record<number, { address: Address; decimals: num
         address: '0x70138f1b88BEe73dD2Cb06F24146f964Dde6144e', // KUSDT on kubTestnet
         decimals: 18,
     },
+    [bitkub.id]: {
+        address: '0x7d984C24d2499D840eB3b7016077164e15E5faA6', // KUSDT on KUBChain mainnet
+        decimals: 18,
+    },
 }
 
 /**
