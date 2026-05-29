@@ -535,6 +535,7 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
                             !tokenOut ||
                             isQuoteLoading ||
                             isSameTokenSwap ||
+                            (!isWrapUnwrap && amountInBigInt > 0n && !effectiveQuote) ||
                             (isKubUnwrapDirect
                                 ? isUnwrapping
                                 : (isPreparing && !needsApprovalCheck) ||

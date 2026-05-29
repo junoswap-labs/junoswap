@@ -43,6 +43,7 @@ interface V3Config extends BaseProtocolConfig {
     staker?: Address // V3 Staker contract for LP mining
     feeTiers?: number[]
     defaultFeeTier?: number
+    routerVersion?: 'v1' | 'v2' // v1 = original SwapRouter (has deadline param), v2 = SwapRouter02 (no deadline)
 }
 
 /**
@@ -254,6 +255,27 @@ const DEX_CONFIGS_REGISTRY: Record<DEXType, DEXConfiguration> = {
             },
         },
     },
+    kublerx: {
+        dexId: 'kublerx',
+        defaultProtocol: ProtocolType.V3,
+        priority: 2,
+        protocols: {
+            [bitkub.id]: {
+                [ProtocolType.V3]: {
+                    protocolType: ProtocolType.V3,
+                    chainId: bitkub.id,
+                    enabled: true,
+                    factory: '0xD679d310008A2595B8d3DeB83bb93EB23F9b0942' as Address,
+                    quoter: '0x63661462C66f13eD121f394Dc57726c1c33672de' as Address,
+                    swapRouter: '0x6A37687F06780ee8B1b8634b7f7c053cCc58672a' as Address,
+                    positionManager: '0xA8fa5d2774f850Fba2bC572e38b1dB340233e837' as Address,
+                    feeTiers: [FEE_TIERS.STABLE, FEE_TIERS.LOW, FEE_TIERS.MEDIUM, FEE_TIERS.HIGH],
+                    defaultFeeTier: FEE_TIERS.LOW,
+                    routerVersion: 'v1',
+                },
+            },
+        },
+    },
 }
 
 /**
@@ -396,6 +418,15 @@ export function getProtocolSpender(config: ProtocolConfig): Address | undefined 
         default:
             return undefined
     }
+}
+
+/**
+ * Check if a DEX uses SwapRouter v1 (original, has deadline param)
+ * Default is v2 (SwapRouter02, no deadline) if not specified
+ */
+export function isRouterV1(chainId: number, dexId?: DEXType): boolean {
+    const config = getV3Config(chainId, dexId)
+    return config?.routerVersion === 'v1'
 }
 
 /**
