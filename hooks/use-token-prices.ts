@@ -9,7 +9,7 @@ import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import type { Token } from '@/types/tokens'
 import type { TokenType } from '@/types/portfolio'
 
-const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'KUSDT', 'JUSDT', 'DAI', 'BUSD'])
+const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'USDC.E', 'KUSDT', 'JUSDT', 'DAI', 'BUSD'])
 
 interface TokenSnapshotResponse {
     tokenSnapshots: {
