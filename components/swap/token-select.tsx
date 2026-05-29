@@ -155,7 +155,7 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
     )
 }
 
-export interface TokenSelectProps {
+interface TokenSelectProps {
     token: Token | null
     tokens: Token[]
     onSelect: (token: Token) => void

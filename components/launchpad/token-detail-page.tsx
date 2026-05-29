@@ -23,6 +23,7 @@ import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
 import type { DailyMetrics } from '@/services/chart'
+import { calculatePriceFromSqrtPrice } from '@/services/chart'
 import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState, useCallback } from 'react'
@@ -102,15 +103,8 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 slot0 as [bigint, number, number, number, number, number, boolean]
             )[0]
             if (sqrtPriceX96 > 0n) {
-                const Q96 = 2n ** 96n
                 const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
-                let priceRaw: bigint
-                if (tokenIsToken0) {
-                    priceRaw = (sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / (Q96 * Q96)
-                } else {
-                    priceRaw = (Q96 * Q96 * 10n ** 18n) / (sqrtPriceX96 * sqrtPriceX96)
-                }
-                const priceNative = Number(priceRaw) / 1e18
+                const priceNative = calculatePriceFromSqrtPrice(sqrtPriceX96, tokenIsToken0)
                 return String(priceNative * 1e9)
             }
         }
