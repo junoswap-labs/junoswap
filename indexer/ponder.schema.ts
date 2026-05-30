@@ -33,6 +33,7 @@ export const swapEvent = onchainTable('swap_event', (t) => ({
 export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     tokenAddr: t.text().primaryKey(),
     lastPrice: t.text().default('0'),
+    lastPriceUsd: t.text().default('0'),
     marketCapNative: t.text().default('0'),
     athMarketCapNative: t.text().default('0'),
     totalBuys: t.integer().default(0),
@@ -56,6 +57,7 @@ export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
     tokenAddr: t.text().notNull(),
     sender: t.text().notNull(),
     recipient: t.text().notNull(),
+    txFrom: t.text().notNull(),
     amount0: t.text().notNull(),
     amount1: t.text().notNull(),
     sqrtPriceX96: t.text().notNull(),
@@ -96,5 +98,22 @@ export const v3PoolDayVolume = onchainTable('v3_pool_day_volume', (t) => ({
     volumeToken0: t.text().notNull(),
     volumeToken1: t.text().notNull(),
     swapCount: t.integer().notNull(),
+    updatedAt: t.integer().notNull(),
+}))
+
+export const nativeUsdPrice = onchainTable('native_usd_price', (t) => ({
+    chainId: t.integer().primaryKey(),
+    price: t.text().notNull(),
+    poolAddress: t.text().notNull(),
+    updatedAt: t.integer().notNull(),
+}))
+
+export const v3TokenSnapshot = onchainTable('v3_token_snapshot', (t) => ({
+    id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
+    tokenAddr: t.text().notNull(),
+    lastPriceNative: t.text().default('0'),
+    lastPriceUsd: t.text().default('0'),
+    lastSwapAt: t.integer(),
     updatedAt: t.integer().notNull(),
 }))

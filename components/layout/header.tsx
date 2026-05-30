@@ -123,7 +123,7 @@ export function Header() {
                                         <NavigationMenuLink asChild>
                                             <Link
                                                 href={link.href}
-                                                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ease-out ${
+                                                className={`relative px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ease-out ${
                                                     isActive
                                                         ? 'text-foreground'
                                                         : 'text-muted-foreground'

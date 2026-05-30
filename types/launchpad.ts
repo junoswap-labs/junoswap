@@ -16,6 +16,7 @@ export interface LaunchToken {
     createdTime: number
     chainId: number
     graduatedAt?: number | null
+    isGraduated?: boolean
 }
 
 /**

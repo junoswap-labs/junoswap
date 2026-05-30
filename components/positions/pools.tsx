@@ -17,43 +17,17 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectModal } from '@/components/web3/connect-modal'
-import { TOKEN_LISTS, getDefaultPairTokens } from '@/lib/tokens'
-import { usePoolsForPair } from '@/hooks/usePools'
+import { getDefaultPairTokens } from '@/lib/tokens'
+import { useCommonPools } from '@/hooks/usePools'
 import { useGraduatedPools } from '@/hooks/useGraduatedPools'
 import { useAllPools, PONDER_INDEXED_CHAINS } from '@/hooks/useAllPools'
 import { usePoolTvl } from '@/hooks/usePoolTvl'
 import { usePoolVolume } from '@/hooks/usePoolVolume'
 import { useEarnStore } from '@/store/earn-store'
 import { formatFeeTier } from '@/lib/liquidity-helpers'
+import { formatTvl, formatApr, calculateApr } from '@/lib/format'
 import type { V3PoolData } from '@/types/earn'
 import type { Token } from '@/types/tokens'
-
-function formatTvl(tvlUsd: number): string {
-    if (tvlUsd <= 0) return '$0.00'
-    if (tvlUsd >= 1_000_000) return `$${(tvlUsd / 1_000_000).toFixed(2)}M`
-    if (tvlUsd >= 1_000) return `$${(tvlUsd / 1_000).toFixed(2)}K`
-    return `$${tvlUsd.toFixed(2)}`
-}
-
-function formatApr(apr: number | null, isLoading: boolean): React.ReactNode {
-    if (isLoading) {
-        return <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-    }
-    if (apr === null || apr === 0) {
-        return <span className="text-sm text-muted-foreground">--</span>
-    }
-    if (apr >= 100) {
-        return (
-            <span className="text-sm font-medium">
-                {apr.toLocaleString(undefined, { maximumFractionDigits: 1 })}%
-            </span>
-        )
-    }
-    if (apr >= 0.01) {
-        return <span className="text-sm font-medium">{apr.toFixed(2)}%</span>
-    }
-    return <span className="text-sm font-medium">&lt;0.01%</span>
-}
 
 type SortKey = 'tvl' | 'apr' | 'vol1d' | 'vol30d'
 type SortDir = 'asc' | 'desc'
@@ -252,53 +226,6 @@ function LoadingState() {
     )
 }
 
-function useCommonPools(chainId: number): { pools: V3PoolData[]; isLoading: boolean } {
-    const tokens = TOKEN_LISTS[chainId] ?? []
-    // Get first 6 tokens to check pools (always use fixed number for stable hook count)
-    const t0 = tokens[0] as Token | null
-    const t1 = tokens[1] as Token | null
-    const t2 = tokens[2] as Token | null
-    const t3 = tokens[3] as Token | null
-    const t4 = tokens[4] as Token | null
-    const t5 = tokens[5] as Token | null
-
-    // Call constant number of hooks (15 pairs for 6 tokens)
-    const p01 = usePoolsForPair(t0, t1, chainId)
-    const p02 = usePoolsForPair(t0, t2, chainId)
-    const p03 = usePoolsForPair(t0, t3, chainId)
-    const p04 = usePoolsForPair(t0, t4, chainId)
-    const p05 = usePoolsForPair(t0, t5, chainId)
-    const p12 = usePoolsForPair(t1, t2, chainId)
-    const p13 = usePoolsForPair(t1, t3, chainId)
-    const p14 = usePoolsForPair(t1, t4, chainId)
-    const p15 = usePoolsForPair(t1, t5, chainId)
-    const p23 = usePoolsForPair(t2, t3, chainId)
-    const p24 = usePoolsForPair(t2, t4, chainId)
-    const p25 = usePoolsForPair(t2, t5, chainId)
-    const p34 = usePoolsForPair(t3, t4, chainId)
-    const p35 = usePoolsForPair(t3, t5, chainId)
-    const p45 = usePoolsForPair(t4, t5, chainId)
-
-    const poolResults = useMemo(
-        () => [p01, p02, p03, p04, p05, p12, p13, p14, p15, p23, p24, p25, p34, p35, p45],
-        [p01, p02, p03, p04, p05, p12, p13, p14, p15, p23, p24, p25, p34, p35, p45]
-    )
-
-    const allPools = useMemo(() => {
-        const combined = poolResults.flatMap((r) => r.pools)
-        const unique = new Map<string, V3PoolData>()
-        combined.forEach((pool) => {
-            unique.set(pool.address, pool)
-        })
-        return Array.from(unique.values())
-    }, [poolResults])
-    const isLoading = poolResults.some((r) => r.isLoading)
-    return {
-        pools: allPools,
-        isLoading,
-    }
-}
-
 function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading: boolean }) {
     const chainId = useChainId()
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
@@ -309,12 +236,7 @@ function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading
             const addr = pool.address.toLowerCase()
             const tvl = tvlByAddress[addr]
             const volume = volumeByAddress[addr]
-            if (!tvl || tvl <= 0 || !volume?.volume30d || volume.volume30d <= 0) {
-                result[addr] = null
-                continue
-            }
-            const dailyAvgVolume = volume.volume30d / 30
-            result[addr] = ((dailyAvgVolume * (pool.fee / 1_000_000)) / tvl) * 365 * 100
+            result[addr] = calculateApr(pool.fee, tvl ?? 0, volume?.volume30d ?? 0)
         }
         return result
     }, [pools, tvlByAddress, volumeByAddress])

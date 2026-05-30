@@ -1,4 +1,3 @@
-export { IncentiveRow } from './incentive-row'
 export { MiningPools } from './mining-pools'
 export { MiningSummary } from './mining-summary'
 export { StakedPositions } from './staked-positions'

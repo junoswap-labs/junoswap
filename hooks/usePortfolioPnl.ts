@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
-import { formatEther } from 'viem'
+import { useSwapAggregation } from '@/hooks/use-swap-aggregation'
 import type { UserSwapEvent } from '@/hooks/useUserSwapEvents'
-import type { TokenHolding } from '@/hooks/usePortfolioBalances'
+import type { TokenHolding } from '@/hooks/use-multi-balances'
 
 interface PnlData {
     costBasisUsd: number
@@ -17,55 +17,41 @@ export function usePortfolioPnl(
     prices: Map<string, number | null>,
     nativeUsdPrice: number | null
 ) {
+    // Convert holdings to the flat numeric map useSwapAggregation expects
+    const holderMap = useMemo(() => {
+        const map = new Map<string, Map<string, number>>()
+        const tokenMap = new Map<string, number>()
+        for (const [key, holding] of holdings) {
+            const balance = Number(holding.formattedBalance)
+            if (balance > 0) tokenMap.set(key, balance)
+        }
+        // Single address, use placeholder key
+        if (tokenMap.size > 0) {
+            map.set('self', tokenMap)
+        }
+        return map
+    }, [holdings])
+
+    // Convert UserSwapEvent[] to SwapEventInput[]
+    const swapInputs = useMemo(
+        () =>
+            swapEvents?.map((e) => ({
+                tokenAddr: e.tokenAddr,
+                sender: 'self',
+                isBuy: e.isBuy,
+                amountIn: e.amountIn,
+                amountOut: e.amountOut,
+            })),
+        [swapEvents]
+    )
+
+    const { perTokenPnl } = useSwapAggregation(swapInputs, holderMap, prices, nativeUsdPrice)
+
     return useMemo(() => {
         const pnlMap = new Map<string, PnlData | null>()
-
-        if (!swapEvents || !nativeUsdPrice) {
-            for (const key of holdings.keys()) {
-                pnlMap.set(key, null)
-            }
-            return pnlMap
-        }
-
-        const buysByToken = new Map<
-            string,
-            { totalNativePaid: number; totalTokensBought: number }
-        >()
-        for (const event of swapEvents) {
-            if (!event.isBuy) continue
-            const key = event.tokenAddr.toLowerCase()
-            const acc = buysByToken.get(key) ?? { totalNativePaid: 0, totalTokensBought: 0 }
-            acc.totalNativePaid += parseFloat(formatEther(BigInt(event.amountIn)))
-            acc.totalTokensBought += parseFloat(formatEther(BigInt(event.amountOut)))
-            buysByToken.set(key, acc)
-        }
-
-        for (const [key, holding] of holdings) {
-            const buys = buysByToken.get(key)
-            const priceUsd = prices.get(key)
-
-            if (!buys || buys.totalTokensBought <= 0 || !priceUsd || priceUsd === 0) {
-                pnlMap.set(key, null)
-                continue
-            }
-
-            const entryPriceNative = buys.totalNativePaid / buys.totalTokensBought
-            const currentBalance = parseFloat(formatEther(holding.rawBalance))
-            const costBasisUsd = entryPriceNative * currentBalance * nativeUsdPrice
-            const currentValueUsd = priceUsd * currentBalance
-            const unrealizedPnl = currentValueUsd - costBasisUsd
-            const pnlPercent =
-                costBasisUsd > 0 ? ((currentValueUsd - costBasisUsd) / costBasisUsd) * 100 : 0
-
-            pnlMap.set(key, { costBasisUsd, unrealizedPnl, pnlPercent })
-        }
-
         for (const key of holdings.keys()) {
-            if (!pnlMap.has(key)) {
-                pnlMap.set(key, null)
-            }
+            pnlMap.set(key, perTokenPnl.get(key) ?? null)
         }
-
         return pnlMap
-    }, [swapEvents, holdings, prices, nativeUsdPrice])
+    }, [holdings, perTokenPnl])
 }

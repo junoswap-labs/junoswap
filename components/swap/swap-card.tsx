@@ -33,7 +33,7 @@ import { isValidNumberInput } from '@/lib/utils'
 import { getChainMetadata, isNativeToken, shouldSkipUnwrap, bitkub } from '@/lib/wagmi'
 import { useKkubUnwrap } from '@/hooks/useKkubUnwrap'
 
-export interface SwapCardProps {
+interface SwapCardProps {
     tokens?: Token[]
 }
 

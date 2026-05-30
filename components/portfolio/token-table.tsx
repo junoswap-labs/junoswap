@@ -98,63 +98,54 @@ export function TokenTable({ tokens, isLoading }: TokenTableProps) {
     }
 
     return (
-        <div className="space-y-3">
-            <span className="text-sm text-muted-foreground">
-                {tokens.length} token{tokens.length !== 1 ? 's' : ''}
-            </span>
-
-            <div className="rounded-lg border border-border/50 overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="hover:bg-transparent border-border/50">
-                            <TableHead className="w-[200px]">
-                                <SortHeader
-                                    label="Asset"
-                                    sortKey="name"
-                                    sortBy={sortBy}
-                                    onSort={handleSort}
-                                />
-                            </TableHead>
-                            <TableHead className="text-right">
-                                <SortHeader
-                                    label="Balance"
-                                    sortKey="balance"
-                                    className="justify-end"
-                                    sortBy={sortBy}
-                                    onSort={handleSort}
-                                />
-                            </TableHead>
-                            <TableHead className="text-right">Price</TableHead>
-                            <TableHead className="text-right">
-                                <SortHeader
-                                    label="Value"
-                                    sortKey="value"
-                                    className="justify-end"
-                                    sortBy={sortBy}
-                                    onSort={handleSort}
-                                />
-                            </TableHead>
-                            <TableHead className="text-right">
-                                <SortHeader
-                                    label="PNL"
-                                    sortKey="pnl"
-                                    className="justify-end"
-                                    sortBy={sortBy}
-                                    onSort={handleSort}
-                                />
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sorted.map((token) => (
-                            <TokenRow
-                                key={token.token.address.toLowerCase()}
-                                portfolioToken={token}
+        <div className="rounded-lg border border-border/50 overflow-hidden">
+            <Table>
+                <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border/50">
+                        <TableHead className="w-[200px]">
+                            <SortHeader
+                                label="Asset"
+                                sortKey="name"
+                                sortBy={sortBy}
+                                onSort={handleSort}
                             />
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
+                        </TableHead>
+                        <TableHead className="text-right">
+                            <SortHeader
+                                label="Balance"
+                                sortKey="balance"
+                                className="justify-end"
+                                sortBy={sortBy}
+                                onSort={handleSort}
+                            />
+                        </TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">
+                            <SortHeader
+                                label="Value"
+                                sortKey="value"
+                                className="justify-end"
+                                sortBy={sortBy}
+                                onSort={handleSort}
+                            />
+                        </TableHead>
+                        <TableHead className="text-right">
+                            <SortHeader
+                                label="PNL"
+                                sortKey="pnl"
+                                className="justify-end"
+                                sortBy={sortBy}
+                                onSort={handleSort}
+                            />
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sorted.map((token) => (
+                        <TokenRow key={token.token.address.toLowerCase()} portfolioToken={token} />
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     )
 }

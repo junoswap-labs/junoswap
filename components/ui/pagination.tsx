@@ -176,13 +176,4 @@ function PaginationControls({
     )
 }
 
-export {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationPrevious,
-    PaginationNext,
-    PaginationEllipsis,
-    PaginationControls,
-}
+export { PaginationControls }

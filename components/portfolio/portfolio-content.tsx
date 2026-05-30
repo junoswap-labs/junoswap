@@ -24,7 +24,7 @@ export function PortfolioContent() {
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
 
     const { tokens, getTokenType } = usePortfolioTokens(chainId, address)
-    const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(tokens)
+    const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(tokens, chainId)
     const prices = usePortfolioPrices(holdings, nativeUsdPrice, chainId, getTokenType)
     const { data: swapEvents } = useUserSwapEvents(address, chainId)
     const pnlMap = usePortfolioPnl(swapEvents, holdings, prices, nativeUsdPrice)

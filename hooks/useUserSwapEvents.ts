@@ -13,9 +13,10 @@ export interface UserSwapEvent {
     timestamp: number
 }
 
-interface UserSwapEventsResponse {
+interface SwapEventsPage {
     swapEvents: {
         items: Array<{
+            id: string
             tokenAddr: string
             isBuy: number
             amountIn: string
@@ -23,8 +24,12 @@ interface UserSwapEventsResponse {
             timestamp: number
         }>
     }
+}
+
+interface V3SwapEventsPage {
     v3SwapEvents: {
         items: Array<{
+            id: string
             tokenAddr: string
             amount0: string
             amount1: string
@@ -33,19 +38,19 @@ interface UserSwapEventsResponse {
     }
 }
 
-const USER_SWAP_EVENTS_QUERY = `
-  query UserSwapEvents($sender: String!) {
-    swapEvents(where: { sender: $sender }, orderBy: "timestamp", orderDirection: "asc", limit: 500) {
+const PAGE_SIZE = 500
+
+const V3_SWAP_EVENTS_QUERY = `
+  query V3SwapEventsPage($sender: String!, $after: String) {
+    v3SwapEvents(
+      where: { txFrom: $sender },
+      orderBy: "timestamp",
+      orderDirection: "asc",
+      limit: ${PAGE_SIZE},
+      after: $after
+    ) {
       items {
-        tokenAddr
-        isBuy
-        amountIn
-        amountOut
-        timestamp
-      }
-    }
-    v3SwapEvents(where: { recipient: $sender }, orderBy: "timestamp", orderDirection: "asc", limit: 500) {
-      items {
+        id
         tokenAddr
         amount0
         amount1
@@ -55,6 +60,89 @@ const USER_SWAP_EVENTS_QUERY = `
   }
 `
 
+async function fetchAllSwapEvents(sender: string): Promise<UserSwapEvent[]> {
+    const events: UserSwapEvent[] = []
+    let after: string | undefined
+
+    for (;;) {
+        const query = `
+          query SwapEventsPage($sender: String!, $after: String) {
+            swapEvents(
+              where: { sender: $sender },
+              orderBy: "timestamp",
+              orderDirection: "asc",
+              limit: ${PAGE_SIZE},
+              after: $after
+            ) {
+              items {
+                id
+                tokenAddr
+                isBuy
+                amountIn
+                amountOut
+                timestamp
+              }
+            }
+          }
+        `
+        const data = await ponderRequest<SwapEventsPage>(query, { sender, after })
+        const items = data.swapEvents.items
+        for (const e of items) {
+            events.push({
+                tokenAddr: e.tokenAddr.toLowerCase(),
+                isBuy: e.isBuy === 1,
+                amountIn: e.amountIn,
+                amountOut: e.amountOut,
+                timestamp: e.timestamp,
+            })
+        }
+        if (items.length < PAGE_SIZE) break
+        const last = items[items.length - 1]
+        if (!last) break
+        after = last.id
+    }
+
+    return events
+}
+
+async function fetchAllV3SwapEvents(sender: string): Promise<UserSwapEvent[]> {
+    const events: UserSwapEvent[] = []
+    let after: string | undefined
+
+    for (;;) {
+        const data = await ponderRequest<V3SwapEventsPage>(V3_SWAP_EVENTS_QUERY, { sender, after })
+        const items = data.v3SwapEvents.items
+        for (const e of items) {
+            const amount0 = BigInt(e.amount0)
+            const amount1 = BigInt(e.amount1)
+            const isBuy = amount0 < 0n
+            events.push({
+                tokenAddr: e.tokenAddr.toLowerCase(),
+                isBuy,
+                amountIn: isBuy
+                    ? amount1 < 0n
+                        ? (-amount1).toString()
+                        : '0'
+                    : (-amount0).toString(),
+                amountOut: isBuy
+                    ? amount0 < 0n
+                        ? '0'
+                        : amount0.toString()
+                    : amount1 < 0n
+                      ? '0'
+                      : amount1.toString(),
+                timestamp: e.timestamp,
+            })
+        }
+        if (items.length < PAGE_SIZE) break
+        const last = items[items.length - 1]
+        if (!last) break
+        after = last.id
+    }
+
+    return events
+}
+
 export function useUserSwapEvents(address: Address | undefined, chainId: number) {
     const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
 
@@ -63,41 +151,10 @@ export function useUserSwapEvents(address: Address | undefined, chainId: number)
         queryFn: async (): Promise<UserSwapEvent[]> => {
             if (!address || !isLaunchpadChain) return []
             try {
-                const data = await ponderRequest<UserSwapEventsResponse>(USER_SWAP_EVENTS_QUERY, {
-                    sender: address.toLowerCase(),
-                })
-
-                const bondingCurveEvents: UserSwapEvent[] = data.swapEvents.items.map((e) => ({
-                    tokenAddr: e.tokenAddr.toLowerCase(),
-                    isBuy: e.isBuy === 1,
-                    amountIn: e.amountIn,
-                    amountOut: e.amountOut,
-                    timestamp: e.timestamp,
-                }))
-
-                const v3Events: UserSwapEvent[] = data.v3SwapEvents.items.map((e) => {
-                    const amount0 = BigInt(e.amount0)
-                    const amount1 = BigInt(e.amount1)
-                    const isBuy = amount0 < 0n
-                    return {
-                        tokenAddr: e.tokenAddr.toLowerCase(),
-                        isBuy,
-                        amountIn: isBuy
-                            ? amount1 < 0n
-                                ? (-amount1).toString()
-                                : '0'
-                            : (-amount0).toString(),
-                        amountOut: isBuy
-                            ? amount0 < 0n
-                                ? '0'
-                                : amount0.toString()
-                            : amount1 < 0n
-                              ? '0'
-                              : amount1.toString(),
-                        timestamp: e.timestamp,
-                    }
-                })
-
+                const [bondingCurveEvents, v3Events] = await Promise.all([
+                    fetchAllSwapEvents(address.toLowerCase()),
+                    fetchAllV3SwapEvents(address.toLowerCase()),
+                ])
                 return [...bondingCurveEvents, ...v3Events].sort(
                     (a, b) => a.timestamp - b.timestamp
                 )

@@ -7,8 +7,7 @@ import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-pric
 import { usePointsStore } from '@/store/points-store'
 import { usePointsData } from '@/hooks/usePointsData'
 import { useDebounce } from '@/hooks/useDebounce'
-import { PointsStatsCards } from './points-stats-cards'
-import { UserPointsCard } from './user-points-card'
+import { ShareablePointsBanner } from './shareable-points-banner'
 import { PointsLeaderboardTable } from './points-leaderboard-table'
 import { Search } from 'lucide-react'
 import type { PointsSortKey } from '@/types/points'
@@ -62,20 +61,15 @@ export function PointsContent() {
             </div>
 
             <div className="mb-6">
-                <PointsStatsCards
+                <ShareablePointsBanner
+                    address={address}
+                    userSummary={userSummary}
                     totalPoints={totalPointsAll}
                     totalVolumeUsd={totalVolumeUsd}
                     totalTraders={totalCount}
-                    userSummary={userSummary}
                     isConnected={!!address}
                 />
             </div>
-
-            {address && userSummary && (
-                <div className="mb-6">
-                    <UserPointsCard address={address} summary={userSummary} />
-                </div>
-            )}
 
             <Card>
                 <CardContent className="p-0">

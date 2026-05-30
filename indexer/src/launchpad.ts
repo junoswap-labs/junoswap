@@ -38,6 +38,7 @@ function defaultSnapshot(tokenAddr: string) {
     return {
         tokenAddr,
         lastPrice: '0',
+        lastPriceUsd: '0',
         marketCapNative: '0',
         athMarketCapNative: '0',
         totalBuys: 0,
@@ -102,7 +103,12 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     const marketCap = calculateMarketCapFromReserves(isBuy, BigInt(reserveIn), BigInt(reserveOut))
     const volume = calculateVolume(isBuy, amountIn, amountOut)
 
-    // 2. Read current snapshot (from previous events), or use defaults
+    // 2. Read native USD price for USD conversion
+    const nativePriceRecord = await context.db.find(schema.nativeUsdPrice, { chainId: 25925 })
+    const nativeUsd = nativePriceRecord ? parseFloat(nativePriceRecord.price) : 0
+    const priceUsd = nativeUsd > 0 && price > 0 ? price * nativeUsd : 0
+
+    // 3. Read current snapshot (from previous events), or use defaults
     const existingSnapshot = await context.db.find(schema.tokenSnapshot, {
         tokenAddr: tokenAddrLower,
     })
@@ -114,13 +120,13 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
         parseFloat(snap.athMarketCapNative ?? '0')
     ).toString()
 
-    // 3. Read current holder state
+    // 4. Read current holder state
     const holderId = `${tokenAddrLower}-${senderLower}`
     const existingHolder = await context.db.find(schema.tokenHolder, { id: holderId })
     const oldBalance = existingHolder ? BigInt(existingHolder.balance) : 0n
     const isNewHolder = !existingHolder
 
-    // 4. Compute new values
+    // 5. Compute new values
     const balanceChange = isBuy ? amountOut : -amountIn
     const newBalance = oldBalance + balanceChange
 
@@ -130,13 +136,14 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     if (!oldPositive && newPositive) holderCount += 1
     if (oldPositive && !newPositive) holderCount = Math.max(0, holderCount - 1)
 
-    // 5. Write all updates
+    // 6. Write all updates
     if (isNewSnapshot) {
         await context.db
             .insert(schema.tokenSnapshot)
             .values({
                 tokenAddr: tokenAddrLower,
                 lastPrice: price > 0 ? price.toString() : '0',
+                lastPriceUsd: priceUsd > 0 ? priceUsd.toString() : '0',
                 marketCapNative: marketCap,
                 athMarketCapNative: athMarketCap,
                 totalBuys: isBuy ? 1 : 0,
@@ -150,6 +157,7 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     } else {
         await context.db.update(schema.tokenSnapshot, { tokenAddr: tokenAddrLower }).set({
             lastPrice: price > 0 ? price.toString() : (snap.lastPrice ?? '0'),
+            lastPriceUsd: priceUsd > 0 ? priceUsd.toString() : (snap.lastPriceUsd ?? '0'),
             marketCapNative: marketCap,
             athMarketCapNative: athMarketCap,
             totalBuys: (snap.totalBuys ?? 0) + (isBuy ? 1 : 0),
