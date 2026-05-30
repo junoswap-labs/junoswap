@@ -1,16 +1,12 @@
 'use client'
 
-import { useReadContract } from 'wagmi'
-import type { Address } from 'viem'
 import { formatEther } from 'viem'
-import { ERC20_ABI } from '@/lib/abis/erc20'
+import type { Address } from 'viem'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
-import { getV3Config } from '@/lib/dex-config'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
-import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
-import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
+import { useGraduatedPoolAddress } from '@/hooks/useGraduatedPoolAddress'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +19,6 @@ import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
 import type { DailyMetrics } from '@/services/chart'
-import { calculatePriceFromSqrtPrice } from '@/services/chart'
 import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState, useCallback } from 'react'
@@ -33,82 +28,36 @@ interface TokenDetailPageProps {
 }
 
 export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
-    // Read ERC20 metadata
-    const { data: tokenName } = useReadContract({
-        address: tokenAddr,
-        abi: ERC20_ABI,
-        functionName: 'name',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-    })
-
-    const { data: tokenSymbol } = useReadContract({
-        address: tokenAddr,
-        abi: ERC20_ABI,
-        functionName: 'symbol',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-    })
-
-    const { data: tokenDecimals } = useReadContract({
-        address: tokenAddr,
-        abi: ERC20_ABI,
-        functionName: 'decimals',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-    })
-
-    // Read reserves
-    const {
-        nativeReserve,
-        tokenReserve,
-        virtualAmount,
-        isGraduated,
-        graduationAmount,
-        isLoading: isLoadingReserves,
-    } = useTokenReserves({ tokenAddr })
-
-    // Get creation event data for this token
+    // Get token data from Ponder (includes name, symbol, isGraduated, etc.)
     const { tokens: allTokens, snapshotMap } = useTokenList()
     const tokenInfo = allTokens.find((t) => t.address.toLowerCase() === tokenAddr.toLowerCase())
     const athMarketCap = snapshotMap.get(tokenAddr.toLowerCase())?.athMarketCapNative
 
-    // Resolve V3 pool address for graduated tokens
-    const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
+    const isGraduated = !!tokenInfo?.isGraduated
+
+    // Read bonding curve reserves (only fetches for non-graduated tokens)
+    const {
+        nativeReserve,
+        tokenReserve,
+        virtualAmount,
+        graduationAmount,
+        isLoading: isLoadingReserves,
+    } = useTokenReserves({ tokenAddr, isGraduated })
+
+    // Resolve V3 pool address from Ponder for graduated tokens
     const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
+    const { data: poolAddress } = useGraduatedPoolAddress(
+        isGraduated ? tokenAddr : undefined,
+        wrappedNative as Address | undefined
+    )
 
-    const { data: poolAddressData } = useReadContract({
-        address: v3Config!.factory as Address,
-        abi: UNISWAP_V3_FACTORY_ABI,
-        functionName: 'getPool' as const,
-        args: tokenAddr && wrappedNative ? [tokenAddr, wrappedNative as Address, 10000] : undefined,
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        query: { enabled: !!isGraduated && !!tokenAddr && !!wrappedNative },
-    })
-
-    const poolAddress =
-        poolAddressData && poolAddressData !== '0x0000000000000000000000000000000000000000'
-            ? (poolAddressData as Address)
-            : undefined
-
-    // Read V3 pool slot0 for graduated tokens
-    const { data: slot0 } = useReadContract({
-        address: poolAddress,
-        abi: UNISWAP_V3_POOL_ABI,
-        functionName: 'slot0' as const,
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        query: { enabled: !!isGraduated && !!poolAddress },
-    })
-
+    // Compute market cap
     const marketCap = useMemo(() => {
-        if (isGraduated && poolAddress && slot0 && wrappedNative) {
-            const sqrtPriceX96 = (
-                slot0 as [bigint, number, number, number, number, number, boolean]
-            )[0]
-            if (sqrtPriceX96 > 0n) {
-                const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
-                const priceNative = calculatePriceFromSqrtPrice(sqrtPriceX96, tokenIsToken0)
-                return String(priceNative * 1e9)
-            }
+        // Graduated: use Ponder snapshot mcap (already computed by indexer from V3 swaps)
+        if (isGraduated) {
+            return snapshotMap.get(tokenAddr.toLowerCase())?.marketCapNative ?? '0'
         }
-        // Fallback to bonding curve mcap
+        // Non-graduated: compute from bonding curve reserves
         if (virtualAmount > 0n && nativeReserve > 0n && tokenReserve > 0n) {
             return String(
                 (parseFloat(formatEther(virtualAmount + nativeReserve)) /
@@ -117,20 +66,11 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
             )
         }
         return '0'
-    }, [
-        isGraduated,
-        poolAddress,
-        slot0,
-        wrappedNative,
-        tokenAddr,
-        virtualAmount,
-        nativeReserve,
-        tokenReserve,
-    ])
+    }, [isGraduated, tokenAddr, virtualAmount, nativeReserve, tokenReserve, snapshotMap])
 
-    const symbol = (tokenSymbol as string) || 'TOKEN'
-    const name = (tokenName as string) || 'Unknown Token'
-    const decimals = (tokenDecimals as number) || 18
+    const symbol = tokenInfo?.symbol || 'TOKEN'
+    const name = tokenInfo?.name || 'Unknown Token'
+    const decimals = 18 // Launch tokens always use 18 decimals
 
     const [copied, setCopied] = useState(false)
     const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null)

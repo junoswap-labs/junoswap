@@ -102,7 +102,7 @@ export function TokenTradeCard({
         virtualAmount,
         graduationAmount,
         refetch: refetchReserves,
-    } = useTokenReserves({ tokenAddr })
+    } = useTokenReserves({ tokenAddr, isGraduated: _initialIsGraduated })
 
     const readyToGraduate = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
 

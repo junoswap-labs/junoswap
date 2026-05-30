@@ -8,8 +8,13 @@ import {
     PUMP_CORE_NATIVE_CHAIN_ID,
 } from '@/lib/abis/pump-core-native'
 
+// Contract constants — match PumpCoreNative values (never change)
+const VIRTUAL_AMOUNT = 3400n * 10n ** 18n
+const GRADUATION_AMOUNT = 150n * 10n ** 18n
+
 interface UseTokenReservesParams {
     tokenAddr: Address | null
+    isGraduated?: boolean
     chainId?: number
 }
 
@@ -25,51 +30,24 @@ interface UseTokenReservesResult {
 
 export function useTokenReserves({
     tokenAddr,
+    isGraduated: isGraduatedProp,
     chainId = PUMP_CORE_NATIVE_CHAIN_ID,
 }: UseTokenReservesParams): UseTokenReservesResult {
+    // For graduated tokens, reserves are not meaningful (liquidity is in V3 pool)
+    const skip = !tokenAddr || !!isGraduatedProp
+
     const {
         data: reserveData,
         isLoading: isLoadingReserve,
-        refetch: refetchReserve,
+        refetch,
     } = useReadContract({
         address: PUMP_CORE_NATIVE_ADDRESS,
         abi: PUMP_CORE_NATIVE_ABI,
         functionName: 'pumpReserve',
-        args: tokenAddr ? [tokenAddr] : undefined,
+        args: tokenAddr && !isGraduatedProp ? [tokenAddr] : undefined,
         chainId,
         query: {
-            enabled: !!tokenAddr,
-        },
-    })
-
-    const { data: isGraduatedData, isLoading: isLoadingGraduated } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'isGraduate',
-        args: tokenAddr ? [tokenAddr] : undefined,
-        chainId,
-        query: {
-            enabled: !!tokenAddr,
-        },
-    })
-
-    const { data: virtualAmountData, isLoading: isLoadingVirtual } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'virtualAmount',
-        chainId,
-        query: {
-            enabled: !!tokenAddr,
-        },
-    })
-
-    const { data: graduationAmountData } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'graduationAmount',
-        chainId,
-        query: {
-            enabled: !!tokenAddr,
+            enabled: !skip,
         },
     })
 
@@ -78,10 +56,10 @@ export function useTokenReserves({
     return {
         nativeReserve: reserve?.[0] ?? 0n,
         tokenReserve: reserve?.[1] ?? 0n,
-        isGraduated: isGraduatedData ?? false,
-        virtualAmount: virtualAmountData ?? 0n,
-        graduationAmount: graduationAmountData ?? 0n,
-        isLoading: isLoadingReserve || isLoadingGraduated || isLoadingVirtual,
-        refetch: refetchReserve,
+        isGraduated: !!isGraduatedProp,
+        virtualAmount: VIRTUAL_AMOUNT,
+        graduationAmount: GRADUATION_AMOUNT,
+        isLoading: isLoadingReserve && !skip,
+        refetch,
     }
 }

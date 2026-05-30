@@ -1,17 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useReadContract, useReadContracts } from 'wagmi'
-import { formatEther } from 'viem'
-import type { Address } from 'viem'
-import {
-    PUMP_CORE_NATIVE_ADDRESS,
-    PUMP_CORE_NATIVE_ABI,
-    PUMP_CORE_NATIVE_CHAIN_ID,
-} from '@/lib/abis/pump-core-native'
-import { ERC20_ABI } from '@/lib/abis/erc20'
 import { useTokenList } from '@/hooks/useTokenList'
-import { useGraduatedTokenMcap } from '@/hooks/useGraduatedTokenMcap'
 import type { LaunchpadSortKey } from '@/types/launchpad'
 import { TokenCard } from './token-card'
 import { SortTabs } from './sort-tabs'
@@ -27,126 +17,22 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     const { tokens, snapshotMap, isLoading } = useTokenList()
     const [sortKey, setSortKey] = useState<LaunchpadSortKey>('last-trade')
 
-    // Batch read ERC20 name/symbol for all tokens
-    const { data: nameResults } = useReadContracts({
-        contracts: tokens.map((token) => ({
-            address: token.address as Address,
-            abi: ERC20_ABI,
-            functionName: 'name' as const,
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        })),
-        query: { enabled: tokens.length > 0 },
-    })
-
-    const { data: symbolResults } = useReadContracts({
-        contracts: tokens.map((token) => ({
-            address: token.address as Address,
-            abi: ERC20_ABI,
-            functionName: 'symbol' as const,
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        })),
-        query: { enabled: tokens.length > 0 },
-    })
-
-    // Batch read reserves for all tokens
-    const { data: reserveResults } = useReadContracts({
-        contracts: tokens.map((token) => ({
-            address: PUMP_CORE_NATIVE_ADDRESS as Address,
-            abi: PUMP_CORE_NATIVE_ABI,
-            functionName: 'pumpReserve' as const,
-            args: [token.address] as const,
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        })),
-        query: { enabled: tokens.length > 0 },
-    })
-
-    const { data: graduatedResults } = useReadContracts({
-        contracts: tokens.map((token) => ({
-            address: PUMP_CORE_NATIVE_ADDRESS as Address,
-            abi: PUMP_CORE_NATIVE_ABI,
-            functionName: 'isGraduate' as const,
-            args: [token.address] as const,
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        })),
-        query: { enabled: tokens.length > 0 },
-    })
-
-    const { data: graduationAmountResult } = useReadContracts({
-        contracts: [
-            {
-                address: PUMP_CORE_NATIVE_ADDRESS as Address,
-                abi: PUMP_CORE_NATIVE_ABI,
-                functionName: 'graduationAmount' as const,
-                chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-            },
-        ],
-        query: { enabled: tokens.length > 0 },
-    })
-
-    const _graduationAmount = graduationAmountResult?.[0]?.result as bigint | undefined
-
-    const { data: virtualAmountData } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS as Address,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'virtualAmount',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
-        query: { enabled: tokens.length > 0 },
-    })
-    const virtualAmount = (virtualAmountData as bigint | undefined) ?? 0n
-
-    // Identify graduated token addresses for V3 mcap lookup
-    const graduatedAddresses = useMemo(() => {
-        if (!graduatedResults) return []
-        return tokens.filter((_, i) => graduatedResults[i]?.result === true).map((t) => t.address)
-    }, [tokens, graduatedResults])
-
-    const graduatedMcapMap = useGraduatedTokenMcap(graduatedAddresses)
-
-    // Build enriched token data with ERC20 metadata + market cap
+    // Build enriched token data — market cap comes from Ponder token_snapshot
+    // (updated on every Swap event by the indexer using the same bonding curve formula)
     const enrichedTokens = useMemo(() => {
-        return tokens.map((token, index) => {
-            const reserveResult = reserveResults?.[index]?.result as [bigint, bigint] | undefined
-            const nativeReserve = reserveResult?.[0]
-            const tokenReserve = reserveResult?.[1]
-            const isGraduated = graduatedResults?.[index]?.result as boolean | undefined
-
-            let marketCap: string | undefined
-            if (isGraduated) {
-                marketCap =
-                    graduatedMcapMap.get(token.address.toLowerCase()) ??
-                    snapshotMap.get(token.address.toLowerCase())?.marketCapNative
-            } else if (
-                virtualAmount > 0n &&
-                nativeReserve !== undefined &&
-                tokenReserve !== undefined &&
-                tokenReserve > 0n
-            ) {
-                const price =
-                    parseFloat(formatEther(virtualAmount + nativeReserve)) /
-                    parseFloat(formatEther(tokenReserve))
-                marketCap = String(price * 1e9)
-            }
+        return tokens.map((token) => {
+            const snapshot = snapshotMap.get(token.address.toLowerCase())
 
             return {
                 token,
-                tokenName: nameResults?.[index]?.result as string | undefined,
-                tokenSymbol: symbolResults?.[index]?.result as string | undefined,
-                reserveResult,
-                isGraduated,
-                marketCap,
-                athMarketCap: snapshotMap.get(token.address.toLowerCase())?.athMarketCapNative,
+                tokenName: token.name,
+                tokenSymbol: token.symbol,
+                isGraduated: !!token.isGraduated,
+                marketCap: snapshot?.marketCapNative,
+                athMarketCap: snapshot?.athMarketCapNative,
             }
         })
-    }, [
-        tokens,
-        nameResults,
-        symbolResults,
-        reserveResults,
-        graduatedResults,
-        virtualAmount,
-        graduatedMcapMap,
-        snapshotMap,
-    ])
+    }, [tokens, snapshotMap])
 
     // Filter by search query
     const filtered = useMemo(() => {
@@ -215,17 +101,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
             </div>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 {sorted.map(
-                    ({
-                        token,
-                        tokenName,
-                        tokenSymbol,
-                        reserveResult,
-                        isGraduated,
-                        marketCap,
-                        athMarketCap,
-                    }) => {
-                        const _nativeReserve = reserveResult?.[0]
-
+                    ({ token, tokenName, tokenSymbol, isGraduated, marketCap, athMarketCap }) => {
                         return (
                             <TokenCard
                                 key={token.address}

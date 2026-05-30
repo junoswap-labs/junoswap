@@ -6,12 +6,8 @@ import { parseEther } from 'viem'
 import type { Address } from 'viem'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ERC20_ABI } from '@/lib/abis/erc20'
-import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import {
-    fetchTokenSwapEventsRpc,
-    fetchTokenTransferAddresses,
-    computeHoldersFromEvents,
-} from '@/lib/rpc/launchpad-queries'
+import { ponderRequest } from '@/lib/ponder-client'
+import { fetchTokenTransferAddresses } from '@/lib/rpc/launchpad-queries'
 import type { HolderData } from '@/lib/rpc/launchpad-queries'
 
 export type { HolderData }
@@ -107,21 +103,12 @@ export function useTokenHolders(
                 addresses = await fetchTokenTransferAddresses(publicClient, tokenAddr)
                 holderCount = addresses.length
             } else {
-                // Non-graduated: Ponder primary, RPC fallback
-                try {
-                    const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
-                        tokenAddr: tokenAddr.toLowerCase(),
-                    })
-                    addresses = result.tokenHolders.items.map((h) => h.address as Address)
-                    holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
-                } catch (e) {
-                    if (!isPonderError(e)) throw e
-                    console.warn('[useTokenHolders] Ponder error, falling back to RPC:', e)
-                    const events = await fetchTokenSwapEventsRpc(publicClient, tokenAddr)
-                    const computed = computeHoldersFromEvents(events)
-                    addresses = computed.holders.map((h) => h.address)
-                    holderCount = computed.holderCount
-                }
+                // Non-graduated: Ponder only
+                const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
+                    tokenAddr: tokenAddr.toLowerCase(),
+                })
+                addresses = result.tokenHolders.items.map((h) => h.address as Address)
+                holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
             }
 
             // Always fetch real on-chain balances via balanceOf

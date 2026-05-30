@@ -1,12 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { usePublicClient } from 'wagmi'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
-import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { fetchTokenSwapEventsRpc, computePriceFromEvents } from '@/lib/rpc/launchpad-queries'
+import { ponderRequest } from '@/lib/ponder-client'
 
 const TOKEN_PRICE_QUERY = `
   query TokenPrice($tokenAddr: String!, $oneDayAgo: Int!) {
@@ -61,50 +58,42 @@ interface UseTokenPriceResult {
 }
 
 export function useTokenPrice(tokenAddr: Address | undefined): UseTokenPriceResult {
-    const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
-
     const { data, isLoading } = useQuery({
         queryKey: ['token-price', tokenAddr?.toLowerCase()],
         queryFn: async () => {
             if (!tokenAddr) return null
 
-            try {
-                const oneDayAgo = Math.floor(Date.now() / 1000) - 86400
-                const result = await ponderRequest<TokenPriceResponse>(TOKEN_PRICE_QUERY, {
-                    tokenAddr: tokenAddr.toLowerCase(),
-                    oneDayAgo,
-                })
+            const oneDayAgo = Math.floor(Date.now() / 1000) - 86400
+            const result = await ponderRequest<TokenPriceResponse>(TOKEN_PRICE_QUERY, {
+                tokenAddr: tokenAddr.toLowerCase(),
+                oneDayAgo,
+            })
 
-                const snapshot = result.tokenSnapshots.items[0]
-                if (!snapshot) return null
+            const snapshot = result.tokenSnapshots.items[0]
+            if (!snapshot) return null
 
-                const currentPrice = parseFloat(snapshot.lastPrice)
-                if (currentPrice <= 0) return null
+            const currentPrice = parseFloat(snapshot.lastPrice)
+            if (currentPrice <= 0) return null
 
-                let priceChangePercent24h: number | null = null
-                let isPositive: boolean | null = null
+            let priceChangePercent24h: number | null = null
+            let isPositive: boolean | null = null
 
-                const pastEvent = result.swapEvents.items[0]
-                if (pastEvent) {
-                    const pastPrice = calculatePrice(
-                        pastEvent.isBuy === 1,
-                        BigInt(pastEvent.amountIn),
-                        BigInt(pastEvent.amountOut)
-                    )
-                    if (pastPrice > 0 && currentPrice > 0) {
-                        priceChangePercent24h = ((currentPrice - pastPrice) / pastPrice) * 100
-                        isPositive = priceChangePercent24h >= 0
-                    }
+            const pastEvent = result.swapEvents.items[0]
+            if (pastEvent) {
+                const pastPrice = calculatePrice(
+                    pastEvent.isBuy === 1,
+                    BigInt(pastEvent.amountIn),
+                    BigInt(pastEvent.amountOut)
+                )
+                if (pastPrice > 0 && currentPrice > 0) {
+                    priceChangePercent24h = ((currentPrice - pastPrice) / pastPrice) * 100
+                    isPositive = priceChangePercent24h >= 0
                 }
-
-                return { currentPrice, priceChangePercent24h, isPositive }
-            } catch (e) {
-                if (!isPonderError(e) || !publicClient) throw e
-                const events = await fetchTokenSwapEventsRpc(publicClient, tokenAddr)
-                return computePriceFromEvents(events)
             }
+
+            return { currentPrice, priceChangePercent24h, isPositive }
         },
-        enabled: !!tokenAddr && !!publicClient,
+        enabled: !!tokenAddr,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })

@@ -2,12 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { usePublicClient } from 'wagmi'
 import type { Address } from 'viem'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
-import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { fetchTokenSwapEventsRpc } from '@/lib/rpc/launchpad-queries'
+import { ponderRequest } from '@/lib/ponder-client'
 import {
     aggregateCandlesticks,
     aggregateV3Candlesticks,
@@ -81,7 +79,6 @@ export function useTokenPriceHistory(
 ) {
     const [timeframe, setTimeframe] = useState<Timeframe>('15m')
     const [chartMode, setChartMode] = useState<ChartMode>('mcap')
-    const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     const tokenIsToken0 = tokenAddr
         ? tokenAddr.toLowerCase() < (WRAPPED_NATIVE?.toLowerCase() ?? '')
@@ -97,36 +94,20 @@ export function useTokenPriceHistory(
         queryFn: async () => {
             if (!tokenAddr) return []
 
-            try {
-                const result = await ponderRequest<PriceHistoryResponse>(
-                    TOKEN_PRICE_HISTORY_QUERY,
-                    {
-                        tokenAddr: tokenAddr.toLowerCase(),
-                    }
-                )
+            const result = await ponderRequest<PriceHistoryResponse>(TOKEN_PRICE_HISTORY_QUERY, {
+                tokenAddr: tokenAddr.toLowerCase(),
+            })
 
-                return result.swapEvents.items.map((e) => ({
-                    timestamp: e.timestamp,
-                    isBuy: e.isBuy === 1,
-                    amountIn: BigInt(e.amountIn),
-                    amountOut: BigInt(e.amountOut),
-                    reserveIn: BigInt(e.reserveIn),
-                    reserveOut: BigInt(e.reserveOut),
-                }))
-            } catch (e) {
-                if (!isPonderError(e) || !publicClient) throw e
-                const events = await fetchTokenSwapEventsRpc(publicClient, tokenAddr)
-                return events.map((e) => ({
-                    timestamp: e.timestamp,
-                    isBuy: e.isBuy,
-                    amountIn: e.amountIn,
-                    amountOut: e.amountOut,
-                    reserveIn: e.reserveIn,
-                    reserveOut: e.reserveOut,
-                }))
-            }
+            return result.swapEvents.items.map((e) => ({
+                timestamp: e.timestamp,
+                isBuy: e.isBuy === 1,
+                amountIn: BigInt(e.amountIn),
+                amountOut: BigInt(e.amountOut),
+                reserveIn: BigInt(e.reserveIn),
+                reserveOut: BigInt(e.reserveOut),
+            }))
         },
-        enabled: !!tokenAddr && !!publicClient,
+        enabled: !!tokenAddr,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })
