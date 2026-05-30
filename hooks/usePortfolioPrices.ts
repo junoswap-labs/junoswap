@@ -50,5 +50,4 @@ function isStablecoin(token: Token): boolean {
 function isWrappedNative(token: Token, chainId: number): boolean {
     const wrapped = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
     return !!wrapped && token.address.toLowerCase() === wrapped.toLowerCase()
-    }, [holdings, allPrices])
 }
