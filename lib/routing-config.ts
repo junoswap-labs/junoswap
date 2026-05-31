@@ -11,6 +11,10 @@ export const NATIVE_USD_STABLE: Record<number, { address: Address; decimals: num
         address: '0x70138f1b88BEe73dD2Cb06F24146f964Dde6144e', // KUSDT on kubTestnet
         decimals: 18,
     },
+    [bitkub.id]: {
+        address: '0x7d984C24d2499D840eB3b7016077164e15E5faA6', // KUSDT on KUBChain mainnet
+        decimals: 18,
+    },
 }
 
 /**
@@ -25,9 +29,14 @@ export const INTERMEDIARY_TOKENS: Record<number, IntermediaryConfig> = {
     [bitkub.id]: {
         wrappedNative: '0x67eBD850304c70d983B2d1b93ea79c7CD6c3F6b5' as Address, // KKUB
         stables: [
-            '0x7d984C24d2499D840eB3b7016077164e15E5faA6' as const, // KUSDT
+            '0x7d984C24d2499D840eB3b7016077164e15E5faA6' as Address, // KUSDT
+            '0x21cdc3706b8c7b1836df0e533dd884069521350b' as Address, // USDT
+            '0x31929a0fd776F971C5dd14bF03e1F9fF69D9c91c' as Address, // USDC.e
         ],
-        priority: ['0x67eBD850304c70d983B2d1b93ea79c7CD6c3F6b5' as Address], // KKUB
+        priority: [
+            '0x67eBD850304c70d983B2d1b93ea79c7CD6c3F6b5' as Address, // KKUB (most liquid)
+            '0x7d984C24d2499D840eB3b7016077164e15E5faA6' as Address, // KUSDT
+        ],
     },
     [jbc.id]: {
         wrappedNative: '0xC4B7C87510675167643e3DE6EEeD4D2c06A9e747' as Address, // WJBC
