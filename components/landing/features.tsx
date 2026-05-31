@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { type FC } from 'react'
 import { GitBranch, Repeat, Rocket } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
 interface Feature {
     name: string
@@ -144,85 +145,71 @@ function LaunchpadVisual() {
     )
 }
 
-export function Features() {
-    const sectionRef = useRef<HTMLDivElement>(null)
+const visualComponents: FC[] = [SwapVisual, BridgeVisual, LaunchpadVisual]
 
-    useEffect(() => {
-        const section = sectionRef.current
-        if (!section) return
-
-        const rows = section.querySelectorAll<HTMLDivElement>('[data-feature-row]')
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                for (const entry of entries) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('animate-fade-up')
-                        observer.unobserve(entry.target)
-                    }
-                }
-            },
-            { threshold: 0.15 }
-        )
-
-        for (const row of rows) {
-            row.style.opacity = '0'
-            observer.observe(row)
-        }
-
-        return () => observer.disconnect()
-    }, [])
+function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
+    const isReversed = index % 2 !== 0
+    const Visual = visualComponents[index]!
+    const reveal = useScrollReveal({ threshold: 0.15 })
 
     return (
-        <section ref={sectionRef} className="py-20 sm:py-32">
+        <div
+            ref={reveal.ref as React.RefObject<HTMLDivElement>}
+            data-reveal
+            className={cn(
+                'group grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-16',
+                'animate-reveal-up',
+                reveal.isVisible && 'is-visible'
+            )}
+        >
+            {/* Visual area */}
+            <div
+                className={cn(
+                    'relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border/30 bg-card transition-colors duration-500 shadow-[0_0_60px_-15px_hsl(0_100%_60%_/_0.15)]',
+                    isReversed && 'lg:order-last',
+                    'animate-reveal-scale'
+                )}
+            >
+                <Visual />
+            </div>
+
+            {/* Text area */}
+            <div className={cn('flex flex-col gap-4', isReversed && 'lg:order-first')}>
+                <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">{feature.name}</h3>
+                <p className="text-md leading-relaxed text-muted-foreground">
+                    {feature.description}
+                </p>
+            </div>
+        </div>
+    )
+}
+
+export function Features() {
+    const headingReveal = useScrollReveal({ threshold: 0.2 })
+
+    return (
+        <section className="py-20 sm:py-32">
             <div className="mx-auto max-w-7xl px-6 lg:px-8">
                 {/* Section heading */}
                 <div className="mx-auto max-w-2xl text-center">
-                    <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+                    <h2
+                        ref={headingReveal.ref as React.RefObject<HTMLHeadingElement>}
+                        data-reveal
+                        className={cn(
+                            'mt-2 text-3xl font-bold tracking-tight sm:text-4xl',
+                            'animate-reveal-up',
+                            headingReveal.isVisible && 'is-visible'
+                        )}
+                    >
                         One platform for swapping, bridging, and launching across every chain.
                     </h2>
                 </div>
 
-                {/* Feature rows */}
+                {/* Feature rows — each observed independently */}
                 <div className="mt-16 space-y-20 sm:mt-20 lg:space-y-32">
-                    {features.map((feature, index) => {
-                        const isReversed = index % 2 !== 0
-
-                        return (
-                            <div
-                                key={feature.name}
-                                data-feature-row
-                                className="group grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-16"
-                            >
-                                {/* Visual area */}
-                                <div
-                                    className={cn(
-                                        'relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border/30 bg-card transition-colors duration-500 shadow-[0_0_60px_-15px_hsl(0_100%_60%_/_0.15)]',
-                                        isReversed && 'lg:order-last'
-                                    )}
-                                >
-                                    {index === 0 && <SwapVisual />}
-                                    {index === 1 && <BridgeVisual />}
-                                    {index === 2 && <LaunchpadVisual />}
-                                </div>
-
-                                {/* Text area */}
-                                <div
-                                    className={cn(
-                                        'flex flex-col gap-4',
-                                        isReversed && 'lg:order-first'
-                                    )}
-                                >
-                                    <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                                        {feature.name}
-                                    </h3>
-                                    <p className="text-md leading-relaxed text-muted-foreground">
-                                        {feature.description}
-                                    </p>
-                                </div>
-                            </div>
-                        )
-                    })}
+                    {features.map((feature, index) => (
+                        <FeatureRow key={feature.name} feature={feature} index={index} />
+                    ))}
                 </div>
             </div>
         </section>

@@ -170,4 +170,112 @@
     .animate-glow-pulse {
         animation: glow-pulse 6s ease-in-out infinite;
     }
+
+    /* ── Scroll-reveal entrance animations ── */
+
+    @keyframes reveal-up {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-reveal-up {
+        animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes reveal-left {
+        from {
+            opacity: 0;
+            transform: translateX(-40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .animate-reveal-left {
+        animation: reveal-left 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes reveal-right {
+        from {
+            opacity: 0;
+            transform: translateX(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .animate-reveal-right {
+        animation: reveal-right 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes reveal-scale {
+        from {
+            opacity: 0;
+            transform: scale(0.92);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .animate-reveal-scale {
+        animation: reveal-scale 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes reveal-blur {
+        from {
+            opacity: 0;
+            filter: blur(4px);
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            filter: blur(0);
+            transform: scale(1);
+        }
+    }
+
+    .animate-reveal-blur {
+        animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Stagger system — elements hidden until is-visible triggers the animation */
+    [data-reveal] {
+        opacity: 0;
+    }
+
+    [data-reveal].is-visible {
+        animation-fill-mode: both;
+        animation-delay: calc(var(--stagger-index, 0) * var(--stagger-step, 80ms));
+    }
+
+    /* Prevent animation classes from running until is-visible is present */
+    [data-reveal]:not(.is-visible).animate-reveal-up,
+    [data-reveal]:not(.is-visible).animate-reveal-left,
+    [data-reveal]:not(.is-visible).animate-reveal-right,
+    [data-reveal]:not(.is-visible).animate-reveal-scale,
+    [data-reveal]:not(.is-visible).animate-reveal-blur {
+        animation: none;
+    }
+}
+
+/* ── Reduced motion — show everything immediately ── */
+@media (prefers-reduced-motion: reduce) {
+    [data-reveal] {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        animation: none !important;
+    }
 }

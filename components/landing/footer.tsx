@@ -1,103 +1,51 @@
-import Link from 'next/link'
+'use client'
 
-const navigation = [
-    {
-        name: 'Product',
-        children: [
-            { name: 'Swap', href: '/swap' },
-            { name: 'Bridge', href: '/bridge' },
-            { name: 'Launchpad', href: '/launchpad' },
-            { name: 'Earn', href: '/earn' },
-        ],
-    },
-    {
-        name: 'Platform',
-        children: [
-            { name: 'Portfolio', href: '/portfolio' },
-            { name: 'Leaderboard', href: '/leaderboard' },
-            { name: 'Points', href: '/points' },
-        ],
-    },
-    {
-        name: 'Community',
-        children: [
-            { name: 'X', href: 'https://x.com/junoswaptrade', external: true },
-            { name: 'Discord', href: 'https://discord.gg/caE5wzQBME', external: true },
-            { name: 'GitHub', href: 'https://github.com/coshi190/junoswap', external: true },
-        ],
-    },
-]
+import { cn } from '@/lib/utils'
+import { useScrollReveal, useScrollRevealGroup } from '@/hooks/use-scroll-reveal'
 
 export function Footer() {
     const year = new Date().getFullYear()
+    const brandReveal = useScrollRevealGroup('[data-reveal]', {
+        threshold: 0.15,
+        staggerDelay: 100,
+    })
+    const bottomReveal = useScrollReveal({ threshold: 0.2 })
 
     return (
         <footer className="relative overflow-hidden border-t border-border/30">
             {/* ── Layer 1: Big Name ── */}
-            <section className="relative py-24 sm:py-32">
+            <section
+                ref={brandReveal.ref as React.RefObject<HTMLElement>}
+                className={cn('relative py-24', brandReveal.isVisible && 'is-visible')}
+            >
                 {/* Radial glow backdrop */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,hsl(0_100%_60%_/_0.06),transparent)] pointer-events-none" />
 
-                {/* Left glow orb */}
-                <div className="animate-glow-pulse absolute left-[10%] top-1/2 h-[300px] w-[300px] -translate-y-1/2 rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
-
-                {/* Right glow orb */}
-                <div
-                    className="animate-glow-pulse absolute right-[10%] top-1/2 h-[300px] w-[300px] -translate-y-1/2 rounded-full bg-[#FF914D]/10 blur-[120px] pointer-events-none"
-                    style={{ animationDelay: '3s' }}
-                />
-
                 {/* Massive brand name */}
-                <div className="relative text-center">
+                <div
+                    data-reveal
+                    className={cn(
+                        'relative text-center',
+                        'animate-reveal-scale',
+                        brandReveal.isVisible && 'is-visible'
+                    )}
+                >
                     <h2 className="animate-gradient-shift whitespace-nowrap bg-gradient-to-r from-primary via-[#FF914D] to-primary bg-clip-text text-[5rem] font-black uppercase leading-none tracking-[-0.05em] select-none text-transparent sm:text-[8rem] lg:text-[14rem] xl:text-[18rem]">
                         JUNOSWAP
                     </h2>
                 </div>
             </section>
 
-            {/* Separator */}
-            <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
-
-            {/* ── Layer 2: Navigation Grid ── */}
-            <section className="py-12 sm:py-16">
-                <div className="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div className="grid grid-cols-2 gap-8 lg:grid-cols-3">
-                        {navigation.map((section) => (
-                            <div key={section.name}>
-                                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-                                    {section.name}
-                                </h3>
-                                <ul className="mt-4 space-y-3">
-                                    {section.children.map((item) => (
-                                        <li key={item.name}>
-                                            {'external' in item && item.external ? (
-                                                <a
-                                                    href={item.href}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-muted-foreground/70 transition-colors hover:text-foreground"
-                                                >
-                                                    {item.name}
-                                                </a>
-                                            ) : (
-                                                <Link
-                                                    href={item.href}
-                                                    className="text-sm text-muted-foreground/70 transition-colors hover:text-foreground"
-                                                >
-                                                    {item.name}
-                                                </Link>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Layer 3: Bottom Bar ── */}
-            <div className="border-t border-border/30 py-8">
+            {/* ── Layer 2: Bottom Bar ── */}
+            <div
+                ref={bottomReveal.ref as React.RefObject<HTMLDivElement>}
+                data-reveal
+                className={cn(
+                    'border-t border-border/30 py-8',
+                    'animate-reveal-up',
+                    bottomReveal.isVisible && 'is-visible'
+                )}
+            >
                 <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 sm:flex-row sm:justify-between lg:px-8">
                     {/* wordmark */}
                     <div className="flex items-center gap-2">
