@@ -14,6 +14,7 @@ import { useUserPositions, usePositionsByTokenIds } from '@/hooks/useUserPositio
 import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
 import { useEarnStore, useEarnSettings } from '@/store/earn-store'
 import { formatTokenAmount } from '@/services/tokens'
+import { formatLiquidityAmount } from '@/lib/format'
 import type { PositionWithTokens } from '@/types/earn'
 
 function PositionCard({
@@ -106,61 +107,61 @@ function PositionCard({
 
                 {/* Data section */}
                 {!isClosed && (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2 min-w-0">
                             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Liquidity
                             </div>
                             <div className="space-y-1">
-                                <div>
-                                    <span className="text-sm font-medium font-mono tracking-tight">
-                                        {formatTokenAmount(
+                                <div className="flex items-baseline gap-1 min-w-0">
+                                    <span className="text-sm font-medium font-mono tracking-tight truncate">
+                                        {formatLiquidityAmount(
                                             position.amount0,
                                             position.token0Info.decimals
                                         )}
                                     </span>
-                                    <span className="text-xs text-muted-foreground ml-1">
+                                    <span className="text-xs text-muted-foreground shrink-0">
                                         {position.token0Info.symbol}
                                     </span>
                                 </div>
-                                <div>
-                                    <span className="text-sm font-medium font-mono tracking-tight">
-                                        {formatTokenAmount(
+                                <div className="flex items-baseline gap-1 min-w-0">
+                                    <span className="text-sm font-medium font-mono tracking-tight truncate">
+                                        {formatLiquidityAmount(
                                             position.amount1,
                                             position.token1Info.decimals
                                         )}
                                     </span>
-                                    <span className="text-xs text-muted-foreground ml-1">
+                                    <span className="text-xs text-muted-foreground shrink-0">
                                         {position.token1Info.symbol}
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0">
                             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Unclaimed Fees
                             </div>
                             {hasFees ? (
                                 <div className="space-y-1">
-                                    <div>
-                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400">
+                                    <div className="flex items-baseline gap-1 min-w-0">
+                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400 truncate">
                                             {formatTokenAmount(
                                                 position.tokensOwed0,
                                                 position.token0Info.decimals
                                             )}
                                         </span>
-                                        <span className="text-xs text-muted-foreground ml-1">
+                                        <span className="text-xs text-muted-foreground shrink-0">
                                             {position.token0Info.symbol}
                                         </span>
                                     </div>
-                                    <div>
-                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400">
+                                    <div className="flex items-baseline gap-1 min-w-0">
+                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400 truncate">
                                             {formatTokenAmount(
                                                 position.tokensOwed1,
                                                 position.token1Info.decimals
                                             )}
                                         </span>
-                                        <span className="text-xs text-muted-foreground ml-1">
+                                        <span className="text-xs text-muted-foreground shrink-0">
                                             {position.token1Info.symbol}
                                         </span>
                                     </div>
