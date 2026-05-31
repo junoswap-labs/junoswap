@@ -8,7 +8,7 @@ import { usePositionsByTokenIds } from '@/hooks/useUserPositions'
 import { useStakedPositions } from '@/hooks/useStakedPositions'
 import { usePendingRewardsMultiple } from '@/hooks/useRewards'
 import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
-import { formatTokenAmount } from '@/services/tokens'
+import { formatRewardAmount } from '@/lib/format'
 import { KNOWN_INCENTIVES } from '@/lib/mining-constants'
 
 export function MiningSummary() {
@@ -51,7 +51,7 @@ export function MiningSummary() {
         }
         return Array.from(grouped.entries()).map(([symbol, { total, decimals }]) => ({
             symbol,
-            formatted: formatTokenAmount(total, decimals),
+            formatted: formatRewardAmount(total, decimals),
         }))
     }, [enrichedPositions])
 

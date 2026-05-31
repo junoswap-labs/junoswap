@@ -34,6 +34,26 @@ export function formatApr(apr: number | null, isLoading: boolean): ReactNode {
 }
 
 /**
+ * Format a token reward amount with adaptive decimal precision.
+ *
+ * < 1   : show 3 significant figures (e.g. 0.000001559… → 0.00000155)
+ * 1–9   : 2 decimal places (e.g. 1 → 1.00)
+ * 10–99 : 1 decimal place  (e.g. 10 → 10.0)
+ * ≥ 100 : no decimals      (e.g. 100 → 100)
+ */
+export function formatRewardAmount(value: bigint, decimals: number): string {
+    if (value === 0n) return '0'
+    const num = Number(value) / Math.pow(10, decimals)
+    if (num === 0) return '0'
+    if (num >= 100) return num.toFixed(0)
+    if (num >= 10) return num.toFixed(1)
+    if (num >= 1) return num.toFixed(2)
+    // < 1: find leading zeros after decimal, then show 3 significant figures
+    const leadingZeros = Math.max(0, -Math.floor(Math.log10(num)) - 1)
+    return num.toFixed(leadingZeros + 3)
+}
+
+/**
  * Calculate APR from pool fee, TVL, and 30-day volume
  * APR = ((dailyAvgVolume * feeRate) / TVL) * 365 * 100
  */
