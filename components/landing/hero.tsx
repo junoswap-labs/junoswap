@@ -17,19 +17,22 @@ export function Hero() {
             <HeroBackground />
             <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
                 <div className="mx-auto max-w-3xl text-center">
-                    <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+                    <h1 className="text-4xl font-bold tracking-tight text-[hsl(210,20%,98%)] sm:text-6xl lg:text-7xl">
                         Trade, Launch & Win
                         <span className="bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-transparent">
                             {' '}
                             Everything
                         </span>
                     </h1>
-                    <p className="mt-6 text-lg leading-8 text-muted-foreground sm:text-xl">
+                    <p className="mt-6 text-lg leading-8 text-[hsl(220,8%,55%)] sm:text-xl">
                         Best rates. Any chain. One platform.
                     </p>
                     <div className="mt-10">
                         <Link href="/swap">
-                            <Button size="xl" className="group w-full sm:w-auto">
+                            <Button
+                                size="xl"
+                                className="group w-full bg-[hsl(210,20%,98%)] text-[hsl(230,15%,3.5%)] hover:bg-[hsl(210,20%,98%)/0.9] active:bg-[hsl(210,20%,98%)/0.8] sm:w-auto"
+                            >
                                 Start Swapping
                             </Button>
                         </Link>
