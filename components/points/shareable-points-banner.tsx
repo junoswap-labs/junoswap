@@ -1,12 +1,10 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import Link from 'next/link'
-import { ConnectModal } from '@/components/web3/connect-modal'
+import { useRef } from 'react'
 import { useShareableImage } from '@/hooks/useShareableImage'
 import { formatCompact } from '@/services/launchpad'
-import { TIER_THRESHOLDS, getTierForPoints } from '@/types/points'
-import { Share2, Wallet } from 'lucide-react'
+import { getTierForPoints } from '@/types/points'
+import { Share2 } from 'lucide-react'
 import type { UserPointsSummary } from '@/hooks/usePointsData'
 
 interface ShareablePointsBannerProps {
@@ -28,6 +26,20 @@ const TIER_GRADIENT_FROM: Record<string, string> = {
 
 function getTierGradientFrom(tierName: string): string {
     return TIER_GRADIENT_FROM[tierName.toLowerCase()] ?? 'from-primary/10'
+}
+
+function buildPlaceholderSummary(totalTraders: number): UserPointsSummary {
+    return {
+        points: 0,
+        rank: 0,
+        totalTraders,
+        volumeUsd: 0,
+        tradeCount: 0,
+        tierName: 'Bronze',
+        nextTierLabel: 'Silver',
+        pointsToNextTier: 100,
+        progressPercent: 0,
+    }
 }
 
 function LogoMark({ size = 28 }: { size?: number }) {
@@ -62,16 +74,17 @@ function StatItem({ value, label }: { value: string; label: string }) {
 export function ShareablePointsBanner({
     address: _address,
     userSummary,
-    totalPoints,
-    totalVolumeUsd,
+    totalPoints: _totalPoints,
+    totalVolumeUsd: _totalVolumeUsd,
     totalTraders,
     isConnected,
 }: ShareablePointsBannerProps) {
     const cardRef = useRef<HTMLDivElement>(null)
     const { shareImage, isGenerating } = useShareableImage()
-    const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
 
-    const tier = isConnected && userSummary ? getTierForPoints(userSummary.points) : null
+    const isEmptyState = !isConnected || !userSummary
+    const resolvedSummary = userSummary ?? buildPlaceholderSummary(totalTraders)
+    const resolvedTier = getTierForPoints(resolvedSummary.points)
 
     const handleCapture = (action: (el: HTMLElement) => Promise<void>) => {
         if (!cardRef.current) return
@@ -83,11 +96,8 @@ export function ShareablePointsBanner({
             {/* The card that gets captured as an image */}
             <div ref={cardRef} className="overflow-hidden rounded-xl bg-[#0a0e1a]">
                 <div
-                    className={`card-glow relative overflow-hidden rounded-xl bg-gradient-to-br ${tier ? getTierGradientFrom(tier.name) : 'from-primary/10'} via-[#0a0e1a] to-[#0a0e1a]`}
+                    className={`card-glow relative overflow-hidden rounded-xl bg-gradient-to-br ${getTierGradientFrom(resolvedTier.name)} via-[#0a0e1a] to-[#0a0e1a]`}
                 >
-                    {/* Top accent line */}
-                    <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-[#FF914D]" />
-
                     <div className="px-5 py-5 sm:px-7 sm:py-6">
                         {/* Header: Logo + Share button */}
                         <div className="flex items-center justify-between">
@@ -97,7 +107,7 @@ export function ShareablePointsBanner({
                                     Junoswap
                                 </span>
                             </div>
-                            {isConnected && userSummary && (
+                            {!isEmptyState && (
                                 <button
                                     onClick={() => handleCapture(shareImage)}
                                     disabled={isGenerating}
@@ -108,57 +118,52 @@ export function ShareablePointsBanner({
                             )}
                         </div>
 
-                        {/* Connected user state */}
-                        {isConnected && userSummary && tier ? (
-                            <ConnectedCard tier={tier} summary={userSummary} />
-                        ) : isConnected && !userSummary ? (
-                            /* Connected but no swaps yet */
-                            <NoDataCard />
-                        ) : (
-                            /* Disconnected state */
-                            <DisconnectedCard
-                                totalPoints={totalPoints}
-                                totalVolumeUsd={totalVolumeUsd}
-                                totalTraders={totalTraders}
-                                onConnect={() => setIsConnectModalOpen(true)}
-                            />
-                        )}
+                        {/* Unified stats card for all states */}
+                        <ConnectedCard tier={resolvedTier} summary={resolvedSummary} />
                     </div>
                 </div>
             </div>
-
-            <ConnectModal open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen} />
         </div>
     )
 }
 
-/* ── Connected user card ────────────────────────────────────── */
+/* ── Stats card (used for all states) ────────────────────────── */
 
 function ConnectedCard({
     tier,
     summary,
 }: {
-    tier: (typeof TIER_THRESHOLDS)[number]
+    tier: (typeof import('@/types/points').TIER_THRESHOLDS)[number]
     summary: UserPointsSummary
 }) {
     return (
         <>
             {/* Tier badge — centered */}
             <div className="mt-5 flex justify-center">
-                <div
-                    className={`${tier.bg} ${tier.border} inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5`}
-                >
-                    <span className={`text-xs font-bold uppercase tracking-widest ${tier.color}`}>
-                        {tier.label} Tier
-                    </span>
-                </div>
+                {summary.points > 0 ? (
+                    <div
+                        className={`${tier.bg} ${tier.border} inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5`}
+                    >
+                        <span
+                            className={`text-xs font-bold uppercase tracking-widest ${tier.color}`}
+                        >
+                            {tier.label} Tier
+                        </span>
+                    </div>
+                ) : (
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-muted/50 bg-muted/20 px-4 py-1.5">
+                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            No Tier
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Stats row */}
             <div className="mt-5 grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:gap-4">
                 <StatItem value={summary.points.toLocaleString()} label="Points" />
                 <StatItem
-                    value={`#${summary.rank}`}
+                    value={summary.rank > 0 ? `#${summary.rank}` : '#--'}
                     label={`Rank of ${summary.totalTraders.toLocaleString()}`}
                 />
                 <StatItem value={`$${formatCompact(summary.volumeUsd)}`} label="Volume" />
@@ -189,60 +194,6 @@ function ConnectedCard({
                     </div>
                 </div>
             )}
-        </>
-    )
-}
-
-/* ── Connected but no swaps yet ─────────────────────────────── */
-
-function NoDataCard() {
-    return (
-        <div className="mt-6 flex flex-col items-center gap-3 py-4">
-            <p className="text-sm text-muted-foreground">Start trading to earn points!</p>
-            <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground"
-            >
-                Go to Swap
-            </Link>
-        </div>
-    )
-}
-
-/* ── Disconnected state ─────────────────────────────────────── */
-
-function DisconnectedCard({
-    totalPoints,
-    totalVolumeUsd,
-    totalTraders,
-    onConnect,
-}: {
-    totalPoints: number
-    totalVolumeUsd: number
-    totalTraders: number
-    onConnect: () => void
-}) {
-    return (
-        <>
-            <div className="mt-6 flex flex-col items-center gap-3">
-                <p className="text-sm text-muted-foreground">
-                    Connect your wallet to see your points
-                </p>
-                <button
-                    onClick={onConnect}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground"
-                >
-                    <Wallet className="h-3.5 w-3.5" />
-                    Connect Wallet
-                </button>
-            </div>
-
-            {/* Aggregate stats */}
-            <div className="mt-5 grid grid-cols-3 gap-4">
-                <StatItem value={formatCompact(totalPoints)} label="Total Points" />
-                <StatItem value={`$${formatCompact(totalVolumeUsd)}`} label="Total Volume" />
-                <StatItem value={totalTraders.toLocaleString()} label="Total Traders" />
-            </div>
         </>
     )
 }

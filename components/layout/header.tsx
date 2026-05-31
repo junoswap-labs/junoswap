@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { NetworkSwitcher } from '@/components/web3/network-switcher'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -144,7 +143,6 @@ export function Header() {
                 {/* Right controls */}
                 <div className="flex items-center gap-2">
                     <NetworkSwitcher />
-                    <ThemeToggle />
                     <ConnectButton />
                 </div>
             </div>

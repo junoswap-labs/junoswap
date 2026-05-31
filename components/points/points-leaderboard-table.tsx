@@ -208,7 +208,7 @@ export function PointsLeaderboardTable({
                                     {formatAddress(trader.address)}
                                 </TableCell>
                                 <TableCell className="hidden sm:table-cell py-2.5">
-                                    <PointsTierBadge tier={tier.name} />
+                                    {trader.points > 0 && <PointsTierBadge tier={tier.name} />}
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell py-2.5 font-mono tracking-tight text-sm text-muted-foreground">
                                     ${formatCompact(trader.volumeUsd)}
