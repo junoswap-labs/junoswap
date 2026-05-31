@@ -3,6 +3,7 @@ import type { SwapParams } from '@/types/swap'
 import { DEFAULT_FEE_TIER } from '@/lib/dex-config'
 import { getSwapAddress } from '@/services/tokens'
 import { UNISWAP_V3_SWAP_ROUTER_ABI } from '@/lib/abis/uniswap-v3-swap-router'
+import { UNISWAP_V3_SWAP_ROUTER_V1_ABI } from '@/lib/abis/uniswap-v3-swap-router-v1'
 
 /**
  * Uniswap V3 Router uses address(2) as ADDRESS_THIS placeholder for multicall
@@ -213,6 +214,144 @@ export function buildMulticallMultiHopSwapToNative(
     })
 
     // Step 2: unwrapWETH9 to send native token to actual recipient
+    const unwrapCall = encodeUnwrapWETH9(amountOutMinimum, recipient)
+
+    return [swapCall, unwrapCall]
+}
+
+// ============================================================================
+// SwapRouter V1 Functions (original Uniswap V3 router — has deadline param)
+// ============================================================================
+
+/**
+ * Build swap parameters for SwapRouter v1 exactInputSingle (includes deadline)
+ */
+export function buildSwapParamsV1(
+    params: SwapParams,
+    fee: number = DEFAULT_FEE_TIER,
+    chainId?: number
+) {
+    return {
+        tokenIn: chainId ? getSwapAddress(params.tokenIn, chainId) : params.tokenIn,
+        tokenOut: chainId ? getSwapAddress(params.tokenOut, chainId) : params.tokenOut,
+        fee,
+        recipient: params.recipient,
+        deadline: BigInt(params.deadline),
+        amountIn: params.amountIn,
+        amountOutMinimum: params.amountOutMinimum,
+        sqrtPriceLimitX96: 0n,
+    }
+}
+
+/**
+ * Encode exactInputSingle call for SwapRouter v1 multicall
+ */
+export function encodeExactInputSingleV1(params: {
+    tokenIn: Address
+    tokenOut: Address
+    fee: number
+    recipient: Address
+    deadline: bigint
+    amountIn: bigint
+    amountOutMinimum: bigint
+    sqrtPriceLimitX96: bigint
+}): Hex {
+    return encodeFunctionData({
+        abi: UNISWAP_V3_SWAP_ROUTER_V1_ABI,
+        functionName: 'exactInputSingle',
+        args: [params],
+    })
+}
+
+/**
+ * Encode exactInput (multi-hop) call for SwapRouter v1 — includes deadline
+ */
+export function encodeExactInputV1(params: {
+    path: Hex
+    recipient: Address
+    deadline: bigint
+    amountIn: bigint
+    amountOutMinimum: bigint
+}): Hex {
+    return encodeFunctionData({
+        abi: UNISWAP_V3_SWAP_ROUTER_V1_ABI,
+        functionName: 'exactInput',
+        args: [params],
+    })
+}
+
+/**
+ * Build swap parameters for SwapRouter v1 multi-hop exactInput
+ */
+export function buildMultiHopSwapParamsV1(
+    tokens: Address[],
+    fees: number[],
+    amountIn: bigint,
+    amountOutMinimum: bigint,
+    recipient: Address,
+    chainId: number,
+    deadline: bigint
+) {
+    const swapTokens = tokens.map((t) => getSwapAddress(t, chainId))
+    return {
+        path: encodeV3Path(swapTokens, fees),
+        recipient,
+        deadline,
+        amountIn,
+        amountOutMinimum,
+    }
+}
+
+/**
+ * Build multicall data for SwapRouter v1 swap-to-native
+ */
+export function buildMulticallSwapToNativeV1(
+    params: SwapParams,
+    fee: number,
+    chainId: number,
+    deadline: bigint
+): Hex[] {
+    const tokenIn = getSwapAddress(params.tokenIn, chainId)
+    const tokenOut = getSwapAddress(params.tokenOut, chainId)
+
+    const swapCall = encodeExactInputSingleV1({
+        tokenIn,
+        tokenOut,
+        fee,
+        recipient: ADDRESS_THIS,
+        deadline,
+        amountIn: params.amountIn,
+        amountOutMinimum: params.amountOutMinimum,
+        sqrtPriceLimitX96: 0n,
+    })
+
+    const unwrapCall = encodeUnwrapWETH9(params.amountOutMinimum, params.recipient)
+
+    return [swapCall, unwrapCall]
+}
+
+/**
+ * Build multicall data for SwapRouter v1 multi-hop swap-to-native
+ */
+export function buildMulticallMultiHopSwapToNativeV1(
+    tokens: Address[],
+    fees: number[],
+    amountIn: bigint,
+    amountOutMinimum: bigint,
+    recipient: Address,
+    chainId: number,
+    deadline: bigint
+): Hex[] {
+    const swapTokens = tokens.map((t) => getSwapAddress(t, chainId))
+
+    const swapCall = encodeExactInputV1({
+        path: encodeV3Path(swapTokens, fees),
+        recipient: ADDRESS_THIS,
+        deadline,
+        amountIn,
+        amountOutMinimum,
+    })
+
     const unwrapCall = encodeUnwrapWETH9(amountOutMinimum, recipient)
 
     return [swapCall, unwrapCall]
