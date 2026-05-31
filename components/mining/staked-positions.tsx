@@ -15,8 +15,8 @@ import { useStakedPositions } from '@/hooks/useStakedPositions'
 import { usePendingRewardsMultiple } from '@/hooks/useRewards'
 import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
 import { useEarnStore } from '@/store/earn-store'
-import { formatTokenAmount } from '@/services/tokens'
 import { formatTimeRemaining } from '@/services/mining/incentives'
+import { formatRewardAmount } from '@/lib/format'
 import { getV3StakerAddress } from '@/lib/dex-config'
 import { KNOWN_INCENTIVES } from '@/lib/mining-constants'
 
@@ -161,7 +161,7 @@ interface StakedPositionCardProps {
 function StakedPositionCard({ stakedPosition, onUnstake }: StakedPositionCardProps) {
     const { position, incentive, pendingRewards } = stakedPosition
     const timeRemaining = formatTimeRemaining(incentive.endTime)
-    const formattedRewards = formatTokenAmount(pendingRewards, incentive.rewardTokenInfo.decimals)
+    const formattedRewards = formatRewardAmount(pendingRewards, incentive.rewardTokenInfo.decimals)
 
     return (
         <Card className="position-card-hover">

@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { useEarnStore, useSelectedStakedPosition } from '@/store/earn-store'
 import { useUnstakePosition } from '@/hooks/useStaking'
 import { usePendingRewards } from '@/hooks/useRewards'
-import { formatTokenAmount } from '@/services/tokens'
+import { formatRewardAmount } from '@/lib/format'
 import { formatTimeRemaining } from '@/services/mining/incentives'
 import { toastSuccess, toastError } from '@/lib/toast'
 import { removeStakedTokenId } from '@/lib/staked-positions-storage'
@@ -53,7 +53,7 @@ export function UnstakeDialog() {
         if (isConfirming) return 'Unstaking...'
         return 'Unstake & Claim'
     }
-    const formattedRewards = formatTokenAmount(pendingRewards, incentive.rewardTokenInfo.decimals)
+    const formattedRewards = formatRewardAmount(pendingRewards, incentive.rewardTokenInfo.decimals)
     return (
         <Dialog open={isUnstakeDialogOpen} onOpenChange={closeUnstakeDialog}>
             <DialogContent className="max-w-md">
