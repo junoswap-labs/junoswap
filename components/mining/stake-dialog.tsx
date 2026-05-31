@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useAccount, useChainId } from 'wagmi'
+import { Plus } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -15,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useEarnStore, useSelectedIncentive } from '@/store/earn-store'
+import { TICK_SPACING } from '@/types/earn'
 import { useUserPositions } from '@/hooks/useUserPositions'
 import { useDepositInfo } from '@/hooks/useStakedPositions'
 import { useStakePosition } from '@/hooks/useStaking'
@@ -27,7 +29,7 @@ import type { PositionWithTokens } from '@/types/earn'
 export function StakeDialog() {
     const { address } = useAccount()
     const chainId = useChainId()
-    const { isStakeDialogOpen, closeStakeDialog } = useEarnStore()
+    const { isStakeDialogOpen, closeStakeDialog, openAddLiquidity } = useEarnStore()
     const selectedIncentive = useSelectedIncentive()
     const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
     const [approvalCompleted, setApprovalCompleted] = useState(false)
@@ -147,12 +149,35 @@ export function StakeDialog() {
                         {isLoadingPositions ? (
                             <EmptyState title="Loading positions..." compact />
                         ) : eligiblePositions.length === 0 ? (
-                            <EmptyState
-                                title="No eligible positions"
-                                description="Create an LP position for this pool first."
-                                compact
-                                className="border rounded-lg"
-                            />
+                            <div className="border rounded-lg p-4 flex flex-col items-center gap-3 text-center">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium">No eligible positions</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Create an LP position for this pool first.
+                                    </p>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        closeStakeDialog()
+                                        openAddLiquidity({
+                                            address: selectedIncentive.pool,
+                                            token0: selectedIncentive.poolToken0,
+                                            token1: selectedIncentive.poolToken1,
+                                            fee: selectedIncentive.poolFee,
+                                            liquidity: 0n,
+                                            sqrtPriceX96: 0n,
+                                            tick: 0,
+                                            tickSpacing:
+                                                TICK_SPACING[selectedIncentive.poolFee] ?? 60,
+                                        })
+                                    }}
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add Liquidity
+                                </Button>
+                            </div>
                         ) : (
                             <RadioGroup
                                 value={selectedPositionId ?? ''}
