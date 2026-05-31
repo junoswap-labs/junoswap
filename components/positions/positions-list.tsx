@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { Droplets, Minus, Plus, Wallet } from 'lucide-react'
+import { Droplets, Minus, Plus, Wallet, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,14 +10,26 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectButton } from '@/components/web3/connect-button'
-import { useUserPositions } from '@/hooks/useUserPositions'
+import { useUserPositions, usePositionsByTokenIds } from '@/hooks/useUserPositions'
+import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
 import { useEarnStore, useEarnSettings } from '@/store/earn-store'
 import { formatTokenAmount } from '@/services/tokens'
 import type { PositionWithTokens } from '@/types/earn'
 
-function PositionCard({ position }: { position: PositionWithTokens }) {
-    const { openPositionDetails, openCollectFees, openRemoveLiquidity, openIncreaseLiquidity } =
-        useEarnStore()
+function PositionCard({
+    position,
+    isStaked = false,
+}: {
+    position: PositionWithTokens
+    isStaked?: boolean
+}) {
+    const {
+        openPositionDetails,
+        openCollectFees,
+        openRemoveLiquidity,
+        openIncreaseLiquidity,
+        setActiveTab,
+    } = useEarnStore()
     const hasFees = position.tokensOwed0 > 0n || position.tokensOwed1 > 0n
     const isClosed = position.liquidity === 0n
     return (
@@ -59,24 +71,34 @@ function PositionCard({ position }: { position: PositionWithTokens }) {
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        {isClosed ? (
-                            <Badge variant="secondary">Closed</Badge>
-                        ) : position.inRange ? (
+                        {isStaked && (
                             <Badge
                                 variant="outline"
-                                className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                                className="bg-violet-500/15 text-violet-400 border-violet-500/25"
                             >
-                                <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                                In Range
-                            </Badge>
-                        ) : (
-                            <Badge
-                                variant="outline"
-                                className="bg-amber-500/15 text-amber-400 border-amber-500/25"
-                            >
-                                Out of Range
+                                <Zap className="mr-1 h-3 w-3" />
+                                Staking
                             </Badge>
                         )}
+                        {!isStaked &&
+                            (isClosed ? (
+                                <Badge variant="secondary">Closed</Badge>
+                            ) : position.inRange ? (
+                                <Badge
+                                    variant="outline"
+                                    className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                                >
+                                    <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                    In Range
+                                </Badge>
+                            ) : (
+                                <Badge
+                                    variant="outline"
+                                    className="bg-amber-500/15 text-amber-400 border-amber-500/25"
+                                >
+                                    Out of Range
+                                </Badge>
+                            ))}
                     </div>
                 </div>
 
@@ -161,45 +183,62 @@ function PositionCard({ position }: { position: PositionWithTokens }) {
                 {/* Action buttons */}
                 <Separator className="my-4" />
                 <div className="flex gap-2">
-                    {hasFees && (
-                        <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                openCollectFees(position)
-                            }}
-                        >
-                            Collect Fees
-                        </Button>
-                    )}
-                    {!isClosed && (
+                    {isStaked ? (
                         <Button
                             size="sm"
                             variant="outline"
                             className="flex-1"
                             onClick={(e) => {
                                 e.stopPropagation()
-                                openIncreaseLiquidity(position)
+                                setActiveTab('mining')
                             }}
                         >
-                            <Plus className="h-3.5 w-3.5" />
-                            Add
+                            <Zap className="h-3.5 w-3.5" />
+                            Manage Staking
                         </Button>
-                    )}
-                    {!isClosed && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                openRemoveLiquidity(position)
-                            }}
-                        >
-                            <Minus className="h-3.5 w-3.5" />
-                            Remove
-                        </Button>
+                    ) : (
+                        <>
+                            {hasFees && (
+                                <Button
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        openCollectFees(position)
+                                    }}
+                                >
+                                    Collect Fees
+                                </Button>
+                            )}
+                            {!isClosed && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        openIncreaseLiquidity(position)
+                                    }}
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add
+                                </Button>
+                            )}
+                            {!isClosed && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        openRemoveLiquidity(position)
+                                    }}
+                                >
+                                    <Minus className="h-3.5 w-3.5" />
+                                    Remove
+                                </Button>
+                            )}
+                        </>
                     )}
                 </div>
             </CardContent>
@@ -261,24 +300,47 @@ function LoadingState() {
 export function PositionsList() {
     const { address } = useAccount()
     const chainId = useChainId()
-    const { positions, isLoading } = useUserPositions(address, chainId)
+    const { positions: walletPositions, isLoading: isLoadingWallet } = useUserPositions(
+        address,
+        chainId
+    )
+    const { tokenIds: stakedTokenIds, isLoading: isLoadingStakedIds } =
+        useDepositedTokenIds(address)
+    const { positions: stakedPositions, isLoading: isLoadingStakedPositions } =
+        usePositionsByTokenIds(stakedTokenIds, chainId)
     const { openAddLiquidity } = useEarnStore()
     const settings = useEarnSettings()
-    const filteredPositions = useMemo(() => {
-        const result = settings.hideClosedPositions
-            ? positions.filter((p) => p.liquidity > 0n)
-            : positions
-        result.sort((a, b) => {
+
+    const stakedTokenIdSet = useMemo(
+        () => new Set(stakedTokenIds.map((id) => id.toString())),
+        [stakedTokenIds]
+    )
+
+    const { allPositions, stakedSet } = useMemo(() => {
+        const walletIds = new Set(walletPositions.map((p) => p.tokenId.toString()))
+        // Only include staked positions not already in wallet list
+        const uniqueStaked = stakedPositions.filter((p) => !walletIds.has(p.tokenId.toString()))
+        const merged = [...walletPositions, ...uniqueStaked]
+        const staked = stakedTokenIdSet
+
+        const filtered = settings.hideClosedPositions
+            ? merged.filter((p) => p.liquidity > 0n || staked.has(p.tokenId.toString()))
+            : merged
+
+        filtered.sort((a, b) => {
             const getPriority = (p: PositionWithTokens) => {
-                if (p.liquidity === 0n) return 2 // Closed
-                return p.inRange ? 0 : 1 // In Range : Out of Range
+                if (staked.has(p.tokenId.toString())) return 0 // Staking first
+                if (p.liquidity === 0n) return 3 // Closed last
+                return p.inRange ? 1 : 2
             }
-            const priorityA = getPriority(a)
-            const priorityB = getPriority(b)
-            return priorityA - priorityB
+            return getPriority(a) - getPriority(b)
         })
-        return result
-    }, [positions, settings.hideClosedPositions])
+
+        return { allPositions: filtered, stakedSet: staked }
+    }, [walletPositions, stakedPositions, stakedTokenIdSet, settings.hideClosedPositions])
+
+    const isLoading = isLoadingWallet || isLoadingStakedIds || isLoadingStakedPositions
+
     if (!address) {
         return (
             <EmptyState
@@ -292,7 +354,7 @@ export function PositionsList() {
     if (isLoading) {
         return <LoadingState />
     }
-    if (filteredPositions.length === 0) {
+    if (allPositions.length === 0) {
         return (
             <EmptyState
                 icon={Droplets}
@@ -309,8 +371,12 @@ export function PositionsList() {
     }
     return (
         <div className="space-y-3">
-            {filteredPositions.map((position) => (
-                <PositionCard key={position.tokenId.toString()} position={position} />
+            {allPositions.map((position) => (
+                <PositionCard
+                    key={position.tokenId.toString()}
+                    position={position}
+                    isStaked={stakedSet.has(position.tokenId.toString())}
+                />
             ))}
         </div>
     )
