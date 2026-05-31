@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useAccount, useChainId } from 'wagmi'
+import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowUpDown } from 'lucide-react'
+import { ArrowUpDown, ArrowRight } from 'lucide-react'
 import { RangeSelector } from './range-selector'
 import { TokenSelect } from '@/components/swap/token-select'
 import { useEarnStore, useRangeConfig } from '@/store/earn-store'
@@ -43,6 +44,7 @@ const FEE_OPTIONS = [
 export function AddLiquidityDialog() {
     const { address } = useAccount()
     const chainId = useChainId()
+    const router = useRouter()
     const { refetch: refetchPositions } = useUserPositions(address, chainId)
     const dexConfig = getV3Config(chainId)
     const { tokens: allTokens } = useChainTokens(chainId)
@@ -327,6 +329,25 @@ export function AddLiquidityDialog() {
         if (!pool) return 'Create Pool & Add Liquidity'
         return 'Add Liquidity'
     }
+    const isInsufficientBalance = (
+        balance: bigint | null | undefined,
+        amount: string,
+        decimals: number
+    ) => {
+        if (!balance) return true
+        if (!amount) return balance === 0n
+        const parsed = parseTokenAmount(amount, decimals)
+        return parsed > 0n && balance < parsed
+    }
+
+    const handleGoSwap = (outputAddress: string, inputAddress?: string) => {
+        closeAddLiquidity()
+        const params = new URLSearchParams()
+        if (inputAddress) params.set('input', inputAddress)
+        params.set('output', outputAddress)
+        router.push(`/swap?${params.toString()}`)
+    }
+
     const isButtonDisabled = () => {
         if (isLoading) return true
         if (!token0 || !token1) return true
@@ -477,10 +498,30 @@ export function AddLiquidityDialog() {
                                         placeholder="0.0"
                                         className="w-full bg-transparent text-xl font-semibold placeholder:text-muted-foreground/40 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
-                                    <p className="text-[10px] text-muted-foreground">
-                                        Balance:{' '}
-                                        {balance0 ? formatBalance(balance0, token0.decimals) : '0'}
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Balance:{' '}
+                                            {balance0
+                                                ? formatBalance(balance0, token0.decimals)
+                                                : '0'}
+                                        </p>
+                                        {isInsufficientBalance(
+                                            balance0,
+                                            amount0,
+                                            token0.decimals
+                                        ) && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleGoSwap(token0.address, token1?.address)
+                                                }
+                                                className="flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                                            >
+                                                Go Swap
+                                                <ArrowRight className="h-2.5 w-2.5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Token 1 */}
@@ -524,10 +565,30 @@ export function AddLiquidityDialog() {
                                         placeholder="0.0"
                                         className="w-full bg-transparent text-xl font-semibold placeholder:text-muted-foreground/40 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
-                                    <p className="text-[10px] text-muted-foreground">
-                                        Balance:{' '}
-                                        {balance1 ? formatBalance(balance1, token1.decimals) : '0'}
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Balance:{' '}
+                                            {balance1
+                                                ? formatBalance(balance1, token1.decimals)
+                                                : '0'}
+                                        </p>
+                                        {isInsufficientBalance(
+                                            balance1,
+                                            amount1,
+                                            token1.decimals
+                                        ) && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleGoSwap(token1.address, token0?.address)
+                                                }
+                                                className="flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                                            >
+                                                Go Swap
+                                                <ArrowRight className="h-2.5 w-2.5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </>
