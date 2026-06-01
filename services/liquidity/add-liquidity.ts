@@ -191,6 +191,13 @@ export function buildPoolCreationMulticall(
         { address: params.token1.address }
     )
 
+    // sqrtPriceX96 is computed in terms of the user's token0/token1 order.
+    // If sortTokens reversed the order, the price direction is inverted —
+    // invert sqrtPriceX96 so it matches the pool's actual token0/token1 layout.
+    const isReversed = sortedToken0.address.toLowerCase() !== params.token0.address.toLowerCase()
+    const Q96 = 2n ** 96n
+    const finalSqrtPriceX96 = isReversed ? (Q96 * Q96) / sqrtPriceX96 : sqrtPriceX96
+
     // Use wrapped native address for pool creation
     const poolToken0 =
         token0IsNative && sortedToken0.address.toLowerCase() === params.token0.address.toLowerCase()
@@ -205,7 +212,7 @@ export function buildPoolCreationMulticall(
         poolToken0 as Address,
         poolToken1 as Address,
         params.fee,
-        sqrtPriceX96
+        finalSqrtPriceX96
     )
 
     // Build mint data (handles native token wrapping and refundETH)

@@ -26,6 +26,7 @@ import {
     calculateAmount0FromAmount1,
     nearestUsableTick,
     getTickSpacing,
+    getPresetRange,
     MIN_TICK,
     MAX_TICK,
 } from '@/lib/liquidity-helpers'
@@ -157,26 +158,23 @@ export function AddLiquidityDialog() {
         simulationError,
         hash,
     } = useAddLiquidity(mintParams, needsApprovalCheck)
+    // Reset range when pool changes (or pool loads for first time)
+    // Remove the tickLower===0 guard so stale persisted rangeConfig is always overwritten.
     useEffect(() => {
-        if (pool && rangeConfig.tickLower === 0 && rangeConfig.tickUpper === 0) {
-            setRangeConfig({
-                ...rangeConfig,
-                tickLower: pool.tick - 1000,
-                tickUpper: pool.tick + 1000,
-            })
-        }
-    }, [pool, rangeConfig, setRangeConfig])
+        if (!pool) return
+        const tickSpacing = pool.tickSpacing
+        setRangeConfig({
+            preset: 'common',
+            ...getPresetRange(pool.tick, tickSpacing, 'common'),
+            priceLower: '',
+            priceUpper: '',
+        })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pool?.address, pool?.fee])
 
-    // Set full range defaults when creating a pool
+    // Set full range defaults when creating a new pool (no existing pool)
     useEffect(() => {
-        if (
-            !pool &&
-            derivedTick !== null &&
-            token0 &&
-            token1 &&
-            rangeConfig.tickLower === 0 &&
-            rangeConfig.tickUpper === 0
-        ) {
+        if (!pool && derivedTick !== null && token0 && token1) {
             const tickSpacing = getTickSpacing(fee)
             setRangeConfig({
                 preset: 'full',
@@ -186,7 +184,8 @@ export function AddLiquidityDialog() {
                 priceUpper: '∞',
             })
         }
-    }, [pool, derivedTick, fee, token0, token1, rangeConfig, setRangeConfig])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pool, derivedTick, fee, token0?.address, token1?.address])
 
     // Auto-calculate dependent token amount based on active input (existing pools only)
     useEffect(() => {
@@ -199,6 +198,11 @@ export function AddLiquidityDialog() {
         const sqrtPriceLowerX96 = tickToSqrtPriceX96(rangeConfig.tickLower)
         const sqrtPriceUpperX96 = tickToSqrtPriceX96(rangeConfig.tickUpper)
 
+        // pool.sqrtPriceX96 is in pool's sorted-address coordinate (pool.token0 < pool.token1).
+        // If store.token0 != pool.token0, the user's token0/token1 are reversed vs the pool.
+        // In that case swap the calculate functions so amounts stay in user's token order.
+        const isPoolReversed = token0.address.toLowerCase() !== pool.token0.address.toLowerCase()
+
         if (activeInput === 'token0') {
             if (!amount0) {
                 setAmount1('')
@@ -206,17 +210,20 @@ export function AddLiquidityDialog() {
             }
             const amount0Parsed = parseTokenAmount(amount0, token0.decimals)
             if (amount0Parsed > 0n) {
-                const calculatedAmount1 = calculateAmount1FromAmount0(
-                    sqrtPriceX96,
-                    sqrtPriceLowerX96,
-                    sqrtPriceUpperX96,
-                    amount0Parsed
-                )
-                setAmount1(
-                    calculatedAmount1 > 0n
-                        ? formatTokenAmount(calculatedAmount1, token1.decimals)
-                        : ''
-                )
+                const calculated = isPoolReversed
+                    ? calculateAmount0FromAmount1(
+                          sqrtPriceX96,
+                          sqrtPriceLowerX96,
+                          sqrtPriceUpperX96,
+                          amount0Parsed
+                      )
+                    : calculateAmount1FromAmount0(
+                          sqrtPriceX96,
+                          sqrtPriceLowerX96,
+                          sqrtPriceUpperX96,
+                          amount0Parsed
+                      )
+                setAmount1(calculated > 0n ? formatTokenAmount(calculated, token1.decimals) : '')
             } else {
                 setAmount1('')
             }
@@ -227,17 +234,20 @@ export function AddLiquidityDialog() {
             }
             const amount1Parsed = parseTokenAmount(amount1, token1.decimals)
             if (amount1Parsed > 0n) {
-                const calculatedAmount0 = calculateAmount0FromAmount1(
-                    sqrtPriceX96,
-                    sqrtPriceLowerX96,
-                    sqrtPriceUpperX96,
-                    amount1Parsed
-                )
-                setAmount0(
-                    calculatedAmount0 > 0n
-                        ? formatTokenAmount(calculatedAmount0, token0.decimals)
-                        : ''
-                )
+                const calculated = isPoolReversed
+                    ? calculateAmount1FromAmount0(
+                          sqrtPriceX96,
+                          sqrtPriceLowerX96,
+                          sqrtPriceUpperX96,
+                          amount1Parsed
+                      )
+                    : calculateAmount0FromAmount1(
+                          sqrtPriceX96,
+                          sqrtPriceLowerX96,
+                          sqrtPriceUpperX96,
+                          amount1Parsed
+                      )
+                setAmount0(calculated > 0n ? formatTokenAmount(calculated, token0.decimals) : '')
             } else {
                 setAmount0('')
             }
@@ -440,7 +450,17 @@ export function AddLiquidityDialog() {
                         <>
                             <Separator />
                             <RangeSelector
-                                currentTick={pool?.tick ?? derivedTick!}
+                                currentTick={(() => {
+                                    const rawTick = pool?.tick ?? derivedTick!
+                                    // Pool stores price as token1/token0 by sorted address order.
+                                    // If store.token0 != pool.token0 (reversed), negate the tick
+                                    // so the price displays correctly in the user's chosen direction.
+                                    const isPoolReversed =
+                                        pool &&
+                                        token0.address.toLowerCase() !==
+                                            pool.token0.address.toLowerCase()
+                                    return isPoolReversed ? -rawTick : rawTick
+                                })()}
                                 tickSpacing={pool?.tickSpacing ?? getTickSpacing(fee)}
                                 decimals0={token0.decimals}
                                 decimals1={token1.decimals}

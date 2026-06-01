@@ -37,7 +37,7 @@ export interface UseUniV3QuoteResult {
     primaryDexId: DEXType | null
 }
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000' as Address
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address
 
 export function useUniV3Quote({
     tokenIn,
