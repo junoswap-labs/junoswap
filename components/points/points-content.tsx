@@ -46,21 +46,21 @@ export function PointsContent() {
     }
 
     return (
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Points</h1>
-                <div className="relative w-full sm:max-w-sm">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Search wallet address..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9"
-                    />
+        <div className="flex min-h-screen items-start justify-center p-4 pt-8">
+            <div className="w-full max-w-5xl space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h1 className="text-xl font-bold sm:text-2xl">Points</h1>
+                    <div className="relative w-full sm:max-w-sm">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Search wallet address..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
                 </div>
-            </div>
 
-            <div className="mb-6">
                 <ShareablePointsBanner
                     address={address}
                     userSummary={userSummary}
@@ -69,23 +69,23 @@ export function PointsContent() {
                     totalTraders={totalCount}
                     isConnected={!!address}
                 />
-            </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    <PointsLeaderboardTable
-                        traders={traders}
-                        totalPages={totalPages}
-                        currentPage={page}
-                        onPageChange={setPage}
-                        isLoading={isLoading}
-                        sortKey={settings.sortKey}
-                        sortDirection={settings.sortDirection}
-                        onSort={handleSort}
-                        userAddress={address}
-                    />
-                </CardContent>
-            </Card>
+                <Card>
+                    <CardContent className="p-0">
+                        <PointsLeaderboardTable
+                            traders={traders}
+                            totalPages={totalPages}
+                            currentPage={page}
+                            onPageChange={setPage}
+                            isLoading={isLoading}
+                            sortKey={settings.sortKey}
+                            sortDirection={settings.sortDirection}
+                            onSort={handleSort}
+                            userAddress={address}
+                        />
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     )
 }
