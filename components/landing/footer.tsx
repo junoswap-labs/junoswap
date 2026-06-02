@@ -16,7 +16,7 @@ export function Footer() {
             {/* ── Layer 1: Big Name ── */}
             <section
                 ref={brandReveal.ref as React.RefObject<HTMLElement>}
-                className={cn('relative py-24', brandReveal.isVisible && 'is-visible')}
+                className={cn('relative py-16 sm:py-24', brandReveal.isVisible && 'is-visible')}
             >
                 {/* Radial glow backdrop */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,hsl(0_100%_60%_/_0.06),transparent)] pointer-events-none" />
@@ -30,7 +30,7 @@ export function Footer() {
                         brandReveal.isVisible && 'is-visible'
                     )}
                 >
-                    <h2 className="animate-gradient-shift whitespace-nowrap bg-gradient-to-r from-primary via-[#FF914D] to-primary bg-clip-text text-[5rem] font-black uppercase leading-none tracking-[-0.05em] select-none text-transparent sm:text-[8rem] lg:text-[14rem] xl:text-[18rem]">
+                    <h2 className="animate-gradient-shift whitespace-nowrap bg-gradient-to-r from-primary via-[#FF914D] to-primary bg-clip-text text-[3.5rem] font-black uppercase leading-none tracking-[-0.05em] select-none text-transparent sm:text-[5rem] md:text-[8rem] lg:text-[12rem] xl:text-[16rem]">
                         JUNOSWAP
                     </h2>
                 </div>
@@ -46,14 +46,14 @@ export function Footer() {
                     bottomReveal.isVisible && 'is-visible'
                 )}
             >
-                <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-6 sm:flex-row sm:justify-between lg:px-8">
+                <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 sm:flex-row sm:justify-between sm:gap-6 sm:px-6 lg:px-8">
                     {/* wordmark */}
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground/50">Junoswap Labs</span>
                     </div>
 
                     {/* Social icons */}
-                    <div className="flex gap-6">
+                    <div className="flex gap-4 sm:gap-6">
                         <a
                             href="https://x.com/junoswaptrade"
                             target="_blank"
