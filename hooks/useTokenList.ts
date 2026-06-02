@@ -62,7 +62,7 @@ interface TokenListResponse {
     }
 }
 
-export interface SnapshotData {
+interface SnapshotData {
     lastSwapAt: number
     marketCapNative: string
     athMarketCapNative: string

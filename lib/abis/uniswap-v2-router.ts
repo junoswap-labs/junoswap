@@ -81,5 +81,3 @@ export const UNISWAP_V2_ROUTER_ABI = [
         outputs: [{ name: '', type: 'address' }],
     },
 ] as const
-
-export type UniswapV2RouterAbi = typeof UNISWAP_V2_ROUTER_ABI

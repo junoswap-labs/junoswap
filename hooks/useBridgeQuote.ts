@@ -9,7 +9,7 @@ import { useBridgeStore } from '@/store/bridge-store'
 import { useDebounce } from '@/hooks/useDebounce'
 import { fetchBridgeRoutes } from '@/services/bridge/lifi'
 
-export interface UseBridgeQuoteResult {
+interface UseBridgeQuoteResult {
     /** Best route from LI.FI */
     route: Route | null
     /** All available routes (for future route comparison UI) */

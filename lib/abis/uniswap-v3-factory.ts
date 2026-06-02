@@ -33,5 +33,3 @@ export const UNISWAP_V3_FACTORY_ABI = [
         ],
     },
 ] as const
-
-export type UniswapV3FactoryAbi = typeof UNISWAP_V3_FACTORY_ABI

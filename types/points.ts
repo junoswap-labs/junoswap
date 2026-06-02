@@ -82,11 +82,6 @@ export function getTierForPoints(points: number): PointsTierConfig {
     return TIER_THRESHOLDS[0]!
 }
 
-export function getNextTier(tier: PointsTier): PointsTierConfig | null {
-    const idx = TIER_THRESHOLDS.findIndex((t) => t.name === tier)
-    return idx < TIER_THRESHOLDS.length - 1 ? TIER_THRESHOLDS[idx + 1]! : null
-}
-
 export interface PointsSettings {
     timePeriod: PointsTimePeriod
     sortKey: PointsSortKey

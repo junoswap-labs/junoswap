@@ -1,6 +1,6 @@
 export type DEXType = 'junoswap' | 'uniswap' | 'pancakeswap' | string
 
-export interface DEXMetadata {
+interface DEXMetadata {
     id: DEXType
     name: string
     displayName: string

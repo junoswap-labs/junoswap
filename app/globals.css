@@ -97,35 +97,9 @@
         }
     }
 
-    .theme-logo {
-        filter: brightness(0) invert(1);
-    }
-
-    :root .theme-logo {
-        filter: brightness(0);
-    }
-
-    .dark .theme-logo {
-        filter: brightness(0) invert(1);
-    }
 }
 
 @layer utilities {
-    @keyframes fade-up {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .animate-fade-up {
-        animation: fade-up 0.6s ease-out both;
-    }
-
     @keyframes transfer-dot {
         0%,
         100% {
@@ -157,20 +131,6 @@
         animation: gradient-shift 8s ease-in-out infinite;
     }
 
-    @keyframes glow-pulse {
-        0%,
-        100% {
-            opacity: 0.6;
-        }
-        50% {
-            opacity: 1;
-        }
-    }
-
-    .animate-glow-pulse {
-        animation: glow-pulse 6s ease-in-out infinite;
-    }
-
     /* ── Scroll-reveal entrance animations ── */
 
     @keyframes reveal-up {
@@ -186,36 +146,6 @@
 
     .animate-reveal-up {
         animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    @keyframes reveal-left {
-        from {
-            opacity: 0;
-            transform: translateX(-40px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    .animate-reveal-left {
-        animation: reveal-left 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    @keyframes reveal-right {
-        from {
-            opacity: 0;
-            transform: translateX(40px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    .animate-reveal-right {
-        animation: reveal-right 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     @keyframes reveal-scale {
@@ -262,8 +192,6 @@
 
     /* Prevent animation classes from running until is-visible is present */
     [data-reveal]:not(.is-visible).animate-reveal-up,
-    [data-reveal]:not(.is-visible).animate-reveal-left,
-    [data-reveal]:not(.is-visible).animate-reveal-right,
     [data-reveal]:not(.is-visible).animate-reveal-scale,
     [data-reveal]:not(.is-visible).animate-reveal-blur {
         animation: none;

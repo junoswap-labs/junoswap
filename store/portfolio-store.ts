@@ -46,5 +46,3 @@ export const usePortfolioStore = create<PortfolioStore>()(
         { name: 'junoswap-portfolio' }
     )
 )
-
-export const usePortfolioSettings = () => usePortfolioStore((state) => state.settings)

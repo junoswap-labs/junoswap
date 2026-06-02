@@ -21,13 +21,13 @@ const KKUB_UNWRAPPER_ABI = [
     },
 ] as const
 
-export interface UseKkubUnwrapParams {
+interface UseKkubUnwrapParams {
     chainId: number
     amount: bigint
     owner?: Address
 }
 
-export interface UseKkubUnwrapResult {
+interface UseKkubUnwrapResult {
     startUnwrap: () => void
     reset: () => void
     isApproving: boolean

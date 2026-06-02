@@ -145,5 +145,3 @@ export const PUMP_CORE_NATIVE_ABI = [
         ],
     },
 ] as const
-
-export type PumpCoreNativeAbi = typeof PUMP_CORE_NATIVE_ABI

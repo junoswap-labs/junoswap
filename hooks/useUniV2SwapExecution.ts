@@ -15,7 +15,7 @@ import { isNativeToken, shouldSkipUnwrap } from '@/lib/wagmi'
 import { getWrapOperation, getWrappedNativeAddress } from '@/services/tokens'
 import { WETH9_ABI } from '@/lib/abis/weth9'
 
-export interface UseUniV2SwapExecutionParams {
+interface UseUniV2SwapExecutionParams {
     tokenIn: Token
     tokenOut: Token
     amountIn: bigint
@@ -27,7 +27,7 @@ export interface UseUniV2SwapExecutionParams {
     skipSimulation?: boolean // Skip simulation during approval phase
 }
 
-export interface UseUniV2SwapExecutionResult {
+interface UseUniV2SwapExecutionResult {
     swap: () => void
     result: SwapResult | null
     isPreparing: boolean

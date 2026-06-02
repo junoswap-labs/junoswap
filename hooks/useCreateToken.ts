@@ -19,7 +19,7 @@ import {
 import { useLaunchpadStore } from '@/store/launchpad-store'
 import type { CreateTokenForm } from '@/types/launchpad'
 
-export type CreatePhase = 'idle' | 'creating' | 'buying' | 'success' | 'error'
+type CreatePhase = 'idle' | 'creating' | 'buying' | 'success' | 'error'
 
 interface UseCreateTokenParams {
     form: CreateTokenForm | null

@@ -13,7 +13,7 @@ import { encodeV3Path } from '@/services/dex/uniswap-v3'
 import { getSwapAddress, getWrapOperation } from '@/services/tokens'
 import { findTokenByAddress } from '@/lib/tokens'
 
-export interface UseUniV3MultiHopQuoteParams {
+interface UseUniV3MultiHopQuoteParams {
     tokenIn: Token | null
     tokenOut: Token | null
     amountIn: bigint
@@ -21,7 +21,7 @@ export interface UseUniV3MultiHopQuoteParams {
     dexId?: DEXType
 }
 
-export interface UseUniV3MultiHopQuoteResult {
+interface UseUniV3MultiHopQuoteResult {
     routes: RouteQuote[]
     bestRoute: RouteQuote | null
     isLoading: boolean

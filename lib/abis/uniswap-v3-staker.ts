@@ -323,10 +323,3 @@ export const UNISWAP_V3_STAKER_ABI = [
 /**
  * IncentiveKey type for TypeScript
  */
-export interface IncentiveKeyTuple {
-    rewardToken: `0x${string}`
-    pool: `0x${string}`
-    startTime: bigint
-    endTime: bigint
-    refundee: `0x${string}`
-}

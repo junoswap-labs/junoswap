@@ -13,7 +13,7 @@ import { buildMultiHopSwapPath } from '@/services/dex/uniswap-v2'
 import { getWrapOperation } from '@/services/tokens'
 import { findTokenByAddress } from '@/lib/tokens'
 
-export interface UseUniV2MultiHopQuoteParams {
+interface UseUniV2MultiHopQuoteParams {
     tokenIn: Token | null
     tokenOut: Token | null
     amountIn: bigint
@@ -21,7 +21,7 @@ export interface UseUniV2MultiHopQuoteParams {
     dexId?: DEXType
 }
 
-export interface UseUniV2MultiHopQuoteResult {
+interface UseUniV2MultiHopQuoteResult {
     routes: RouteQuote[]
     bestRoute: RouteQuote | null
     isLoading: boolean

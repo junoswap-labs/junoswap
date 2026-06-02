@@ -9,7 +9,7 @@ import { UNISWAP_V3_SWAP_ROUTER_V1_ABI } from '@/lib/abis/uniswap-v3-swap-router
  * Uniswap V3 Router uses address(2) as ADDRESS_THIS placeholder for multicall
  * When used as recipient, tells the router to keep tokens in itself for subsequent operations
  */
-export const ADDRESS_THIS = '0x0000000000000000000000000000000000000002' as Address
+const ADDRESS_THIS = '0x0000000000000000000000000000000000000002' as Address
 
 /**
  * Get a quote from QuoterV2 contract
@@ -63,7 +63,7 @@ export function calculateMinOutput(amountOut: bigint, slippageBasisPoints: numbe
 /**
  * Encode exactInputSingle call for multicall
  */
-export function encodeExactInputSingle(params: {
+function encodeExactInputSingle(params: {
     tokenIn: Address
     tokenOut: Address
     fee: number
@@ -178,7 +178,7 @@ export function buildMultiHopSwapParams(
 /**
  * Encode exactInput call for multicall (multi-hop)
  */
-export function encodeExactInput(params: {
+function encodeExactInput(params: {
     path: Hex
     recipient: Address
     amountIn: bigint
@@ -246,7 +246,7 @@ export function buildSwapParamsV1(
 /**
  * Encode exactInputSingle call for SwapRouter v1 multicall
  */
-export function encodeExactInputSingleV1(params: {
+function encodeExactInputSingleV1(params: {
     tokenIn: Address
     tokenOut: Address
     fee: number
@@ -266,7 +266,7 @@ export function encodeExactInputSingleV1(params: {
 /**
  * Encode exactInput (multi-hop) call for SwapRouter v1 — includes deadline
  */
-export function encodeExactInputV1(params: {
+function encodeExactInputV1(params: {
     path: Hex
     recipient: Address
     deadline: bigint

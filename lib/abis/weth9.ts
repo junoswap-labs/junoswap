@@ -14,5 +14,3 @@ export const WETH9_ABI = [
         outputs: [],
     },
 ] as const
-
-export type Weth9Abi = typeof WETH9_ABI

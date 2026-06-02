@@ -95,5 +95,3 @@ export const UNISWAP_V3_POOL_ABI = [
         ],
     },
 ] as const
-
-export type UniswapV3PoolAbi = typeof UNISWAP_V3_POOL_ABI

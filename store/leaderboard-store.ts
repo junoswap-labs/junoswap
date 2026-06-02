@@ -67,5 +67,3 @@ export const useLeaderboardStore = create<LeaderboardStore>()(
         { name: 'junoswap-leaderboard' }
     )
 )
-
-export const useLeaderboardSettings = () => useLeaderboardStore((state) => state.settings)

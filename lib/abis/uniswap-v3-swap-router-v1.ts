@@ -106,5 +106,3 @@ export const UNISWAP_V3_SWAP_ROUTER_V1_ABI = [
         outputs: [],
     },
 ] as const
-
-export type UniswapV3SwapRouterV1Abi = typeof UNISWAP_V3_SWAP_ROUTER_V1_ABI

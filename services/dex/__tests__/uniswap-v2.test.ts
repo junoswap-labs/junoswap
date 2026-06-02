@@ -24,21 +24,6 @@ describe('services/dex/uniswap-v2', () => {
         return await import('@/services/dex/uniswap-v2')
     }
 
-    describe('buildSwapPath', () => {
-        it('replaces native token with swap address', async () => {
-            const { buildSwapPath } = await getModule()
-            const path = buildSwapPath(nativeAddr, mockTokenB, 96)
-            expect(path).toEqual([mockSwapAddress, mockTokenB])
-        })
-
-        it('uses custom wnative for native tokens', async () => {
-            const { buildSwapPath } = await getModule()
-            const customWnative = '0xCustomWnative1234567890abcdef1234' as `0x${string}`
-            const path = buildSwapPath(nativeAddr, mockTokenB, 96, customWnative)
-            expect(path[0]).toBe(customWnative)
-        })
-    })
-
     describe('buildMultiHopSwapPath', () => {
         it('replaces native with wnative when provided', async () => {
             const { buildMultiHopSwapPath } = await getModule()

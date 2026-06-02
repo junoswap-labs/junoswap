@@ -6,7 +6,7 @@ import { executeRoute } from '@lifi/sdk'
 import type { RouteExtended } from '@lifi/sdk'
 import { toastError, toastSuccess } from '@/lib/toast'
 
-export interface UseBridgeExecutionResult {
+interface UseBridgeExecutionResult {
     execute: (route: Route) => Promise<void>
     isExecuting: boolean
     activeRoute: RouteExtended | null

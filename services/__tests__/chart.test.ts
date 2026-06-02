@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculatePrice, calculateMarketCapValue, aggregateCandlesticks } from '@/services/chart'
+import { aggregateCandlesticks } from '@/services/chart'
 
 const NATIVE = (n: number) => BigInt(n) * 10n ** 18n
 const TOKENS = (n: number) => BigInt(n) * 10n ** 18n
@@ -18,34 +18,6 @@ const makeEvent = (
     amountOut,
     reserveIn,
     reserveOut,
-})
-
-describe('calculatePrice', () => {
-    it('returns 0 when reserveIn is 0', () => {
-        expect(calculatePrice(makeEvent(1000, true, 0n, 100n, 0n, TOKENS(900)))).toBe(0)
-    })
-
-    it('returns 0 when reserveOut is 0', () => {
-        expect(calculatePrice(makeEvent(1000, true, NATIVE(100), 0n, NATIVE(100), 0n))).toBe(0)
-    })
-
-    it('calculates price for buy events from reserves', () => {
-        const event = makeEvent(1000, true, NATIVE(10), TOKENS(100), NATIVE(100), TOKENS(900))
-        expect(calculatePrice(event)).toBeCloseTo(3500 / 900, 4)
-    })
-
-    it('calculates price for sell events from reserves', () => {
-        const event = makeEvent(1000, false, TOKENS(50), NATIVE(5), TOKENS(1000), NATIVE(50))
-        expect(calculatePrice(event)).toBeCloseTo(3450 / 1000, 4)
-    })
-})
-
-describe('calculateMarketCapValue', () => {
-    it('returns price * 1 billion', () => {
-        const event = makeEvent(1000, true, NATIVE(10), TOKENS(100), NATIVE(100), TOKENS(900))
-        const price = calculatePrice(event)
-        expect(calculateMarketCapValue(event)).toBeCloseTo(price * 1_000_000_000)
-    })
 })
 
 describe('aggregateCandlesticks', () => {
@@ -111,7 +83,9 @@ describe('aggregateCandlesticks', () => {
         const candles = aggregateCandlesticks(events, '1h', 'price')
         expect(candles).toHaveLength(1)
         expect(candles[0]!.volume).toBeGreaterThan(0)
-        expect(candles[0]!.close).toBeCloseTo(calculatePrice(events[1]!), 6)
+        // Close should be the post-swap price of the second event
+        // nativeReserve=130, tokenReserve=750 → (130+3400)/750 ≈ 4.7067
+        expect(candles[0]!.close).toBeCloseTo(3530 / 750, 4)
     })
 
     it('creates separate candles for different time buckets', () => {

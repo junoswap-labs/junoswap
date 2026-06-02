@@ -184,30 +184,6 @@ describe('services/tokens', () => {
         })
     })
 
-    describe('isNativeWrappedPair', () => {
-        it('returns false when either token is null', async () => {
-            const { isNativeWrappedPair } = await getModule()
-            expect(isNativeWrappedPair(mockNativeToken, null)).toBe(false)
-        })
-
-        it('returns false for tokens on different chains', async () => {
-            const { isNativeWrappedPair } = await getModule()
-            const diffChainWrapped = { ...mockWrappedToken, chainId: 1 }
-            expect(isNativeWrappedPair(mockNativeToken, diffChainWrapped)).toBe(false)
-        })
-
-        it('returns true for native-wrapped pair', async () => {
-            const { isNativeWrappedPair } = await getModule()
-            expect(isNativeWrappedPair(mockNativeToken, mockWrappedToken)).toBe(true)
-            expect(isNativeWrappedPair(mockWrappedToken, mockNativeToken)).toBe(true)
-        })
-
-        it('returns false for native-ERC20 pair', async () => {
-            const { isNativeWrappedPair } = await getModule()
-            expect(isNativeWrappedPair(mockNativeToken, mockUsdc)).toBe(false)
-        })
-    })
-
     describe('getWrapOperation', () => {
         it('returns "wrap" when input is native', async () => {
             const { getWrapOperation } = await getModule()

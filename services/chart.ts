@@ -15,11 +15,11 @@ interface SwapEvent {
     reserveOut: bigint
 }
 
-export function calculateMarketCapValue(event: SwapEvent): number {
+function calculateMarketCapValue(event: SwapEvent): number {
     return calculatePrice(event) * TOTAL_SUPPLY
 }
 
-export function calculatePrice(event: SwapEvent): number {
+function calculatePrice(event: SwapEvent): number {
     const nativeReserve = event.isBuy ? event.reserveIn : event.reserveOut
     const tokenReserve = event.isBuy ? event.reserveOut : event.reserveIn
     if (nativeReserve === 0n || tokenReserve === 0n) return 0

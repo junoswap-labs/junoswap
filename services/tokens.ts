@@ -19,7 +19,7 @@ export function buildInfiniteApprovalParams(tokenAddress: Address, spenderAddres
 /**
  * Get max uint256 value for infinite approvals
  */
-export function getMaxUint256(): bigint {
+function getMaxUint256(): bigint {
     return 2n ** 256n - 1n
 }
 
@@ -166,7 +166,7 @@ export function isSameToken(tokenA: Token | null, tokenB: Token | null): boolean
 /**
  * Check if two tokens form a native-wrapped pair
  */
-export function isNativeWrappedPair(tokenA: Token | null, tokenB: Token | null): boolean {
+function isNativeWrappedPair(tokenA: Token | null, tokenB: Token | null): boolean {
     if (!tokenA || !tokenB) return false
     if (tokenA.chainId !== tokenB.chainId) return false
 

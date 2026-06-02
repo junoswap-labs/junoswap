@@ -62,5 +62,3 @@ export const usePointsStore = create<PointsStore>()(
         { name: 'junoswap-points' }
     )
 )
-
-export const usePointsSettings = () => usePointsStore((state) => state.settings)

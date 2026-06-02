@@ -329,5 +329,3 @@ export const NONFUNGIBLE_POSITION_MANAGER_ABI = [
         ],
     },
 ] as const
-
-export type NonfungiblePositionManagerAbi = typeof NONFUNGIBLE_POSITION_MANAGER_ABI

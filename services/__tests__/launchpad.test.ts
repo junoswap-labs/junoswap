@@ -2,12 +2,10 @@ import { describe, it, expect, vi } from 'vitest'
 import {
     calculateBuyOutput,
     calculateSellOutput,
-    calculateMarketCap,
     calculateGraduationProgress,
     formatKub,
     formatTokenAmount,
     formatCompact,
-    getCreateTokenConfig,
 } from '@/services/launchpad'
 
 vi.mock('@/lib/abis/pump-core-native', () => ({
@@ -55,22 +53,6 @@ describe('calculateSellOutput', () => {
     it('calculates output with 1% fee applied', () => {
         const result = calculateSellOutput(10000n, 100000n, 800000n, 200000n)
         expect(result).toBeGreaterThan(0n)
-    })
-})
-
-describe('calculateMarketCap', () => {
-    it('returns "0" when circulating supply is zero', () => {
-        const totalSupply = 1000n
-        expect(calculateMarketCap(500n, totalSupply, totalSupply, 100n)).toBe('0')
-    })
-
-    it('calculates market cap correctly', () => {
-        const totalSupply = 1000000000n * 10n ** 18n
-        const tokenReserve = 800000000n * 10n ** 18n
-        const nativeReserve = 100n * 10n ** 18n
-        const virtualAmount = 50n * 10n ** 18n
-        const result = calculateMarketCap(nativeReserve, tokenReserve, totalSupply, virtualAmount)
-        expect(parseFloat(result)).toBeGreaterThan(0)
     })
 })
 
@@ -152,24 +134,5 @@ describe('formatCompact', () => {
 
     it('uses B suffix', () => {
         expect(formatCompact(1500000000)).toBe('2B')
-    })
-})
-
-describe('getCreateTokenConfig', () => {
-    it('returns correct config shape', () => {
-        const form = {
-            name: 'Test',
-            symbol: 'TST',
-            logo: 'https://logo.png',
-            description: 'Test token',
-            link1: '',
-            link2: '',
-            link3: '',
-            createFee: 100n,
-        }
-        const config = getCreateTokenConfig(form)
-        expect(config.functionName).toBe('createToken')
-        expect(config.args).toEqual(['Test', 'TST', 'https://logo.png', 'Test token', '', '', ''])
-        expect(config.value).toBe(100n)
     })
 })

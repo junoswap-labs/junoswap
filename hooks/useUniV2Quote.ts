@@ -13,7 +13,7 @@ import { buildV2QuoteParams } from '@/services/dex/uniswap-v2'
 import { isSameToken, getSwapAddress, getWrapOperation } from '@/services/tokens'
 import { ProtocolType } from '@/lib/dex-config'
 
-export interface UseUniV2QuoteParams {
+interface UseUniV2QuoteParams {
     tokenIn: Token | null
     tokenOut: Token | null
     amountIn: bigint
@@ -21,14 +21,14 @@ export interface UseUniV2QuoteParams {
     dexId?: DEXType | DEXType[]
 }
 
-export interface DexQuoteResult {
+interface DexQuoteResult {
     quote: QuoteResult | null
     isLoading: boolean
     isError: boolean
     error: Error | null
 }
 
-export interface UseUniV2QuoteResult {
+interface UseUniV2QuoteResult {
     quotes: Record<DEXType, DexQuoteResult>
     isLoading: boolean
     primaryDexId: DEXType | null

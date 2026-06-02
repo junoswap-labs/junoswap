@@ -11,7 +11,7 @@ import { useUniV3MultiHopQuote } from './useUniV3MultiHopQuote'
 import { useUniV2MultiHopQuote } from './useUniV2MultiHopQuote'
 import { MIN_MULTIHOP_IMPROVEMENT_BPS } from '@/lib/routing-config'
 
-export interface UseSwapRoutingParams {
+interface UseSwapRoutingParams {
     tokenIn: Token | null
     tokenOut: Token | null
     amountIn: bigint
@@ -19,7 +19,7 @@ export interface UseSwapRoutingParams {
     preferMultiHop?: boolean
 }
 
-export interface UseSwapRoutingResult extends RoutingResult {
+interface UseSwapRoutingResult extends RoutingResult {
     isLoading: boolean
     isError: boolean
     error: Error | null

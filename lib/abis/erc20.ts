@@ -86,5 +86,3 @@ export const ERC20_ABI = [
         ],
     },
 ] as const
-
-export type ERC20Abi = typeof ERC20_ABI

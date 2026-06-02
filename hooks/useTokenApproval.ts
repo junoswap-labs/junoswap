@@ -11,14 +11,14 @@ import { ERC20_ABI } from '@/lib/abis/erc20'
 import { isNativeToken } from '@/lib/wagmi'
 import { getAllowanceFunctionName } from '@/lib/tokens'
 
-export interface UseTokenApprovalParams {
+interface UseTokenApprovalParams {
     token: Token | null
     owner?: Address
     spender?: Address
     amountToApprove?: bigint
 }
 
-export interface UseTokenApprovalResult {
+interface UseTokenApprovalResult {
     allowance: bigint
     needsApproval: boolean
     isApproving: boolean

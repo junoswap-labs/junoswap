@@ -9,7 +9,7 @@ import { isNativeToken } from '@/lib/wagmi'
  * @param wnative Optional DEX-specific wrapped native token address
  * Some DEXs (like jibswap) use their own wrapped native token instead of the chain's standard wrapped token
  */
-export function buildSwapPath(
+function buildSwapPath(
     tokenIn: Address,
     tokenOut: Address,
     chainId: number,

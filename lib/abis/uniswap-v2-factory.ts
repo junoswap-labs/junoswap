@@ -21,5 +21,3 @@ export const UNISWAP_V2_FACTORY_ABI = [
         outputs: [{ name: '', type: 'uint256' }],
     },
 ] as const
-
-export type UniswapV2FactoryAbi = typeof UNISWAP_V2_FACTORY_ABI

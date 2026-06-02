@@ -17,14 +17,14 @@ import { useUniV3Quote } from './useUniV3Quote'
 import { useUniV2Quote } from './useUniV2Quote'
 import { useSwapRouting } from './useSwapRouting'
 
-export interface UseMultiDexQuotesParams {
+interface UseMultiDexQuotesParams {
     tokenIn: Token | null
     tokenOut: Token | null
     amountIn: bigint
     enabled?: boolean
 }
 
-export interface UseMultiDexQuotesResult {
+interface UseMultiDexQuotesResult {
     dexQuotes: Record<DEXType, DexQuote>
     bestQuoteDex: DEXType | null
     isAnyLoading: boolean

@@ -52,24 +52,6 @@ function getAmountOut(inputAmount: bigint, inputReserve: bigint, outputReserve: 
 }
 
 /**
- * Calculate market cap in KUB
- * Market cap = nativeReserve * totalSupply / circulatingSupply
- * circulatingSupply = INITIALTOKEN - tokenReserve
- */
-export function calculateMarketCap(
-    nativeReserve: bigint,
-    tokenReserve: bigint,
-    totalSupply: bigint,
-    virtualAmount: bigint
-): string {
-    const effectiveReserve = virtualAmount + nativeReserve
-    const circulatingSupply = totalSupply - tokenReserve
-    if (circulatingSupply <= 0n) return '0'
-    const marketCap = (effectiveReserve * totalSupply) / circulatingSupply
-    return formatEther(marketCap)
-}
-
-/**
  * Calculate graduation progress as percentage (0-100)
  */
 export function calculateGraduationProgress(
@@ -128,73 +110,6 @@ export function formatCompact(num: number): string {
     if (num < 1000000) return `${(num / 1000).toFixed(0)}K`
     if (num < 1000000000) return `${(num / 1000000).toFixed(0)}M`
     return `${(num / 1000000000).toFixed(0)}B`
-}
-
-/**
- * Get the createToken contract call config
- */
-export function getCreateTokenConfig(form: {
-    name: string
-    symbol: string
-    logo: string
-    description: string
-    link1: string
-    link2: string
-    link3: string
-    createFee: bigint
-}) {
-    return {
-        address: PUMP_CORE_NATIVE_ADDRESS as Address,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'createToken' as const,
-        args: [
-            form.name,
-            form.symbol,
-            form.logo,
-            form.description,
-            form.link1,
-            form.link2,
-            form.link3,
-        ] as const,
-        value: form.createFee,
-    }
-}
-
-/**
- * Get the buy contract call config
- */
-export function getBuyConfig(tokenAddr: Address, nativeAmount: bigint, minTokenOut: bigint) {
-    return {
-        address: PUMP_CORE_NATIVE_ADDRESS as Address,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'buy' as const,
-        args: [tokenAddr, minTokenOut] as const,
-        value: nativeAmount,
-    }
-}
-
-/**
- * Get the sell contract call config
- */
-export function getSellConfig(tokenAddr: Address, tokenAmount: bigint, minNativeOut: bigint) {
-    return {
-        address: PUMP_CORE_NATIVE_ADDRESS as Address,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'sell' as const,
-        args: [tokenAddr, tokenAmount, minNativeOut] as const,
-    }
-}
-
-/**
- * Get the graduate contract call config
- */
-export function getGraduateConfig(tokenAddr: Address) {
-    return {
-        address: PUMP_CORE_NATIVE_ADDRESS as Address,
-        abi: PUMP_CORE_NATIVE_ABI,
-        functionName: 'graduate' as const,
-        args: [tokenAddr] as const,
-    }
 }
 
 /**

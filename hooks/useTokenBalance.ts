@@ -7,12 +7,12 @@ import { formatTokenAmount } from '@/services/tokens'
 import { isNativeToken } from '@/lib/wagmi'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 
-export interface UseTokenBalanceParams {
+interface UseTokenBalanceParams {
     token: Token | null
     address?: Address
 }
 
-export interface UseTokenBalanceResult {
+interface UseTokenBalanceResult {
     balance: bigint
     formattedBalance: string
     isLoading: boolean
@@ -52,12 +52,12 @@ export function useTokenBalance({ token, address }: UseTokenBalanceParams): UseT
     }
 }
 
-export interface UseTokenBalancesParams {
+interface UseTokenBalancesParams {
     tokens: Token[]
     limit?: number
 }
 
-export interface UseTokenBalancesResult {
+interface UseTokenBalancesResult {
     balances: Record<string, string>
     rawBalances: Record<string, bigint>
     isLoading: boolean

@@ -87,5 +87,3 @@ export const UNISWAP_V3_QUOTER_V2_ABI = [
         ],
     },
 ] as const
-
-export type UniswapV3QuoterV2Abi = typeof UNISWAP_V3_QUOTER_V2_ABI

@@ -20,7 +20,7 @@ import { buildQuoteParams } from '@/services/dex/uniswap-v3'
 import { isSameToken, getSwapAddress, getWrapOperation } from '@/services/tokens'
 import { ProtocolType } from '@/lib/dex-config'
 
-export interface UseUniV3QuoteParams {
+interface UseUniV3QuoteParams {
     tokenIn: Token | null
     tokenOut: Token | null
     amountIn: bigint
@@ -28,7 +28,7 @@ export interface UseUniV3QuoteParams {
     dexId?: DEXType | DEXType[]
 }
 
-export interface UseUniV3QuoteResult {
+interface UseUniV3QuoteResult {
     quote: QuoteResult | null
     isLoading: boolean
     isError: boolean
