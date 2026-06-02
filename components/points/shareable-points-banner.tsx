@@ -17,11 +17,11 @@ interface ShareablePointsBannerProps {
 }
 
 const TIER_GRADIENT_FROM: Record<string, string> = {
-    bronze: 'from-amber-600/25',
-    silver: 'from-slate-400/20',
-    gold: 'from-yellow-500/20',
-    platinum: 'from-cyan-400/20',
-    diamond: 'from-violet-500/25',
+    bronze: 'from-amber-400/15 dark:from-amber-600/25',
+    silver: 'from-slate-300/15 dark:from-slate-400/20',
+    gold: 'from-yellow-300/15 dark:from-yellow-500/20',
+    platinum: 'from-cyan-300/15 dark:from-cyan-400/20',
+    diamond: 'from-violet-400/15 dark:from-violet-500/25',
 }
 
 function getTierGradientFrom(tierName: string): string {
@@ -94,9 +94,9 @@ export function ShareablePointsBanner({
     return (
         <div>
             {/* The card that gets captured as an image */}
-            <div ref={cardRef} className="overflow-hidden rounded-xl bg-[#0a0e1a]">
+            <div ref={cardRef} className="overflow-hidden rounded-xl bg-card">
                 <div
-                    className={`card-glow relative overflow-hidden rounded-xl bg-gradient-to-br ${getTierGradientFrom(resolvedTier.name)} via-[#0a0e1a] to-[#0a0e1a]`}
+                    className={`card-glow relative overflow-hidden rounded-xl bg-gradient-to-br ${getTierGradientFrom(resolvedTier.name)} via-card to-card`}
                 >
                     <div className="px-5 py-5 sm:px-7 sm:py-6">
                         {/* Header: Logo + Share button */}
