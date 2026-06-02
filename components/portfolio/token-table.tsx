@@ -1,8 +1,7 @@
 'use client'
 
-import { ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TokenRow } from '@/components/portfolio/token-row'
 import { usePortfolioStore } from '@/store/portfolio-store'
@@ -14,34 +13,48 @@ interface TokenTableProps {
     isLoading: boolean
 }
 
+type SortDirection = 'asc' | 'desc'
+
 function SortHeader({
     label,
     sortKey,
     className,
     sortBy,
+    sortDirection,
     onSort,
 }: {
     label: string
     sortKey: PortfolioSortKey
     className?: string
     sortBy: PortfolioSortKey
+    sortDirection: SortDirection
     onSort: (key: PortfolioSortKey) => void
 }) {
+    const isActive = sortBy === sortKey
     return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className={cn('h-auto p-0 font-medium text-xs hover:bg-transparent', className)}
+        <TableHead
+            className={cn(
+                'cursor-pointer select-none hover:text-foreground transition-colors',
+                isActive ? 'text-foreground' : 'text-muted-foreground',
+                className
+            )}
             onClick={() => onSort(sortKey)}
         >
-            {label}
-            <ArrowUpDown
+            <div
                 className={cn(
-                    'ml-1 h-3 w-3',
-                    sortBy === sortKey ? 'text-foreground' : 'text-muted-foreground/50'
+                    'flex items-center gap-1',
+                    className?.includes('text-right') && 'justify-end'
                 )}
-            />
-        </Button>
+            >
+                {label}
+                {isActive &&
+                    (sortDirection === 'desc' ? (
+                        <ArrowDown className="h-3 w-3" />
+                    ) : (
+                        <ArrowUp className="h-3 w-3" />
+                    ))}
+            </div>
+        </TableHead>
     )
 }
 
@@ -102,42 +115,39 @@ export function TokenTable({ tokens, isLoading }: TokenTableProps) {
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent border-border/50">
-                        <TableHead className="w-[200px]">
-                            <SortHeader
-                                label="Asset"
-                                sortKey="name"
-                                sortBy={sortBy}
-                                onSort={handleSort}
-                            />
-                        </TableHead>
-                        <TableHead className="text-right">
-                            <SortHeader
-                                label="Balance"
-                                sortKey="balance"
-                                className="justify-end"
-                                sortBy={sortBy}
-                                onSort={handleSort}
-                            />
-                        </TableHead>
+                        <SortHeader
+                            label="Asset"
+                            sortKey="name"
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                            className="w-[200px]"
+                        />
+                        <SortHeader
+                            label="Balance"
+                            sortKey="balance"
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                            className="text-right"
+                        />
                         <TableHead className="text-right">Price</TableHead>
-                        <TableHead className="text-right">
-                            <SortHeader
-                                label="Value"
-                                sortKey="value"
-                                className="justify-end"
-                                sortBy={sortBy}
-                                onSort={handleSort}
-                            />
-                        </TableHead>
-                        <TableHead className="text-right">
-                            <SortHeader
-                                label="PNL"
-                                sortKey="pnl"
-                                className="justify-end"
-                                sortBy={sortBy}
-                                onSort={handleSort}
-                            />
-                        </TableHead>
+                        <SortHeader
+                            label="Value"
+                            sortKey="value"
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                            className="text-right"
+                        />
+                        <SortHeader
+                            label="PNL"
+                            sortKey="pnl"
+                            sortBy={sortBy}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                            className="text-right"
+                        />
                     </TableRow>
                 </TableHeader>
                 <TableBody>

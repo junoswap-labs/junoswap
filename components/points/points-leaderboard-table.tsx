@@ -51,7 +51,7 @@ function SortableHead({
     return (
         <TableHead
             className={cn(
-                'text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors',
+                'cursor-pointer select-none hover:text-foreground transition-colors',
                 isActive ? 'text-foreground' : 'text-muted-foreground',
                 className
             )}
@@ -113,15 +113,9 @@ export function PointsLeaderboardTable({
     const header = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-12 text-[10px] font-semibold uppercase tracking-wider">
-                    #
-                </TableHead>
-                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Wallet
-                </TableHead>
-                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">
-                    Tier
-                </TableHead>
+                <TableHead className="w-12">#</TableHead>
+                <TableHead className="text-muted-foreground">Wallet</TableHead>
+                <TableHead className="text-muted-foreground hidden sm:table-cell">Tier</TableHead>
                 <SortableHead
                     label="Volume"
                     sortKey="volume"

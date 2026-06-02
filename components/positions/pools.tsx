@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { useAccount, useChainId } from 'wagmi'
-import { ArrowDown, ArrowUp, ArrowUpDown, Layers, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, Layers, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -50,23 +51,22 @@ function SortableHeader({
     const isActive = sortKey === columnKey
     return (
         <TableHead
-            className={`cursor-pointer select-none hover:bg-muted/50 transition-colors ${className ?? ''}`}
+            className={cn(
+                'cursor-pointer select-none hover:text-foreground transition-colors',
+                isActive ? 'text-foreground' : 'text-muted-foreground',
+                className
+            )}
+            onClick={() => onSort(columnKey)}
         >
-            <button
-                className="flex items-center gap-1 bg-transparent border-0 p-0 font-medium text-inherit cursor-pointer"
-                onClick={() => onSort(columnKey)}
-            >
+            <div className="flex items-center gap-1">
                 {label}
-                {isActive ? (
-                    sortDir === 'asc' ? (
-                        <ArrowUp className="h-3.5 w-3.5" />
+                {isActive &&
+                    (sortDir === 'desc' ? (
+                        <ArrowDown className="h-3 w-3" />
                     ) : (
-                        <ArrowDown className="h-3.5 w-3.5" />
-                    )
-                ) : (
-                    <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
-                )}
-            </button>
+                        <ArrowUp className="h-3 w-3" />
+                    ))}
+            </div>
         </TableHead>
     )
 }
