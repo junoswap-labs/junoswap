@@ -81,6 +81,7 @@ function SortableHead({
             className={cn(
                 'cursor-pointer select-none hover:text-foreground transition-colors',
                 isActive ? 'text-foreground' : 'text-muted-foreground',
+                'whitespace-nowrap',
                 className
             )}
             onClick={() => onSort(sortKey)}
@@ -115,10 +116,10 @@ function LoadingState() {
                     <TableCell>
                         <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell>
                         <div className="h-5 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell>
                         <div className="h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
                 </TableRow>
@@ -141,8 +142,8 @@ export function TraderLeaderboardTable({
     const tableHeader = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-12">#</TableHead>
-                <TableHead className="text-muted-foreground">Wallet</TableHead>
+                <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                <TableHead className="text-muted-foreground whitespace-nowrap">Wallet</TableHead>
                 <SortableHead
                     label="Net Worth"
                     sortKey="netWorth"
@@ -163,7 +164,6 @@ export function TraderLeaderboardTable({
                     activeSortKey={sortKey}
                     sortDirection={sortDirection}
                     onSort={onSort}
-                    className="hidden md:table-cell"
                 />
                 <SortableHead
                     label="Trades"
@@ -171,7 +171,6 @@ export function TraderLeaderboardTable({
                     activeSortKey={sortKey}
                     sortDirection={sortDirection}
                     onSort={onSort}
-                    className="hidden lg:table-cell"
                 />
             </TableRow>
         </TableHeader>
@@ -179,7 +178,7 @@ export function TraderLeaderboardTable({
 
     if (isLoading) {
         return (
-            <Table>
+            <Table className="min-w-[600px]">
                 {tableHeader}
                 <LoadingState />
             </Table>
@@ -200,7 +199,7 @@ export function TraderLeaderboardTable({
 
     return (
         <>
-            <Table>
+            <Table className="min-w-[600px]">
                 {tableHeader}
                 <TableBody>
                     {traders.map((trader, i) => (
@@ -239,11 +238,11 @@ export function TraderLeaderboardTable({
                                 />
                             </TableCell>
 
-                            <TableCell className="hidden md:table-cell py-2.5 font-mono tracking-tight text-sm text-muted-foreground">
+                            <TableCell className="py-2.5 font-mono tracking-tight text-sm text-muted-foreground">
                                 {formatUsd(trader.volumeNative, nativeUsdPrice)}
                             </TableCell>
 
-                            <TableCell className="hidden lg:table-cell py-2.5 font-mono tracking-tight text-sm">
+                            <TableCell className="py-2.5 font-mono tracking-tight text-sm">
                                 {trader.tradeCount}
                             </TableCell>
                         </TableRow>
