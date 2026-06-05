@@ -140,37 +140,22 @@ export function usePoolTvl(
 
             if (bal0 === undefined || bal1 === undefined) continue
 
-            // Prefer price-map-based computation (works for ALL pools, not just native-containing)
-            const price0 = priceMap.get(pool.token0.address.toLowerCase())
-            const price1 = priceMap.get(pool.token1.address.toLowerCase())
-
-            if (price0 != null && price1 != null) {
-                map[pool.address.toLowerCase()] = computeTvlFromPrices(
-                    bal0,
-                    pool.token0.decimals,
-                    bal1,
-                    pool.token1.decimals,
-                    price0,
-                    price1
-                )
-                continue
-            }
-
-            // Fallback: sqrtPriceX96-based (only works for native-containing pools)
             const isToken0Native = isAddr(pool.token0.address, wrappedNative)
             const isToken1Native = isAddr(pool.token1.address, wrappedNative)
 
-            if (nativeUsdPrice) {
-                map[pool.address.toLowerCase()] = computeTvlUsd(
-                    bal0,
-                    bal1,
-                    pool.sqrtPriceX96,
-                    isToken0Native,
-                    isToken1Native,
-                    nativeUsdPrice
-                )
-            } else {
-                if (pool.sqrtPriceX96 > 0n) {
+            if (isToken0Native || isToken1Native) {
+                // Native-containing pools: use sqrtPriceX96-based computation
+                // (more reliable — uses pool's own on-chain price)
+                if (nativeUsdPrice) {
+                    map[pool.address.toLowerCase()] = computeTvlUsd(
+                        bal0,
+                        bal1,
+                        pool.sqrtPriceX96,
+                        isToken0Native,
+                        isToken1Native,
+                        nativeUsdPrice
+                    )
+                } else if (pool.sqrtPriceX96 > 0n) {
                     if (isToken1Native) {
                         const value0 = (bal0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96)
                         map[pool.address.toLowerCase()] = Number(formatEther(value0 + bal1))
@@ -178,6 +163,21 @@ export function usePoolTvl(
                         const value1 = (bal1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
                         map[pool.address.toLowerCase()] = Number(formatEther(bal0 + value1))
                     }
+                }
+            } else {
+                // Non-native pools: use price-map from Ponder token snapshots
+                const price0 = priceMap.get(pool.token0.address.toLowerCase())
+                const price1 = priceMap.get(pool.token1.address.toLowerCase())
+
+                if (price0 != null && price1 != null) {
+                    map[pool.address.toLowerCase()] = computeTvlFromPrices(
+                        bal0,
+                        pool.token0.decimals,
+                        bal1,
+                        pool.token1.decimals,
+                        price0,
+                        price1
+                    )
                 }
             }
         }

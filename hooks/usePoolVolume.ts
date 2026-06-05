@@ -195,74 +195,78 @@ export function usePoolVolume(
                 }
             }
 
-            // Prefer price-map-based computation (works for ALL pools)
-            const price0 = priceMap.get(pool.token0.address.toLowerCase())
-            const price1 = priceMap.get(pool.token1.address.toLowerCase())
-
-            if (price0 != null && price1 != null) {
-                result[poolAddr] = {
-                    volume1d: computeVolumeFromPrices(
-                        vol1d0,
-                        pool.token0.decimals,
-                        vol1d1,
-                        pool.token1.decimals,
-                        price0,
-                        price1
-                    ),
-                    volume30d: computeVolumeFromPrices(
-                        vol30d0,
-                        pool.token0.decimals,
-                        vol30d1,
-                        pool.token1.decimals,
-                        price0,
-                        price1
-                    ),
-                }
-                continue
-            }
-
-            // Fallback: sqrtPriceX96-based (only works for native-containing pools)
             const isToken0Native = isAddr(pool.token0.address, wrappedNative)
             const isToken1Native = isAddr(pool.token1.address, wrappedNative)
 
-            if (nativeUsdPrice) {
-                result[poolAddr] = {
-                    volume1d: computeVolumeUsd(
-                        vol1d0,
-                        vol1d1,
-                        pool.sqrtPriceX96,
-                        isToken0Native,
-                        isToken1Native,
-                        nativeUsdPrice
-                    ),
-                    volume30d: computeVolumeUsd(
-                        vol30d0,
-                        vol30d1,
-                        pool.sqrtPriceX96,
-                        isToken0Native,
-                        isToken1Native,
-                        nativeUsdPrice
-                    ),
+            if (isToken0Native || isToken1Native) {
+                // Native-containing pools: use sqrtPriceX96-based computation
+                // (more reliable — uses pool's own on-chain price)
+                if (nativeUsdPrice) {
+                    result[poolAddr] = {
+                        volume1d: computeVolumeUsd(
+                            vol1d0,
+                            vol1d1,
+                            pool.sqrtPriceX96,
+                            isToken0Native,
+                            isToken1Native,
+                            nativeUsdPrice
+                        ),
+                        volume30d: computeVolumeUsd(
+                            vol30d0,
+                            vol30d1,
+                            pool.sqrtPriceX96,
+                            isToken0Native,
+                            isToken1Native,
+                            nativeUsdPrice
+                        ),
+                    }
+                } else if (pool.sqrtPriceX96 > 0n) {
+                    // Fallback: compute volume in native token terms (no USD conversion)
+                    let vol1dNative: bigint, vol30dNative: bigint
+                    if (isToken1Native) {
+                        vol1dNative =
+                            (vol1d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) + vol1d1
+                        vol30dNative =
+                            (vol30d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) +
+                            vol30d1
+                    } else if (isToken0Native) {
+                        vol1dNative =
+                            vol1d0 + (vol1d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
+                        vol30dNative =
+                            vol30d0 +
+                            (vol30d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
+                    } else {
+                        continue
+                    }
+                    result[poolAddr] = {
+                        volume1d: Number(formatEther(vol1dNative)),
+                        volume30d: Number(formatEther(vol30dNative)),
+                    }
                 }
-            } else if (pool.sqrtPriceX96 > 0n) {
-                // Fallback: compute volume in native token terms (no USD conversion)
-                let vol1dNative: bigint, vol30dNative: bigint
-                if (isToken1Native) {
-                    vol1dNative =
-                        (vol1d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) + vol1d1
-                    vol30dNative =
-                        (vol30d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) + vol30d1
-                } else if (isToken0Native) {
-                    vol1dNative =
-                        vol1d0 + (vol1d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
-                    vol30dNative =
-                        vol30d0 + (vol30d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
-                } else {
-                    continue
-                }
-                result[poolAddr] = {
-                    volume1d: Number(formatEther(vol1dNative)),
-                    volume30d: Number(formatEther(vol30dNative)),
+            } else {
+                // Non-native pools: use price-map from Ponder token snapshots
+                const price0 = priceMap.get(pool.token0.address.toLowerCase())
+                const price1 = priceMap.get(pool.token1.address.toLowerCase())
+
+                if (price0 != null && price1 != null) {
+                    result[poolAddr] = {
+                        volume1d: computeVolumeFromPrices(
+                            vol1d0,
+                            pool.token0.decimals,
+                            vol1d1,
+                            pool.token1.decimals,
+                            price0,
+                            price1
+                        ),
+                        volume30d: computeVolumeFromPrices(
+                            vol30d0,
+                            pool.token0.decimals,
+                            vol30d1,
+                            pool.token1.decimals,
+                            price0,
+                            price1
+                        ),
+                    }
                 }
             }
         }
