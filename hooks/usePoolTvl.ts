@@ -6,6 +6,7 @@ import type { Address } from 'viem'
 import { useReadContracts } from 'wagmi'
 import type { V3PoolData } from '@/types/earn'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
+import { useTokenPriceMap } from '@/hooks/use-token-price-map'
 
 const BALANCE_OF_ABI = [
     {
@@ -18,7 +19,7 @@ const BALANCE_OF_ABI = [
 ] as const
 
 const Q96 = 2n ** 96n
-const MAX_POOLS = 30
+const MAX_POOLS = 200
 
 function isAddr(a: string, b: string | undefined): boolean {
     return !!b && a.toLowerCase() === b.toLowerCase()
@@ -48,6 +49,19 @@ function deriveNativeUsdPrice(
         const priceRaw = (Q96 * Q96 * UNIT) / (sqrtPriceX96 * sqrtPriceX96)
         return Number(priceRaw) / 1e18
     }
+}
+
+function computeTvlFromPrices(
+    balance0: bigint,
+    decimals0: number,
+    balance1: bigint,
+    decimals1: number,
+    price0: number,
+    price1: number
+): number {
+    const human0 = Number(balance0) / Math.pow(10, decimals0)
+    const human1 = Number(balance1) / Math.pow(10, decimals1)
+    return human0 * price0 + human1 * price1
 }
 
 function computeTvlUsd(
@@ -87,6 +101,8 @@ export function usePoolTvl(
     const wrappedNative = config?.wrappedNative?.toLowerCase()
     const usdStable = config?.stables[0]?.toLowerCase()
 
+    const { priceMap, isLoading: isLoadingPrices } = useTokenPriceMap(chainId)
+
     const balanceResults = useReadContracts({
         contracts: cappedPools.flatMap((pool) => [
             {
@@ -110,7 +126,7 @@ export function usePoolTvl(
         },
     })
 
-    const isLoading = balanceResults.isLoading
+    const isLoading = balanceResults.isLoading || isLoadingPrices
 
     const tvlByAddress = useMemo(() => {
         if (!balanceResults.data || cappedPools.length === 0) return {}
@@ -124,6 +140,23 @@ export function usePoolTvl(
 
             if (bal0 === undefined || bal1 === undefined) continue
 
+            // Prefer price-map-based computation (works for ALL pools, not just native-containing)
+            const price0 = priceMap.get(pool.token0.address.toLowerCase())
+            const price1 = priceMap.get(pool.token1.address.toLowerCase())
+
+            if (price0 != null && price1 != null) {
+                map[pool.address.toLowerCase()] = computeTvlFromPrices(
+                    bal0,
+                    pool.token0.decimals,
+                    bal1,
+                    pool.token1.decimals,
+                    price0,
+                    price1
+                )
+                continue
+            }
+
+            // Fallback: sqrtPriceX96-based (only works for native-containing pools)
             const isToken0Native = isAddr(pool.token0.address, wrappedNative)
             const isToken1Native = isAddr(pool.token1.address, wrappedNative)
 
@@ -149,7 +182,7 @@ export function usePoolTvl(
             }
         }
         return map
-    }, [balanceResults.data, cappedPools, wrappedNative, usdStable])
+    }, [balanceResults.data, cappedPools, wrappedNative, usdStable, priceMap])
 
     return { tvlByAddress, isLoading }
 }

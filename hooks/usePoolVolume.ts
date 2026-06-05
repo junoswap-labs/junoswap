@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { formatEther } from 'viem'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
+import { useTokenPriceMap } from '@/hooks/use-token-price-map'
 import type { V3PoolData } from '@/types/earn'
 
 const SECONDS_PER_DAY = 86400
@@ -73,6 +74,19 @@ function deriveNativeUsdPrice(
     }
 }
 
+function computeVolumeFromPrices(
+    volumeToken0: bigint,
+    decimals0: number,
+    volumeToken1: bigint,
+    decimals1: number,
+    price0: number,
+    price1: number
+): number {
+    const human0 = Number(volumeToken0) / Math.pow(10, decimals0)
+    const human1 = Number(volumeToken1) / Math.pow(10, decimals1)
+    return human0 * price0 + human1 * price1
+}
+
 function computeVolumeUsd(
     volumeToken0: bigint,
     volumeToken1: bigint,
@@ -107,6 +121,8 @@ export function usePoolVolume(
     const wrappedNative = config?.wrappedNative?.toLowerCase()
     const usdStable = config?.stables[0]?.toLowerCase()
 
+    const { priceMap, isLoading: isLoadingPrices } = useTokenPriceMap(chainId)
+
     const poolAddresses = useMemo(() => pools.map((p) => p.address.toLowerCase()), [pools])
 
     const sinceTimestamp = useMemo(() => {
@@ -136,7 +152,7 @@ export function usePoolVolume(
     })
 
     const volumeByAddress = useMemo(() => {
-        if (!data || !wrappedNative) return {}
+        if (!data) return {}
 
         const nativeUsdPrice = deriveNativeUsdPrice(pools, wrappedNative, usdStable)
 
@@ -160,9 +176,6 @@ export function usePoolVolume(
             const pool = poolMap.get(poolAddr)
             if (!pool) continue
 
-            const isToken0Native = isAddr(pool.token0.address, wrappedNative)
-            const isToken1Native = isAddr(pool.token1.address, wrappedNative)
-
             let vol1d0 = 0n,
                 vol1d1 = 0n
             let vol30d0 = 0n,
@@ -181,6 +194,36 @@ export function usePoolVolume(
                     vol30d1 += vol1
                 }
             }
+
+            // Prefer price-map-based computation (works for ALL pools)
+            const price0 = priceMap.get(pool.token0.address.toLowerCase())
+            const price1 = priceMap.get(pool.token1.address.toLowerCase())
+
+            if (price0 != null && price1 != null) {
+                result[poolAddr] = {
+                    volume1d: computeVolumeFromPrices(
+                        vol1d0,
+                        pool.token0.decimals,
+                        vol1d1,
+                        pool.token1.decimals,
+                        price0,
+                        price1
+                    ),
+                    volume30d: computeVolumeFromPrices(
+                        vol30d0,
+                        pool.token0.decimals,
+                        vol30d1,
+                        pool.token1.decimals,
+                        price0,
+                        price1
+                    ),
+                }
+                continue
+            }
+
+            // Fallback: sqrtPriceX96-based (only works for native-containing pools)
+            const isToken0Native = isAddr(pool.token0.address, wrappedNative)
+            const isToken1Native = isAddr(pool.token1.address, wrappedNative)
 
             if (nativeUsdPrice) {
                 result[poolAddr] = {
@@ -225,7 +268,7 @@ export function usePoolVolume(
         }
 
         return result
-    }, [data, pools, wrappedNative, usdStable])
+    }, [data, pools, wrappedNative, usdStable, priceMap])
 
-    return { volumeByAddress, isLoading }
+    return { volumeByAddress, isLoading: isLoading || isLoadingPrices }
 }
