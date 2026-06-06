@@ -28,12 +28,6 @@ const TOKEN_SWAP_EVENTS_QUERY = `
         blockNumber
       }
     }
-    tokenSnapshots(where: { tokenAddr: $tokenAddr }) {
-      items {
-        totalBuys
-        totalSells
-      }
-    }
   }
 `
 
@@ -57,12 +51,6 @@ const V3_SWAP_EVENTS_QUERY = `
         blockNumber
       }
     }
-    tokenSnapshots(where: { tokenAddr: $tokenAddr }) {
-      items {
-        totalBuys
-        totalSells
-      }
-    }
   }
 `
 
@@ -80,12 +68,6 @@ interface BondingCurveSwapEventsResponse {
             blockNumber: number
         }>
     }
-    tokenSnapshots: {
-        items: Array<{
-            totalBuys: number
-            totalSells: number
-        }>
-    }
 }
 
 interface V3SwapEventsResponse {
@@ -99,12 +81,6 @@ interface V3SwapEventsResponse {
             timestamp: number
             transactionHash: string
             blockNumber: number
-        }>
-    }
-    tokenSnapshots: {
-        items: Array<{
-            totalBuys: number
-            totalSells: number
         }>
     }
 }
@@ -134,15 +110,21 @@ export function useTokenSwapEvents(
 
             const offset = (page - 1) * pageSize
 
+            // Fetch pageSize + 1 to detect whether there are more pages,
+            // then trim to pageSize for display. This avoids using
+            // tokenSnapshot.totalBuys/totalSells which inflates the count
+            // for graduated tokens (it includes both bonding curve AND V3 trades).
+            const fetchLimit = pageSize + 1
+
             // For graduated tokens, query V3 swap events from Ponder
             if (isGraduated) {
                 const result = await ponderRequest<V3SwapEventsResponse>(V3_SWAP_EVENTS_QUERY, {
                     tokenAddr: tokenAddr.toLowerCase(),
-                    limit: pageSize,
+                    limit: fetchLimit,
                     offset,
                 })
 
-                const data: SwapEventData[] = result.v3SwapEvents.items.map((e) => {
+                const allItems = result.v3SwapEvents.items.map((e) => {
                     const amount0 = BigInt(e.amount0)
                     const amount1 = BigInt(e.amount1)
 
@@ -167,10 +149,9 @@ export function useTokenSwapEvents(
                     }
                 })
 
-                const snapshot = result.tokenSnapshots.items[0]
-                const totalCount = snapshot
-                    ? snapshot.totalBuys + snapshot.totalSells
-                    : data.length + offset
+                const hasMore = allItems.length > pageSize
+                const data = hasMore ? allItems.slice(0, pageSize) : allItems
+                const totalCount = allItems.length + offset
 
                 return { data, totalCount }
             }
@@ -180,12 +161,12 @@ export function useTokenSwapEvents(
                 TOKEN_SWAP_EVENTS_QUERY,
                 {
                     tokenAddr: tokenAddr.toLowerCase(),
-                    limit: pageSize,
+                    limit: fetchLimit,
                     offset,
                 }
             )
 
-            const data = result.swapEvents.items.map((e) => ({
+            const allItems = result.swapEvents.items.map((e) => ({
                 blockNumber: BigInt(e.blockNumber),
                 timestamp: e.timestamp,
                 sender: e.sender as Address,
@@ -198,10 +179,9 @@ export function useTokenSwapEvents(
                 transactionHash: e.transactionHash as `0x${string}`,
             }))
 
-            const snapshot = result.tokenSnapshots.items[0]
-            const totalCount = snapshot
-                ? snapshot.totalBuys + snapshot.totalSells
-                : data.length + offset
+            const hasMore = allItems.length > pageSize
+            const data = hasMore ? allItems.slice(0, pageSize) : allItems
+            const totalCount = allItems.length + offset
 
             return { data, totalCount }
         },
