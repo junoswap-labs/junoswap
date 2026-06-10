@@ -517,6 +517,78 @@ export function calculateDeadline(deadlineMinutes: number): bigint {
     return BigInt(Math.floor(Date.now() / 1000) + deadlineMinutes * 60)
 }
 
+// ============ Graduation Helpers ============
+
+/**
+ * Pure BigInt integer square root using Newton's method.
+ * Returns floor(sqrt(n)) for n >= 0n.
+ * Used for precise sqrtPriceX96 calculations where floating-point loses precision.
+ */
+export function bigIntSqrt(n: bigint): bigint {
+    if (n < 0n) throw new Error('square root of negative')
+    if (n < 2n) return n
+
+    let x = 1n << ((_bitLength(n) + 1n) / 2n)
+    let y = (x + n / x) / 2n
+    while (y < x) {
+        x = y
+        y = (x + n / x) / 2n
+    }
+    return x
+}
+
+function _bitLength(n: bigint): bigint {
+    let len = 0n
+    while (n > 0n) {
+        n >>= 1n
+        len++
+    }
+    return len
+}
+
+/**
+ * Calculate the correct sqrtPriceX96 for graduation pool initialization.
+ *
+ * V3 formula: sqrtPriceX96 = sqrt(token1/token0) * 2^96
+ * Expanded:   sqrtPriceX96 = sqrt(amount1 * 2^192 / amount0)
+ *
+ * This avoids the integer division truncation in the contract's buggy formula
+ * (which does amount1/amount0 first, truncating to 0 when amount1 < amount0).
+ *
+ * Token sorting matches the contract: token0 is the lower address.
+ *
+ * `wrappedNative` is passed in (rather than imported) to keep this helper pure
+ * — tests for sibling functions in this module mock `@/lib/wagmi`, so reaching
+ * for `INTERMEDIARY_TOKENS` at import time breaks their mocks.
+ */
+export function calculateGraduationSqrtPriceX96(
+    tokenAddr: `0x${string}`,
+    wrappedNative: `0x${string}`,
+    nativeReserve: bigint,
+    tokenReserve: bigint
+): bigint {
+    if (nativeReserve <= 0n || tokenReserve <= 0n) {
+        throw new Error('Invalid reserves for sqrtPriceX96 calculation')
+    }
+
+    // Sort tokens exactly as the contract does
+    const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
+
+    // Map reserves: token0 amount and token1 amount
+    const amount0 = tokenIsToken0 ? tokenReserve : nativeReserve
+    const amount1 = tokenIsToken0 ? nativeReserve : tokenReserve
+
+    // Correct formula: multiply FIRST, then divide — avoids truncation
+    const Q192 = 2n ** 192n
+    const priceX192 = (amount1 * Q192) / amount0
+
+    const sqrtPriceX96 = bigIntSqrt(priceX192)
+
+    // Clamp to uint160
+    const MAX_UINT160 = (1n << 160n) - 1n
+    return sqrtPriceX96 > MAX_UINT160 ? MAX_UINT160 : sqrtPriceX96
+}
+
 // ============ Token Sorting ============
 
 /**

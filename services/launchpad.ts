@@ -113,14 +113,19 @@ export function formatCompact(num: number): string {
 }
 
 /**
- * Check if token is ready to graduate (threshold met but not yet graduated on-chain)
+ * Check if token is ready to graduate.
+ * Uses the same ratio check as the contract: tokenReserve / nativeReserve <= INITIALTOKEN / graduationAmount
+ * Equivalent to: tokenReserve * graduationAmount <= INITIALTOKEN * nativeReserve
  */
 export function isReadyToGraduate(
     nativeReserve: bigint,
+    tokenReserve: bigint,
     graduationAmount: bigint,
     isGraduated: boolean
 ): boolean {
-    return !isGraduated && graduationAmount > 0n && nativeReserve >= graduationAmount
+    if (isGraduated || graduationAmount === 0n) return false
+    const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
+    return tokenReserve * graduationAmount <= INITIAL_TOKEN * nativeReserve
 }
 
 /**

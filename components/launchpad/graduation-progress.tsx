@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
     nativeReserve: bigint
+    tokenReserve: bigint
     graduationAmount: bigint
     isGraduated: boolean
     isGraduating?: boolean
@@ -15,6 +16,7 @@ interface GraduationProgressProps {
 
 export function GraduationProgress({
     nativeReserve,
+    tokenReserve,
     graduationAmount,
     isGraduated,
     isGraduating = false,
@@ -42,7 +44,7 @@ export function GraduationProgress({
         )
     }
 
-    const ready = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
+    const ready = isReadyToGraduate(nativeReserve, tokenReserve, graduationAmount, isGraduated)
     const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
 
     if (ready) {

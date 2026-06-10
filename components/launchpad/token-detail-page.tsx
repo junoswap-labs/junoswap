@@ -290,6 +290,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                     <h4 className="mb-2 text-sm font-semibold">Bonding Curve</h4>
                                     <GraduationProgress
                                         nativeReserve={nativeReserve}
+                                        tokenReserve={tokenReserve}
                                         graduationAmount={graduationAmount}
                                         isGraduated={!!isGraduated}
                                     />

@@ -104,14 +104,21 @@ export function TokenTradeCard({
         refetch: refetchReserves,
     } = useTokenReserves({ tokenAddr, isGraduated: _initialIsGraduated })
 
-    const readyToGraduate = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
+    const readyToGraduate = isReadyToGraduate(
+        nativeReserve,
+        tokenReserve,
+        graduationAmount,
+        isGraduated
+    )
 
     // Graduate hook
     const {
         graduate,
+        step: graduateStep,
+        stepLabel: graduateStepLabel,
+        needsRescue,
         isPreparing: isGraduatePreparing,
         isExecuting: isGraduateExecuting,
-        isConfirming: isGraduateConfirming,
         isSuccess: isGraduateSuccess,
         isError: isGraduateError,
         error: graduateError,
@@ -410,8 +417,13 @@ export function TokenTradeCard({
                                     Ready to Graduate!
                                 </p>
                                 <p className="mt-2 text-sm text-muted-foreground">
-                                    This token has reached the graduation threshold. Anyone can
-                                    trigger graduation to move it to Junoswap.
+                                    {graduateStep === 'done'
+                                        ? 'Token has been successfully graduated to Junoswap V3.'
+                                        : graduateStep === 'error'
+                                          ? 'Graduation failed. Please try again.'
+                                          : needsRescue
+                                            ? 'Pool price needs correction before graduation. This will be handled automatically.'
+                                            : 'This token has reached the graduation threshold. Anyone can trigger graduation to move it to Junoswap.'}
                                 </p>
                             </div>
                             <Button
@@ -422,18 +434,20 @@ export function TokenTradeCard({
                                 disabled={
                                     isGraduatePreparing ||
                                     isGraduateExecuting ||
-                                    isGraduateConfirming
+                                    graduateStep === 'done'
                                 }
                             >
                                 {isGraduateExecuting
-                                    ? 'Graduating...'
-                                    : isGraduateConfirming
-                                      ? 'Confirming...'
-                                      : 'Graduate Token'}
+                                    ? graduateStepLabel || 'Processing...'
+                                    : isGraduatePreparing
+                                      ? 'Preparing...'
+                                      : graduateStep === 'done'
+                                        ? 'Graduated ✓'
+                                        : 'Graduate Token'}
                             </Button>
-                            {isGraduatePreparing && (
+                            {(isGraduatePreparing || isGraduateExecuting) && (
                                 <p className="text-xs text-muted-foreground">
-                                    Preparing transaction...
+                                    {graduateStepLabel || 'Preparing transaction...'}
                                 </p>
                             )}
                         </div>
