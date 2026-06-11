@@ -53,10 +53,10 @@ export function PointsContent() {
                     <div className="relative w-full sm:max-w-sm">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                            placeholder="Search wallet address..."
+                            placeholder="Search wallet address"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 rounded-lg border border-input bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/30"
                         />
                     </div>
                 </div>

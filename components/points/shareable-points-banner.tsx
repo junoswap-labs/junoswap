@@ -96,7 +96,7 @@ export function ShareablePointsBanner({
             {/* The card that gets captured as an image */}
             <div ref={cardRef} className="overflow-hidden rounded-xl bg-card">
                 <div
-                    className={`card-glow relative overflow-hidden rounded-xl bg-gradient-to-br ${getTierGradientFrom(resolvedTier.name)} via-card to-card`}
+                    className={`card-glow relative overflow-hidden rounded-xl border bg-gradient-to-br ${getTierGradientFrom(resolvedTier.name)} via-card to-card`}
                 >
                     <div className="px-5 py-5 sm:px-7 sm:py-6">
                         {/* Header: Logo + Share button */}

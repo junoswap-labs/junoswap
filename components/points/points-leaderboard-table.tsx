@@ -113,7 +113,7 @@ export function PointsLeaderboardTable({
     const header = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                <TableHead className="w-12 whitespace-nowrap">Rank</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Wallet</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Tier</TableHead>
                 <SortableHead
@@ -179,7 +179,7 @@ export function PointsLeaderboardTable({
                                 className={cn(
                                     'cursor-pointer transition-colors hover:bg-muted/30',
                                     i % 2 === 1 && 'bg-muted/10',
-                                    isUser && 'bg-primary/5 border-l-2 border-l-primary'
+                                    isUser && 'bg-primary/5'
                                 )}
                                 onClick={() =>
                                     window.open(

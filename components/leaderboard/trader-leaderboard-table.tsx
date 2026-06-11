@@ -142,7 +142,7 @@ export function TraderLeaderboardTable({
     const tableHeader = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                <TableHead className="w-12 whitespace-nowrap">Rank</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Wallet</TableHead>
                 <SortableHead
                     label="Net Worth"
