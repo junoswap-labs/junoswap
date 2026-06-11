@@ -7,7 +7,7 @@ import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-pric
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import { PortfolioSummary } from '@/components/portfolio/portfolio-summary'
-import { TokenTable } from '@/components/portfolio/token-table'
+import { TokenList } from '@/components/portfolio/token-list'
 import { usePortfolioTokens } from '@/hooks/usePortfolioTokens'
 import { usePortfolioBalances } from '@/hooks/usePortfolioBalances'
 import { usePortfolioPrices } from '@/hooks/usePortfolioPrices'
@@ -115,7 +115,7 @@ export function PortfolioContent() {
 
                 <PortfolioSummary summary={summary} isLoading={isLoading} />
 
-                <TokenTable tokens={portfolioTokens} isLoading={isLoading} />
+                <TokenList tokens={portfolioTokens} isLoading={isLoading} />
             </div>
         </div>
     )
