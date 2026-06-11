@@ -18,10 +18,9 @@ import { RecentTrades } from './recent-trades'
 import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
-import type { DailyMetrics } from '@/services/chart'
 import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 
 interface TokenDetailPageProps {
     tokenAddr: Address
@@ -71,13 +70,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const symbol = tokenInfo?.symbol || 'TOKEN'
     const name = tokenInfo?.name || 'Unknown Token'
     const decimals = 18 // Launch tokens always use 18 decimals
-
     const [copied, setCopied] = useState(false)
-    const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null)
-
-    const handleDailyMetricsChange = useCallback((metrics: DailyMetrics | null) => {
-        setDailyMetrics(metrics)
-    }, [])
 
     const copyAddress = () => {
         navigator.clipboard.writeText(tokenAddr)
@@ -173,7 +166,9 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         marketCap={marketCap}
                         isGraduated={isGraduated}
                         athMarketCap={athMarketCap}
-                        priceChange1dPct={dailyMetrics?.priceChange1dPct ?? null}
+                        priceChange1dPct={
+                            snapshotMap.get(tokenAddr.toLowerCase())?.priceChange1dPct ?? null
+                        }
                     />
 
                     {/* Chart */}
@@ -185,7 +180,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         isGraduated={isGraduated}
                         poolAddress={poolAddress}
                         graduatedAt={tokenInfo?.graduatedAt ?? null}
-                        onDailyMetricsChange={handleDailyMetricsChange}
                     />
 
                     {/* About token */}

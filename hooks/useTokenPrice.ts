@@ -1,9 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { formatEther } from 'viem'
 import type { Address } from 'viem'
 import { ponderRequest } from '@/lib/ponder-client'
+import { calculatePrice } from '@/lib/price-utils'
 
 const TOKEN_PRICE_QUERY = `
   query TokenPrice($tokenAddr: String!, $oneDayAgo: Int!) {
@@ -40,14 +40,6 @@ interface TokenPriceResponse {
             amountOut: string
         }>
     }
-}
-
-function calculatePrice(isBuy: boolean, amountIn: bigint, amountOut: bigint): number {
-    if (amountIn === 0n || amountOut === 0n) return 0
-    const inNum = parseFloat(formatEther(amountIn))
-    const outNum = parseFloat(formatEther(amountOut))
-    if (outNum === 0 || inNum === 0) return 0
-    return isBuy ? inNum / outNum : outNum / inNum
 }
 
 interface UseTokenPriceResult {

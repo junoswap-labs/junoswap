@@ -326,6 +326,31 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
         parseFloat(existingSnapshot.athMarketCapNative ?? '0')
     ).toString()
 
+    // Compute 24h price change
+    let price1dAgo: string | null = existingSnapshot.price1dAgo ?? null
+    let price1dAgoTimestamp: number | null = existingSnapshot.price1dAgoTimestamp ?? null
+    let priceChange1dPct: string | null = existingSnapshot.priceChange1dPct ?? null
+
+    // At the first swap of each new UTC day, capture the reference price
+    const currentDayStart = Math.floor(timestamp / 86400) * 86400
+    const refDayStart = existingSnapshot.price1dAgoTimestamp
+        ? Math.floor(existingSnapshot.price1dAgoTimestamp / 86400) * 86400
+        : null
+
+    if (refDayStart === null || currentDayStart > refDayStart) {
+        if ((existingSnapshot.lastSwapAt ?? 0) > 0) {
+            price1dAgo = existingSnapshot.lastPrice ?? '0'
+            price1dAgoTimestamp = existingSnapshot.lastSwapAt ?? null
+        }
+    }
+
+    if (price1dAgo !== null && price1dAgo !== '0') {
+        const pastPrice = parseFloat(price1dAgo)
+        if (pastPrice > 0 && priceNative > 0) {
+            priceChange1dPct = (((priceNative - pastPrice) / pastPrice) * 100).toString()
+        }
+    }
+
     await context.db.update(schema.tokenSnapshot, { tokenAddr: launchTokenAddr }).set({
         lastPrice: priceNative > 0 ? priceNative.toString() : existingSnapshot.lastPrice,
         lastPriceUsd: priceUsd > 0 ? priceUsd.toString() : (existingSnapshot.lastPriceUsd ?? '0'),
@@ -337,6 +362,9 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
             BigInt(existingSnapshot.totalVolumeNative ?? '0') + nativeVolume
         ).toString(),
         lastSwapAt: timestamp,
+        price1dAgo,
+        price1dAgoTimestamp,
+        priceChange1dPct,
         updatedAt: timestamp,
     })
 })

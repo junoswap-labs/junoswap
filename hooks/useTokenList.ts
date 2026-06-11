@@ -30,10 +30,15 @@ const TOKEN_LIST_QUERY = `
         lastSwapAt
         marketCapNative
         athMarketCapNative
+        lastPrice
+        price1dAgoTimestamp
+        priceChange1dPct
       }
     }
   }
 `
+
+const STALENESS_TOLERANCE = 3600 // 1 hour — hide badge if reference price is >1h before the 24h mark
 
 interface TokenListResponse {
     launchTokens: {
@@ -58,6 +63,9 @@ interface TokenListResponse {
             lastSwapAt: number
             marketCapNative: string
             athMarketCapNative: string
+            lastPrice: string
+            price1dAgoTimestamp: number | null
+            priceChange1dPct: string | null
         }>
     }
 }
@@ -66,6 +74,8 @@ interface SnapshotData {
     lastSwapAt: number
     marketCapNative: string
     athMarketCapNative: string
+    lastPrice: string
+    priceChange1dPct: number | null
 }
 
 interface UseTokenListResult {
@@ -101,12 +111,21 @@ export function useTokenList(): UseTokenListResult {
                     isGraduated: t.isGraduated === 1,
                 })
             )
+            const now = Math.floor(Date.now() / 1000)
+            const cutoff = now - 86400
             const snapshotMap = new Map<string, SnapshotData>()
             for (const s of data.tokenSnapshots.items) {
+                const changePct = s.priceChange1dPct ? parseFloat(s.priceChange1dPct) : null
+                // Hide badge if the reference price timestamp is too far from the 24h mark
+                const isStale =
+                    s.price1dAgoTimestamp == null ||
+                    s.price1dAgoTimestamp < cutoff - STALENESS_TOLERANCE
                 snapshotMap.set(s.tokenAddr.toLowerCase(), {
                     lastSwapAt: s.lastSwapAt,
                     marketCapNative: s.marketCapNative,
                     athMarketCapNative: s.athMarketCapNative,
+                    lastPrice: s.lastPrice,
+                    priceChange1dPct: isStale ? null : changePct,
                 })
             }
             return { tokens, snapshotMap }

@@ -46,6 +46,9 @@ function defaultSnapshot(tokenAddr: string) {
         totalVolumeNative: '0',
         holderCount: 0,
         lastSwapAt: 0,
+        price1dAgo: null as string | null,
+        price1dAgoTimestamp: null as number | null,
+        priceChange1dPct: null as string | null,
         updatedAt: 0,
     }
 }
@@ -130,6 +133,31 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     const balanceChange = isBuy ? amountOut : -amountIn
     const newBalance = oldBalance + balanceChange
 
+    // 5b. Compute 24h price change
+    let price1dAgo: string | null = snap.price1dAgo ?? null
+    let price1dAgoTimestamp: number | null = snap.price1dAgoTimestamp ?? null
+    let priceChange1dPct: string | null = snap.priceChange1dPct ?? null
+
+    // At the first swap of each new UTC day, capture the reference price
+    const currentDayStart = Math.floor(timestamp / 86400) * 86400
+    const refDayStart = snap.price1dAgoTimestamp
+        ? Math.floor(snap.price1dAgoTimestamp / 86400) * 86400
+        : null
+
+    if (refDayStart === null || currentDayStart > refDayStart) {
+        if ((snap.lastSwapAt ?? 0) > 0) {
+            price1dAgo = snap.lastPrice ?? '0'
+            price1dAgoTimestamp = snap.lastSwapAt ?? null
+        }
+    }
+
+    if (price1dAgo !== null && price1dAgo !== '0') {
+        const pastPrice = parseFloat(price1dAgo)
+        if (pastPrice > 0 && price > 0) {
+            priceChange1dPct = (((price - pastPrice) / pastPrice) * 100).toString()
+        }
+    }
+
     let holderCount = snap.holderCount ?? 0
     const oldPositive = oldBalance > 0n
     const newPositive = newBalance > 0n
@@ -151,6 +179,9 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
                 totalVolumeNative: volume.toString(),
                 holderCount,
                 lastSwapAt: timestamp,
+                price1dAgo,
+                price1dAgoTimestamp,
+                priceChange1dPct,
                 updatedAt: timestamp,
             })
             .onConflictDoNothing()
@@ -165,6 +196,9 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
             totalVolumeNative: (BigInt(snap.totalVolumeNative ?? '0') + volume).toString(),
             holderCount,
             lastSwapAt: timestamp,
+            price1dAgo,
+            price1dAgoTimestamp,
+            priceChange1dPct,
             updatedAt: timestamp,
         })
     }

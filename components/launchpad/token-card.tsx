@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
 import type { LaunchToken } from '@/types/launchpad'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
@@ -14,6 +15,7 @@ interface TokenCardProps {
     marketCap?: string
     athMarketCap?: string
     isGraduated?: boolean
+    priceChange1dPct?: number | null
 }
 
 export function TokenCard({
@@ -23,6 +25,7 @@ export function TokenCard({
     marketCap,
     athMarketCap,
     isGraduated,
+    priceChange1dPct,
 }: TokenCardProps) {
     const { nativeUsdPrice } = useNativeUsdPriceContext()
     const symbol = tokenSymbol || token.symbol || '???'
@@ -84,6 +87,19 @@ export function TokenCard({
                                         {nativeUsdPrice !== null
                                             ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
                                             : `${formatCompact(parseFloat(marketCap))} KUB`}
+                                        {priceChange1dPct != null && (
+                                            <span
+                                                className={cn(
+                                                    'ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums',
+                                                    priceChange1dPct >= 0
+                                                        ? 'bg-emerald-500/15 text-emerald-500'
+                                                        : 'bg-red-500/15 text-red-500'
+                                                )}
+                                            >
+                                                {priceChange1dPct >= 0 ? '+' : ''}
+                                                {priceChange1dPct.toFixed(2)}%
+                                            </span>
+                                        )}
                                     </span>
                                 )}
                                 {athMarketCap && parseFloat(athMarketCap) > 0 && (

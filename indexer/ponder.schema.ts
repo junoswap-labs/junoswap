@@ -41,6 +41,9 @@ export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     totalVolumeNative: t.text().default('0'),
     holderCount: t.integer().default(0),
     lastSwapAt: t.integer(),
+    price1dAgo: t.text(),
+    price1dAgoTimestamp: t.integer(),
+    priceChange1dPct: t.text(),
     updatedAt: t.integer().notNull(),
 }))
 
