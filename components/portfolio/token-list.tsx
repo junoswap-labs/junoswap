@@ -1,10 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TokenCard } from '@/components/portfolio/token-card'
 import type { PortfolioToken } from '@/types/portfolio'
+
+const SMALL_VALUE_THRESHOLD = 1 // USD
 
 interface TokenListProps {
     tokens: PortfolioToken[]
@@ -12,9 +15,20 @@ interface TokenListProps {
 }
 
 export function TokenList({ tokens, isLoading }: TokenListProps) {
+    const [showSmallBalances, setShowSmallBalances] = useState(false)
+
     const sorted = useMemo(() => {
         return [...tokens].sort((a, b) => b.valueUsd - a.valueUsd)
     }, [tokens])
+
+    const { visible, hidden } = useMemo(() => {
+        const visible: PortfolioToken[] = []
+        const hidden: PortfolioToken[] = []
+        for (const t of sorted) {
+            ;(t.valueUsd >= SMALL_VALUE_THRESHOLD ? visible : hidden).push(t)
+        }
+        return { visible, hidden }
+    }, [sorted])
 
     if (isLoading) {
         return (
@@ -54,9 +68,37 @@ export function TokenList({ tokens, isLoading }: TokenListProps) {
 
     return (
         <div className="space-y-3">
-            {sorted.map((token) => (
+            {visible.map((token) => (
                 <TokenCard key={token.token.address.toLowerCase()} portfolioToken={token} />
             ))}
+
+            {hidden.length > 0 && (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => setShowSmallBalances((v) => !v)}
+                        className="flex w-full items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        {showSmallBalances ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                        <span className="font-mono">
+                            {showSmallBalances ? 'Hide' : 'Show'} {hidden.length} small balance
+                            {hidden.length !== 1 ? 's' : ''} (&lt;$1)
+                        </span>
+                    </button>
+
+                    {showSmallBalances &&
+                        hidden.map((token) => (
+                            <TokenCard
+                                key={token.token.address.toLowerCase()}
+                                portfolioToken={token}
+                            />
+                        ))}
+                </>
+            )}
         </div>
     )
 }
