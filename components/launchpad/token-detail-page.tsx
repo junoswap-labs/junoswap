@@ -254,6 +254,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         tokenSymbol={symbol}
                         poolAddress={poolAddress}
                         isGraduated={isGraduated}
+                        creatorAddress={tokenInfo?.creator}
                     />
                 </div>
 
