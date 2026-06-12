@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
@@ -37,32 +38,13 @@ export function TokenCard({
             <Card className="relative transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
                 <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
                     {/* Large coin image - left side */}
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted lg:h-[120px] lg:w-[120px]">
-                        {token.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={token.logo}
-                                alt={symbol}
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                    const el = e.target as HTMLImageElement
-                                    el.style.display = 'none'
-                                    const parent = el.parentElement
-                                    if (parent && !parent.querySelector('span')) {
-                                        const fallback = document.createElement('span')
-                                        fallback.className =
-                                            'text-lg sm:text-2xl lg:text-3xl font-black text-muted-foreground/50'
-                                        fallback.textContent = symbol.slice(0, 3)
-                                        parent.appendChild(fallback)
-                                    }
-                                }}
-                            />
-                        ) : (
-                            <span className="text-lg font-black text-muted-foreground/50 sm:text-2xl lg:text-3xl">
-                                {symbol.slice(0, 3)}
-                            </span>
-                        )}
-                    </div>
+                    <TokenIcon
+                        src={token.logo}
+                        symbol={symbol}
+                        size="xl"
+                        variant="square"
+                        className="h-24 w-24 lg:h-[120px] lg:w-[120px]"
+                    />
 
                     {/* Info - right side */}
                     <div className="min-w-0 flex-1 py-0.5">

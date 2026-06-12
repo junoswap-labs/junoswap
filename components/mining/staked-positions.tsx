@@ -5,7 +5,7 @@ import { useAccount, useChainId } from 'wagmi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { TokenIconPair, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import type { StakedPosition } from '@/types/earn'
@@ -30,8 +30,8 @@ function LoadingState() {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="flex -space-x-2">
-                                        <div className="h-9 w-9 rounded-full bg-muted" />
-                                        <div className="h-9 w-9 rounded-full bg-muted" />
+                                        <TokenIconSkeleton size="md" />
+                                        <TokenIconSkeleton size="md" />
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="h-4 w-28 bg-muted rounded" />
@@ -169,26 +169,13 @@ function StakedPositionCard({ stakedPosition, onUnstake }: StakedPositionCardPro
                 {/* Header: Identity + Status */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="flex -space-x-2">
-                            <Avatar className="h-9 w-9 shrink-0 border-2 border-background">
-                                <AvatarImage
-                                    src={position.token0Info.logo}
-                                    alt={position.token0Info.symbol}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {position.token0Info.symbol.slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <Avatar className="h-9 w-9 shrink-0 border-2 border-background">
-                                <AvatarImage
-                                    src={position.token1Info.logo}
-                                    alt={position.token1Info.symbol}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {position.token1Info.symbol.slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
+                        <TokenIconPair
+                            src0={position.token0Info.logo}
+                            symbol0={position.token0Info.symbol}
+                            src1={position.token1Info.logo}
+                            symbol1={position.token1Info.symbol}
+                            size="md"
+                        />
                         <div>
                             <div className="flex items-center gap-2">
                                 <span className="font-semibold">

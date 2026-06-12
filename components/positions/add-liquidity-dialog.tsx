@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { ArrowUpDown, ArrowRight } from 'lucide-react'
 import { RangeSelector } from './range-selector'
 import { TokenSelect } from '@/components/swap/token-select'
@@ -481,13 +482,11 @@ export function AddLiquidityDialog() {
                                 <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            {token0.logo && (
-                                                <img
-                                                    src={token0.logo}
-                                                    alt={token0.symbol}
-                                                    className="h-5 w-5 rounded-full object-cover"
-                                                />
-                                            )}
+                                            <TokenIcon
+                                                src={token0.logo}
+                                                symbol={token0.symbol}
+                                                size="xs"
+                                            />
                                             <span className="text-sm font-medium">
                                                 {token0.symbol}
                                             </span>
@@ -548,13 +547,11 @@ export function AddLiquidityDialog() {
                                 <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            {token1.logo && (
-                                                <img
-                                                    src={token1.logo}
-                                                    alt={token1.symbol}
-                                                    className="h-5 w-5 rounded-full object-cover"
-                                                />
-                                            )}
+                                            <TokenIcon
+                                                src={token1.logo}
+                                                symbol={token1.symbol}
+                                                size="xs"
+                                            />
                                             <span className="text-sm font-medium">
                                                 {token1.symbol}
                                             </span>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { TokenIconPair } from '@/components/ui/token-icon'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { formatTokenAmount } from '@/services/tokens'
@@ -52,26 +52,13 @@ export function IncentiveRow({ incentive, onStake }: IncentiveRowProps) {
             {/* Pool */}
             <TableCell>
                 <div className="flex items-center gap-3">
-                    <div className="flex -space-x-2">
-                        <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-                            <AvatarImage
-                                src={incentive.poolToken0.logo}
-                                alt={incentive.poolToken0.symbol}
-                            />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {incentive.poolToken0.symbol.slice(0, 2)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-                            <AvatarImage
-                                src={incentive.poolToken1.logo}
-                                alt={incentive.poolToken1.symbol}
-                            />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {incentive.poolToken1.symbol.slice(0, 2)}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
+                    <TokenIconPair
+                        src0={incentive.poolToken0.logo}
+                        symbol0={incentive.poolToken0.symbol}
+                        src1={incentive.poolToken1.logo}
+                        symbol1={incentive.poolToken1.symbol}
+                        size="sm"
+                    />
                     <div className="flex items-center gap-2">
                         <span className="font-medium">
                             {incentive.poolToken0.symbol} / {incentive.poolToken1.symbol}

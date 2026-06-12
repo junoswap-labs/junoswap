@@ -7,7 +7,7 @@ import { ArrowDown, ArrowUp, Layers, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { TokenIconPair, TokenIconSkeleton } from '@/components/ui/token-icon'
 import {
     Table,
     TableBody,
@@ -115,20 +115,13 @@ function PoolRow({
         <TableRow className="border-0">
             <TableCell className="p-3">
                 <div className="flex items-center gap-3">
-                    <div className="flex -space-x-2">
-                        <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-                            <AvatarImage src={display0.logo} alt={display0.symbol} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {display0.symbol.slice(0, 2)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-                            <AvatarImage src={display1.logo} alt={display1.symbol} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {display1.symbol.slice(0, 2)}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
+                    <TokenIconPair
+                        src0={display0.logo}
+                        symbol0={display0.symbol}
+                        src1={display1.logo}
+                        symbol1={display1.symbol}
+                        size="sm"
+                    />
                     <span className="font-medium">
                         {display0.symbol} / {display1.symbol}
                     </span>
@@ -193,8 +186,8 @@ function LoadingState() {
                     <TableCell className="p-3">
                         <div className="flex items-center gap-3">
                             <div className="flex -space-x-2">
-                                <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-                                <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+                                <TokenIconSkeleton size="sm" />
+                                <TokenIconSkeleton size="sm" />
                             </div>
                             <div className="h-4 w-24 bg-muted rounded animate-pulse" />
                         </div>

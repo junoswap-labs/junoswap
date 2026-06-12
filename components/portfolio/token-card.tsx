@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -56,12 +56,7 @@ export function TokenCard({ portfolioToken }: TokenCardProps) {
                     <div className="flex items-center justify-between gap-3">
                         {/* Token identity + hover action button */}
                         <div className="flex items-center gap-3 min-w-0">
-                            <Avatar className="h-9 w-9 shrink-0">
-                                <AvatarImage src={token.logo} alt={token.symbol} />
-                                <AvatarFallback className="text-xs bg-muted">
-                                    {token.symbol.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
+                            <TokenIcon src={token.logo} symbol={token.symbol} size="md" />
                             <div className="relative min-w-0">
                                 <div className="flex items-center gap-1.5 transition-opacity duration-150 group-hover:opacity-0">
                                     <span className="font-medium text-sm truncate">

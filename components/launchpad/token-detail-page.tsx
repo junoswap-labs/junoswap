@@ -9,6 +9,7 @@ import { useTokenList } from '@/hooks/useTokenList'
 import { useGraduatedPoolAddress } from '@/hooks/useGraduatedPoolAddress'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { ExplorerLink } from '@/components/ui/explorer-link'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { TokenTradeCard } from './token-trade-card'
@@ -101,23 +102,12 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                     <div className="flex items-start justify-between gap-4">
                         {/* Token identity */}
                         <div className="flex items-center gap-2.5 md:gap-3">
-                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-                                {tokenInfo?.logo ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={tokenInfo.logo}
-                                        alt={symbol}
-                                        className="h-full w-full object-cover"
-                                        onError={(e) => {
-                                            ;(e.target as HTMLImageElement).style.display = 'none'
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-base font-bold text-muted-foreground">
-                                        {symbol.slice(0, 2)}
-                                    </div>
-                                )}
-                            </div>
+                            <TokenIcon
+                                src={tokenInfo?.logo}
+                                symbol={symbol}
+                                size="xl"
+                                variant="square"
+                            />
                             <div>
                                 <div>
                                     <h1 className="text-lg font-bold md:text-xl">{name}</h1>
