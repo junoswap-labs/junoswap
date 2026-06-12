@@ -3,6 +3,8 @@
  * Talks to Ponder directly via PONDER_URL (never imported client-side).
  */
 
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+
 export interface LaunchTokenMeta {
     address: string
     name: string
@@ -12,6 +14,8 @@ export interface LaunchTokenMeta {
     isGraduated: boolean
     marketCapNative: number | null
     priceChange1dPct: number | null
+    /** Native (KUB) → USD price for the launchpad chain, mirrors the trade UI. */
+    nativeUsdPrice: number | null
 }
 
 const TOKEN_META_QUERY = `
@@ -31,6 +35,11 @@ const TOKEN_META_QUERY = `
         tokenAddr
         marketCapNative
         priceChange1dPct
+      }
+    }
+    nativeUsdPrices(where: { chainId: ${PUMP_CORE_NATIVE_CHAIN_ID} }, limit: 1) {
+      items {
+        price
       }
     }
   }
@@ -54,6 +63,9 @@ interface TokenMetaResponse {
                 marketCapNative: string
                 priceChange1dPct: string | null
             }>
+        }
+        nativeUsdPrices: {
+            items: Array<{ price: string }>
         }
     }
 }
@@ -82,6 +94,9 @@ export async function fetchLaunchTokenMeta(address: string): Promise<LaunchToken
         const snapshot = data.tokenSnapshots.items.find((s) => s.tokenAddr.toLowerCase() === addr)
         const marketCap = snapshot ? parseFloat(snapshot.marketCapNative) : NaN
 
+        const rawUsd = data.nativeUsdPrices.items[0]?.price
+        const nativeUsdPrice = rawUsd ? parseFloat(rawUsd) : NaN
+
         return {
             address,
             name: token.name ?? '',
@@ -93,6 +108,8 @@ export async function fetchLaunchTokenMeta(address: string): Promise<LaunchToken
             priceChange1dPct: snapshot?.priceChange1dPct
                 ? parseFloat(snapshot.priceChange1dPct)
                 : null,
+            nativeUsdPrice:
+                Number.isFinite(nativeUsdPrice) && nativeUsdPrice > 0 ? nativeUsdPrice : null,
         }
     } catch {
         return null

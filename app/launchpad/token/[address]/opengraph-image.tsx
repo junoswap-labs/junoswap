@@ -8,21 +8,35 @@ export const alt = 'Junoswap Launchpad token'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-const BRAND_FROM = '#ff3333'
+// Mirror the share-modal card (components/launchpad/share-token-dialog.tsx).
+const BRAND_FROM = '#ff3333' // primary (hsl(0 100% 60%))
 const BRAND_TO = '#FF914D'
-const BG = '#0a0e14'
+const CARD_BG = '#0a0e14'
+const EMERALD_BG = 'rgba(16,185,129,0.15)'
+const EMERALD_TEXT = '#34d399'
+const RED_BG = 'rgba(239,68,68,0.15)'
+const RED_TEXT = '#f87171'
 
-async function loadPlatformLogo(): Promise<string | null> {
+// Formats satori can rasterize — webp and others crash the renderer.
+const SATORI_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml']
+
+/**
+ * The modal renders its logo glyph with a CSS gradient `mask-image`, which satori
+ * doesn't support. Instead we recolor logo.svg's white fills to the brand gradient
+ * directly (resvg renders SVG gradients), giving the same gradient glyph.
+ */
+async function loadBrandLogo(): Promise<string | null> {
     try {
-        const svg = await readFile(join(process.cwd(), 'public', 'logo.svg'))
-        return `data:image/svg+xml;base64,${svg.toString('base64')}`
+        let svg = (await readFile(join(process.cwd(), 'public', 'logo.svg'))).toString('utf8')
+        const grad = `<linearGradient id="brandGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="750" y2="750"><stop offset="0" stop-color="${BRAND_FROM}"/><stop offset="1" stop-color="${BRAND_TO}"/></linearGradient>`
+        svg = svg
+            .replace('<defs>', `<defs>${grad}`)
+            .replaceAll('fill="#ffffff"', 'fill="url(#brandGrad)"')
+        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
     } catch {
         return null
     }
 }
-
-// Formats satori can rasterize — webp and others crash the renderer
-const SATORI_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml']
 
 async function loadTokenLogo(url: string): Promise<string | null> {
     if (!url || !url.startsWith('http')) return null
@@ -43,141 +57,140 @@ async function loadTokenLogo(url: string): Promise<string | null> {
 
 export default async function Image({ params }: { params: Promise<{ address: string }> }) {
     const { address } = await params
-    const [token, platformLogo] = await Promise.all([
-        fetchLaunchTokenMeta(address),
-        loadPlatformLogo(),
-    ])
+    const [token, brandLogo] = await Promise.all([fetchLaunchTokenMeta(address), loadBrandLogo()])
     const tokenLogo = token?.logo ? await loadTokenLogo(token.logo) : null
 
     const symbol = token?.symbol || 'TOKEN'
     const name = token?.name || 'Junoswap Launchpad'
     const change = token?.priceChange1dPct ?? null
 
+    // Same MC rule as the modal: USD when a native price exists, else KUB.
+    const mcDisplay =
+        token?.marketCapNative != null
+            ? token.nativeUsdPrice != null
+                ? `$${formatCompact(token.marketCapNative * token.nativeUsdPrice)}`
+                : `${formatCompact(token.marketCapNative)} KUB`
+            : null
+
+    const initials =
+        symbol
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .slice(0, 2)
+            .toUpperCase() || '?'
+
     return new ImageResponse(
         <div
             style={{
+                display: 'flex',
                 width: '100%',
                 height: '100%',
-                display: 'flex',
-                backgroundColor: BG,
-                backgroundImage:
-                    'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
-                backgroundSize: '48px 48px',
-                fontFamily: 'sans-serif',
+                backgroundColor: CARD_BG,
             }}
         >
-            {/* Brand glow accents */}
             <div
                 style={{
-                    position: 'absolute',
-                    top: -200,
-                    left: -120,
-                    width: 600,
-                    height: 600,
-                    borderRadius: 9999,
-                    backgroundImage: `radial-gradient(circle, ${BRAND_FROM}26 0%, transparent 65%)`,
-                }}
-            />
-            <div
-                style={{
-                    position: 'absolute',
-                    bottom: -240,
-                    right: -100,
-                    width: 640,
-                    height: 640,
-                    borderRadius: 9999,
-                    backgroundImage: `radial-gradient(circle, ${BRAND_TO}22 0%, transparent 65%)`,
-                }}
-            />
-
-            <div
-                style={{
+                    position: 'relative',
                     display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
                     width: '100%',
                     height: '100%',
-                    padding: '56px 72px',
+                    overflow: 'hidden',
+                    backgroundColor: CARD_BG,
+                    // Grid overlay — modal uses 24px on a ~400px card; scaled to keep density.
+                    backgroundImage:
+                        'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+                    backgroundSize: '60px 60px',
                 }}
             >
-                {/* Header — platform identity */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 56,
-                            height: 56,
-                            borderRadius: 16,
-                            backgroundImage: `linear-gradient(135deg, ${BRAND_FROM}, ${BRAND_TO})`,
-                        }}
-                    >
-                        {platformLogo ? (
-                            <img src={platformLogo} alt="" width={40} height={40} />
-                        ) : (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    color: 'white',
-                                    fontSize: 30,
-                                    fontWeight: 800,
-                                }}
-                            >
-                                J
-                            </div>
-                        )}
-                    </div>
-                    <div style={{ display: 'flex', color: 'white', fontSize: 36, fontWeight: 800 }}>
-                        Junoswap
-                    </div>
-                    <div
-                        style={{
-                            display: 'flex',
-                            color: 'rgba(255,255,255,0.55)',
-                            fontSize: 20,
-                            fontWeight: 700,
-                            letterSpacing: 4,
-                            border: '1px solid rgba(255,255,255,0.18)',
-                            borderRadius: 999,
-                            padding: '6px 18px',
-                        }}
-                    >
-                        LAUNCHPAD
-                    </div>
-                </div>
-
-                {/* Body — token identity left, image right */}
+                {/* Brand glows (modal blur-3xl → radial gradient, satori has no blur) */}
                 <div
                     style={{
+                        position: 'absolute',
+                        top: -160,
+                        left: -120,
+                        width: 620,
+                        height: 620,
+                        borderRadius: 9999,
+                        backgroundImage:
+                            'radial-gradient(circle, rgba(255,51,51,0.22) 0%, transparent 65%)',
+                    }}
+                />
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: -200,
+                        right: -100,
+                        width: 660,
+                        height: 660,
+                        borderRadius: 9999,
+                        backgroundImage:
+                            'radial-gradient(circle, rgba(255,145,77,0.16) 0%, transparent 65%)',
+                    }}
+                />
+
+                {/* Card content */}
+                <div
+                    style={{
+                        position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        width: '100%',
+                        height: '100%',
+                        padding: 72,
                         gap: 48,
                     }}
                 >
-                    <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 720 }}>
+                    {/* Left column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                        {/* Logo + wordmark */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            {brandLogo ? (
+                                <img src={brandLogo} width={40} height={40} alt="" />
+                            ) : null}
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    fontSize: 36,
+                                    fontWeight: 800,
+                                    backgroundImage: `linear-gradient(90deg, ${BRAND_FROM}, ${BRAND_TO})`,
+                                    backgroundClip: 'text',
+                                    WebkitBackgroundClip: 'text',
+                                    color: 'transparent',
+                                }}
+                            >
+                                Junoswap
+                            </div>
+                        </div>
+
+                        {/* Symbol */}
                         <div
                             style={{
                                 display: 'flex',
-                                color: 'white',
+                                marginTop: 28,
                                 fontSize: 104,
                                 fontWeight: 800,
-                                lineHeight: 1.05,
+                                textTransform: 'uppercase',
+                                letterSpacing: -2,
+                                lineHeight: 1,
+                                color: 'white',
                             }}
                         >
-                            {symbol.slice(0, 12)}
+                            {symbol.slice(0, 14)}
                         </div>
+
+                        {/* Name */}
                         <div
                             style={{
                                 display: 'flex',
-                                color: 'rgba(255,255,255,0.6)',
-                                fontSize: 38,
-                                marginTop: 8,
+                                marginTop: 12,
+                                fontSize: 40,
+                                color: 'rgba(255,255,255,0.55)',
                             }}
                         >
-                            {name.slice(0, 36)}
+                            {name.slice(0, 38)}
                         </div>
+
+                        {/* Badge row */}
                         <div
                             style={{
                                 display: 'flex',
@@ -186,31 +199,28 @@ export default async function Image({ params }: { params: Promise<{ address: str
                                 marginTop: 28,
                             }}
                         >
-                            {token?.marketCapNative != null && (
+                            {mcDisplay && (
                                 <div
                                     style={{
                                         display: 'flex',
+                                        fontSize: 40,
+                                        fontWeight: 600,
                                         color: 'white',
-                                        fontSize: 32,
-                                        fontWeight: 700,
                                     }}
                                 >
-                                    {`MC ${formatCompact(token.marketCapNative)} KUB`}
+                                    {`MC ${mcDisplay}`}
                                 </div>
                             )}
                             {change != null && (
                                 <div
                                     style={{
                                         display: 'flex',
-                                        fontSize: 24,
-                                        fontWeight: 700,
-                                        color: change >= 0 ? '#34d399' : '#f87171',
-                                        backgroundColor:
-                                            change >= 0
-                                                ? 'rgba(52,211,153,0.15)'
-                                                : 'rgba(248,113,113,0.15)',
-                                        borderRadius: 10,
+                                        fontSize: 28,
+                                        fontWeight: 600,
                                         padding: '6px 14px',
+                                        borderRadius: 10,
+                                        color: change >= 0 ? EMERALD_TEXT : RED_TEXT,
+                                        backgroundColor: change >= 0 ? EMERALD_BG : RED_BG,
                                     }}
                                 >
                                     {`${change >= 0 ? '+' : ''}${change.toFixed(2)}%`}
@@ -220,92 +230,99 @@ export default async function Image({ params }: { params: Promise<{ address: str
                                 <div
                                     style={{
                                         display: 'flex',
-                                        fontSize: 24,
-                                        fontWeight: 700,
-                                        color: '#34d399',
-                                        backgroundColor: 'rgba(52,211,153,0.15)',
-                                        borderRadius: 10,
+                                        fontSize: 28,
+                                        fontWeight: 600,
                                         padding: '6px 14px',
+                                        borderRadius: 10,
+                                        color: EMERALD_TEXT,
+                                        backgroundColor: EMERALD_BG,
                                     }}
                                 >
                                     Graduated
                                 </div>
                             )}
                         </div>
+
+                        {/* BUY pill */}
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                marginTop: 40,
+                                alignSelf: 'flex-start',
+                                padding: '16px 36px',
+                                borderRadius: 9999,
+                                fontSize: 32,
+                                fontWeight: 700,
+                                letterSpacing: 2,
+                                color: 'white',
+                                backgroundImage: `linear-gradient(90deg, ${BRAND_FROM}, ${BRAND_TO})`,
+                            }}
+                        >
+                            BUY
+                            <svg
+                                width={26}
+                                height={26}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="white"
+                                strokeWidth={3}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M5 12h14" />
+                                <path d="M12 5l7 7-7 7" />
+                            </svg>
+                        </div>
                     </div>
 
-                    {/* Token image */}
+                    {/* Right — token image in bordered box */}
                     <div
                         style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 300,
-                            height: 300,
+                            padding: 16,
                             borderRadius: 36,
-                            border: '1px solid rgba(255,255,255,0.14)',
+                            border: '1px solid rgba(255,255,255,0.1)',
                             backgroundColor: 'rgba(255,255,255,0.05)',
-                            overflow: 'hidden',
                             flexShrink: 0,
                         }}
                     >
-                        {tokenLogo ? (
-                            <img
-                                src={tokenLogo}
-                                alt=""
-                                width={300}
-                                height={300}
-                                style={{ objectFit: 'cover' }}
-                            />
-                        ) : (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    color: 'rgba(255,255,255,0.45)',
-                                    fontSize: 96,
-                                    fontWeight: 800,
-                                }}
-                            >
-                                {symbol
-                                    .replace(/[^a-zA-Z0-9]/g, '')
-                                    .slice(0, 2)
-                                    .toUpperCase() || '?'}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Footer — CTA */}
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                    }}
-                >
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            color: 'white',
-                            fontSize: 26,
-                            fontWeight: 800,
-                            letterSpacing: 2,
-                            backgroundImage: `linear-gradient(135deg, ${BRAND_FROM}, ${BRAND_TO})`,
-                            borderRadius: 999,
-                            padding: '14px 36px',
-                        }}
-                    >
-                        {`BUY ${symbol.slice(0, 12)} →`}
-                    </div>
-                    <div
-                        style={{
-                            display: 'flex',
-                            color: 'rgba(255,255,255,0.5)',
-                            fontSize: 24,
-                        }}
-                    >
-                        junoswap.trade
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 300,
+                                height: 300,
+                                borderRadius: 24,
+                                overflow: 'hidden',
+                                backgroundColor: 'rgba(255,255,255,0.04)',
+                            }}
+                        >
+                            {tokenLogo ? (
+                                <img
+                                    src={tokenLogo}
+                                    width={300}
+                                    height={300}
+                                    style={{ objectFit: 'cover' }}
+                                    alt=""
+                                />
+                            ) : (
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        fontSize: 120,
+                                        fontWeight: 800,
+                                        color: 'rgba(255,255,255,0.45)',
+                                    }}
+                                >
+                                    {initials}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
