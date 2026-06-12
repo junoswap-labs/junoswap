@@ -112,7 +112,7 @@ export function useMultiDexQuotes({
                 fee: v3Result.fee ?? undefined,
             }
         }
-        if (v3Result2.primaryDexId && results[v3Result2.primaryDexId]) {
+        if (v3Dexs.length > 1 && v3Result2.primaryDexId && results[v3Result2.primaryDexId]) {
             results[v3Result2.primaryDexId] = {
                 dexId: v3Result2.primaryDexId,
                 quote: v3Result2.quote,
