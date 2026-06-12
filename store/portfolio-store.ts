@@ -11,8 +11,10 @@ const DEFAULT_SETTINGS: PortfolioSettings = {
 
 interface PortfolioStore {
     settings: PortfolioSettings
+    activeTab: 'holdings' | 'activity'
     setSortBy: (key: PortfolioSortKey) => void
     setSortDirection: (dir: SortDirection) => void
+    setActiveTab: (tab: 'holdings' | 'activity') => void
 }
 
 export const usePortfolioStore = create<PortfolioStore>()(
@@ -20,6 +22,7 @@ export const usePortfolioStore = create<PortfolioStore>()(
         persist(
             (set) => ({
                 settings: DEFAULT_SETTINGS,
+                activeTab: 'holdings' as const,
 
                 setSortBy: (key) =>
                     set((state) => ({
@@ -30,6 +33,8 @@ export const usePortfolioStore = create<PortfolioStore>()(
                     set((state) => ({
                         settings: { ...state.settings, sortDirection: dir },
                     })),
+
+                setActiveTab: (tab) => set({ activeTab: tab }),
             }),
             {
                 name: 'junoswap-portfolio-store',

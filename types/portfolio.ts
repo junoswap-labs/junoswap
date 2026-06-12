@@ -19,6 +19,20 @@ export interface PortfolioSummary {
     totalPnlPercent: number | null
 }
 
+export interface ActivityEvent {
+    id: string
+    tokenAddr: string
+    tokenSymbol: string
+    tokenName: string
+    tokenLogo: string
+    isBuy: boolean
+    amountIn: string
+    amountOut: string
+    timestamp: number
+    transactionHash: string
+    sender: string
+}
+
 export type PortfolioSortKey = 'value' | 'balance' | 'pnl' | 'name'
 export type SortDirection = 'asc' | 'desc'
 

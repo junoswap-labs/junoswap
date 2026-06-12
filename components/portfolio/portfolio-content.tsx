@@ -6,13 +6,16 @@ import { Wallet } from 'lucide-react'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PortfolioSummary } from '@/components/portfolio/portfolio-summary'
 import { TokenList } from '@/components/portfolio/token-list'
+import { ActivityTab } from '@/components/portfolio/activity-tab'
 import { usePortfolioTokens } from '@/hooks/usePortfolioTokens'
 import { usePortfolioBalances } from '@/hooks/usePortfolioBalances'
 import { usePortfolioPrices } from '@/hooks/usePortfolioPrices'
 import { useUserSwapEvents } from '@/hooks/useUserSwapEvents'
 import { usePortfolioPnl } from '@/hooks/usePortfolioPnl'
+import { usePortfolioStore } from '@/store/portfolio-store'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { getChainMetadata } from '@/lib/wagmi'
 import type { PortfolioToken, PortfolioSummary as Summary } from '@/types/portfolio'
@@ -22,6 +25,7 @@ export function PortfolioContent() {
     const chainId = useChainId()
     const { nativeUsdPrice, isLoading: isPriceLoading } = useNativeUsdPriceContext()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+    const { activeTab, setActiveTab } = usePortfolioStore()
 
     const { tokens, getTokenType } = usePortfolioTokens(chainId, address)
     const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(tokens, chainId)
@@ -115,7 +119,23 @@ export function PortfolioContent() {
 
                 <PortfolioSummary summary={summary} isLoading={isLoading} />
 
-                <TokenList tokens={portfolioTokens} isLoading={isLoading} />
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(v) => setActiveTab(v as 'holdings' | 'activity')}
+                >
+                    <TabsList>
+                        <TabsTrigger value="holdings">Holdings</TabsTrigger>
+                        <TabsTrigger value="activity">Activity</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="holdings">
+                        <TokenList tokens={portfolioTokens} isLoading={isLoading} />
+                    </TabsContent>
+
+                    <TabsContent value="activity">
+                        <ActivityTab address={address!} chainId={chainId} />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     )
