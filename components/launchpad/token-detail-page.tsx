@@ -154,7 +154,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             </button>
                             <button
                                 onClick={() => setShareOpen(true)}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/20 active:scale-95 sm:bg-muted/60 sm:text-muted-foreground sm:hover:bg-muted"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-muted/60 px-3 py-2 text-muted-foreground transition-colors hover:bg-muted active:scale-95"
                                 title="Share token"
                             >
                                 <Share2 className="h-3.5 w-3.5" />
