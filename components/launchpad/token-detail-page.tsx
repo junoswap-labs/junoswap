@@ -101,66 +101,64 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 {/* Left column — token info, chart, stats, trades */}
                 <div className="order-2 min-w-0 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
                     {/* Price header */}
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         {/* Token identity */}
-                        <div className="flex items-center gap-2.5 md:gap-3">
+                        <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
                             <TokenIcon
                                 src={tokenInfo?.logo}
                                 symbol={symbol}
                                 size="xl"
                                 variant="square"
                             />
-                            <div>
-                                <div>
-                                    <h1 className="text-lg font-bold md:text-xl">{name}</h1>
-                                    <span className="text-sm text-muted-foreground">{symbol}</span>
-                                    {tokenInfo?.creator && (
-                                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                                            <ExplorerLink
-                                                value={tokenInfo.creator}
-                                                type="address"
-                                                chainId={PUMP_CORE_NATIVE_CHAIN_ID}
-                                                className="font-mono text-xs text-muted-foreground hover:text-foreground"
-                                            />
-                                            {tokenInfo.createdTime > 0 && (
-                                                <>
-                                                    <span>·</span>
-                                                    <span>
-                                                        {formatTimeAgo(tokenInfo.createdTime)}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                            <div className="min-w-0">
+                                <h1 className="truncate text-lg font-bold md:text-xl">{name}</h1>
+                                <span className="text-sm text-muted-foreground">{symbol}</span>
+                                {tokenInfo?.creator && (
+                                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <ExplorerLink
+                                            value={tokenInfo.creator}
+                                            type="address"
+                                            chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                                            className="font-mono text-xs text-muted-foreground hover:text-foreground"
+                                        />
+                                        {tokenInfo.createdTime > 0 && (
+                                            <>
+                                                <span>·</span>
+                                                <span>{formatTimeAgo(tokenInfo.createdTime)}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* CA badge + share — right side */}
+                        {/* CA badge + share */}
                         <div className="flex shrink-0 items-center gap-2">
                             <button
                                 onClick={copyAddress}
-                                className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-4 py-2 transition-colors hover:bg-muted"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-muted/60 px-3 py-2 transition-colors hover:bg-muted sm:gap-2 sm:px-4"
                                 title="Copy contract address"
                             >
+                                <Copy className="h-3.5 w-3.5 text-muted-foreground/50 sm:hidden" />
+                                {copied && (
+                                    <Check className="h-3.5 w-3.5 text-green-400 sm:hidden" />
+                                )}
                                 <span className="font-mono text-xs text-muted-foreground">
                                     {formatAddress(tokenAddr)}
                                 </span>
                                 {copied ? (
-                                    <Check className="h-3.5 w-3.5 text-green-400" />
+                                    <Check className="hidden h-3.5 w-3.5 text-green-400 sm:block" />
                                 ) : (
-                                    <Copy className="h-3.5 w-3.5 text-muted-foreground/50" />
+                                    <Copy className="hidden h-3.5 w-3.5 text-muted-foreground/50 sm:block" />
                                 )}
                             </button>
                             <button
                                 onClick={() => setShareOpen(true)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 transition-colors hover:bg-muted"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/20 active:scale-95 sm:bg-muted/60 sm:text-muted-foreground sm:hover:bg-muted"
                                 title="Share token"
                             >
-                                <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
-                                    Share
-                                </span>
+                                <Share2 className="h-3.5 w-3.5" />
+                                <span className="text-xs font-medium">Share</span>
                             </button>
                         </div>
                     </div>
