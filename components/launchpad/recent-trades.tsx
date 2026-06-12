@@ -305,8 +305,10 @@ export function RecentTrades({
                             )}
                         >
                             <ArrowUpDown className="h-3 w-3" />
-                            {TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label ??
-                                'All Trades'}
+                            <span className="hidden sm:inline">
+                                {TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label ??
+                                    'All Trades'}
+                            </span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-36">
@@ -336,8 +338,10 @@ export function RecentTrades({
                             )}
                         >
                             <User className="h-3 w-3" />
-                            {activeAccountOptions.find((o) => o.value === accountFilter)?.label ??
-                                'All Accounts'}
+                            <span className="hidden sm:inline">
+                                {activeAccountOptions.find((o) => o.value === accountFilter)
+                                    ?.label ?? 'All Accounts'}
+                            </span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-36">
@@ -373,7 +377,10 @@ export function RecentTrades({
                             )}
                         >
                             <SlidersHorizontal className="h-3 w-3" />
-                            {SIZE_OPTIONS.find((o) => o.value === sizeFilter)?.label ?? 'All Sizes'}
+                            <span className="hidden sm:inline">
+                                {SIZE_OPTIONS.find((o) => o.value === sizeFilter)?.label ??
+                                    'All Sizes'}
+                            </span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-40">
@@ -392,7 +399,7 @@ export function RecentTrades({
                 </DropdownMenu>
 
                 {/* Address search input */}
-                <div className="relative min-w-0 flex-1">
+                <div className="relative min-w-0 basis-full sm:basis-auto sm:flex-1">
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         placeholder="Search wallet"
@@ -401,7 +408,7 @@ export function RecentTrades({
                             setAddressSearch(e.target.value)
                             if (e.target.value) setAccountFilter('all')
                         }}
-                        className="h-7 rounded-lg border border-input bg-muted/30 pl-8 text-xs"
+                        className="h-7 w-full rounded-lg border border-input bg-muted/30 pl-8 text-xs"
                     />
                 </div>
             </div>
