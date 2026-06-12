@@ -83,10 +83,7 @@ export function Hero() {
                         style={{ animationDelay: '0.7s' }}
                     >
                         <Link href="/swap">
-                            <Button
-                                size="xl"
-                                className="group w-full bg-[hsl(210,20%,98%)] text-[hsl(230,15%,3.5%)] hover:bg-[hsl(210,20%,98%)/0.9] active:bg-[hsl(210,20%,98%)/0.8] sm:w-auto"
-                            >
+                            <Button size="xl" className="group w-full sm:w-auto">
                                 Start Swapping
                             </Button>
                         </Link>

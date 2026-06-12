@@ -59,7 +59,7 @@ function TokenPageContent() {
                         title="Invalid Token"
                         description="The token address in the URL is not valid."
                         action={
-                            <Button asChild>
+                            <Button variant="outline" asChild>
                                 <Link href="/launchpad">Back to Launchpad</Link>
                             </Button>
                         }

@@ -89,12 +89,12 @@ describe('formatKub', () => {
         expect(formatKub(5n * 10n ** 19n)).toBe('50.00')
     })
 
-    it('uses K suffix for thousands', () => {
-        expect(formatKub(1500n * 10n ** 18n)).toBe('1.50K')
+    it('formats thousands without suffix', () => {
+        expect(formatKub(1500n * 10n ** 18n)).toBe('1500.00')
     })
 
-    it('uses M suffix for millions', () => {
-        expect(formatKub(1500000n * 10n ** 18n)).toBe('1.50M')
+    it('formats millions with commas', () => {
+        expect(formatKub(1500000n * 10n ** 18n)).toBe('1,500,000')
     })
 })
 

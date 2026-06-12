@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import type { Address } from 'viem'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { TokenIcon } from '@/components/ui/token-icon'
 import { useShareableImage } from '@/hooks/useShareableImage'
 import { formatCompact } from '@/services/launchpad'
@@ -180,43 +181,44 @@ export function ShareTokenDialog({
 
                 {/* Actions */}
                 <div className="space-y-2">
-                    <button
-                        onClick={copyLink}
-                        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[#FF914D] text-sm font-semibold text-white transition-opacity active:scale-[0.98] hover:opacity-90 sm:h-12"
-                    >
+                    <Button onClick={copyLink} className="h-11 w-full rounded-xl sm:h-12" size="lg">
                         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         {copied ? 'Copied!' : 'Copy link'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="secondary"
                         onClick={shareOnX}
-                        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-secondary text-sm font-semibold text-secondary-foreground transition-colors active:scale-[0.98] hover:bg-secondary/80 sm:h-12"
+                        className="h-11 w-full rounded-xl sm:h-12"
+                        size="lg"
                     >
                         <XIcon className="h-4 w-4" />
                         Share on X
-                    </button>
+                    </Button>
                     <div className="flex gap-2">
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={() =>
                                 handleCapture((el) =>
                                     downloadImage(el, `junoswap-${symbol.toLowerCase()}.png`)
                                 )
                             }
                             disabled={isGenerating}
-                            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-medium text-muted-foreground transition-colors active:scale-[0.98] hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+                            className="h-10 flex-1 rounded-xl text-xs font-medium text-muted-foreground"
                         >
                             <Download className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">Download image</span>
                             <span className="sm:hidden">Download</span>
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="ghost"
                             onClick={() => handleCapture(copyToClipboard)}
                             disabled={isGenerating}
-                            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-medium text-muted-foreground transition-colors active:scale-[0.98] hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+                            className="h-10 flex-1 rounded-xl text-xs font-medium text-muted-foreground"
                         >
                             <ImageIcon className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">Copy image</span>
                             <span className="sm:hidden">Copy img</span>
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </DialogContent>

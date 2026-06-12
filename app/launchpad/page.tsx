@@ -97,7 +97,7 @@ function LaunchpadContent() {
                             placeholder="Search tokens, CA"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 rounded-lg border border-input bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/30"
                         />
                     </div>
                 </div>
