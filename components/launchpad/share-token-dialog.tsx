@@ -1,16 +1,15 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import type { Address } from 'viem'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { TokenIcon } from '@/components/ui/token-icon'
-import { useShareableImage } from '@/hooks/useShareableImage'
 import { formatCompact } from '@/services/launchpad'
 import { cn } from '@/lib/utils'
 import { toastSuccess } from '@/lib/toast'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
-import { Check, Copy, Download, ImageIcon, ArrowRight } from 'lucide-react'
+import { Check, Copy, ArrowRight } from 'lucide-react'
 
 interface ShareTokenDialogProps {
     open: boolean
@@ -61,9 +60,8 @@ export function ShareTokenDialog({
     priceChange1dPct,
     isGraduated,
 }: ShareTokenDialogProps) {
-    const cardRef = useRef<HTMLDivElement>(null)
     const [copied, setCopied] = useState(false)
-    const { downloadImage, copyToClipboard, isGenerating } = useShareableImage()
+
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
     const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://junoswap.trade'}/launchpad/token/${tokenAddr}`
@@ -89,11 +87,6 @@ export function ShareTokenDialog({
         window.open(intentUrl, '_blank', 'noopener,noreferrer')
     }
 
-    const handleCapture = (action: (el: HTMLElement) => Promise<void>) => {
-        if (!cardRef.current) return
-        action(cardRef.current)
-    }
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md gap-4 rounded-2xl p-4 sm:gap-5 sm:p-6">
@@ -105,7 +98,7 @@ export function ShareTokenDialog({
                 </DialogHeader>
 
                 {/* Premium token card — captured as image */}
-                <div ref={cardRef} className="overflow-hidden rounded-xl bg-[#0a0e14]">
+                <div className="overflow-hidden rounded-xl bg-[#0a0e14]">
                     <div
                         className="relative overflow-hidden rounded-xl border border-white/10"
                         style={{
@@ -118,22 +111,22 @@ export function ShareTokenDialog({
                         <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
                         <div className="pointer-events-none absolute -bottom-20 -right-12 h-48 w-48 rounded-full bg-[#FF914D]/15 blur-3xl" />
 
-                        <div className="relative flex flex-col items-center gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-5">
+                        <div className="relative flex flex-row items-start justify-between gap-4 p-5">
                             {/* Left — platform + token identity */}
-                            <div className="min-w-0 flex-1 text-center sm:text-left">
-                                <div className="flex items-center justify-center gap-1.5 sm:justify-start">
+                            <div className="min-w-0 flex-1 text-left">
+                                <div className="flex items-center justify-start gap-1.5">
                                     <LogoMark size={16} />
                                     <span className="bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-xs font-bold text-transparent">
                                         Junoswap
                                     </span>
                                 </div>
 
-                                <h3 className="mt-2 truncate text-2xl font-extrabold uppercase tracking-tight text-white sm:mt-3 sm:text-3xl">
+                                <h3 className="mt-3 truncate text-3xl font-extrabold uppercase tracking-tight text-white">
                                     {symbol}
                                 </h3>
                                 <p className="mt-0.5 truncate text-sm text-white/55">{name}</p>
 
-                                <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-2.5 sm:justify-start">
+                                <div className="mt-2.5 flex flex-wrap items-center justify-start gap-2">
                                     {mcapDisplay && (
                                         <span className="text-sm font-semibold text-white">
                                             MC {mcapDisplay}
@@ -159,7 +152,7 @@ export function ShareTokenDialog({
                                     )}
                                 </div>
 
-                                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-[#FF914D] px-4 py-1.5 text-xs font-bold tracking-wider text-white sm:mt-4">
+                                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-[#FF914D] px-4 py-1.5 text-xs font-bold tracking-wider text-white">
                                     BUY
                                     <ArrowRight className="h-3 w-3" />
                                 </div>
@@ -172,7 +165,7 @@ export function ShareTokenDialog({
                                     symbol={symbol}
                                     size="xl"
                                     variant="square"
-                                    className="h-20 w-20 rounded-xl sm:h-28 sm:w-28"
+                                    className="h-28 w-28 rounded-xl"
                                 />
                             </div>
                         </div>
@@ -194,32 +187,6 @@ export function ShareTokenDialog({
                         <XIcon className="h-4 w-4" />
                         Share on X
                     </Button>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="ghost"
-                            onClick={() =>
-                                handleCapture((el) =>
-                                    downloadImage(el, `junoswap-${symbol.toLowerCase()}.png`)
-                                )
-                            }
-                            disabled={isGenerating}
-                            className="h-10 flex-1 rounded-xl text-xs font-medium text-muted-foreground"
-                        >
-                            <Download className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Download image</span>
-                            <span className="sm:hidden">Download</span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            onClick={() => handleCapture(copyToClipboard)}
-                            disabled={isGenerating}
-                            className="h-10 flex-1 rounded-xl text-xs font-medium text-muted-foreground"
-                        >
-                            <ImageIcon className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Copy image</span>
-                            <span className="sm:hidden">Copy img</span>
-                        </Button>
-                    </div>
                 </div>
             </DialogContent>
         </Dialog>
