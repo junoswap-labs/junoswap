@@ -16,6 +16,7 @@ import { ConnectModal } from '@/components/web3/connect-modal'
 import { toastError } from '@/lib/toast'
 import { useChainTokens } from '@/hooks/useChainTokens'
 import { getChainMetadata } from '@/lib/wagmi'
+import { BRIDGE_SUPPORTED_CHAIN_IDS, DEFAULT_BRIDGE_CHAIN_ID } from '@/types/bridge'
 import { ChainSelect } from './chain-select'
 import { TokenSelect } from '@/components/swap/token-select'
 import { SettingsDialog } from '@/components/swap/settings-dialog'
@@ -51,19 +52,31 @@ export function BridgeCard() {
     const { tokens: fromTokens } = useChainTokens(fromChainId)
     const { tokens: toTokens } = useChainTokens(toChainId)
 
-    // Initialize default tokens when chains change
+    // On mount: set source chain to wallet's chain (if supported), clear destination
     const hasInitializedRef = useRef(false)
     useEffect(() => {
-        if (!hasInitializedRef.current && fromTokens.length > 0 && !fromToken) {
+        if (hasInitializedRef.current) return
+        hasInitializedRef.current = true
+
+        if (
+            isConnected &&
+            BRIDGE_SUPPORTED_CHAIN_IDS.includes(
+                walletChainId as (typeof BRIDGE_SUPPORTED_CHAIN_IDS)[number]
+            )
+        ) {
+            setFromChainId(walletChainId)
+            setToChainId(0)
+            setToToken(null)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Initialize source token when tokens load for the source chain
+    useEffect(() => {
+        if (fromTokens.length > 0 && !fromToken) {
             setFromToken(fromTokens[0]!)
         }
     }, [fromTokens, fromToken, setFromToken])
-
-    useEffect(() => {
-        if (toTokens.length > 0 && !toToken) {
-            setToToken(toTokens[0]!)
-        }
-    }, [toTokens, toToken, setToToken])
 
     const {
         balance: balanceInValue,
@@ -87,6 +100,11 @@ export function BridgeCard() {
     const { execute, isExecuting, activeRoute, isSuccess: _isBridgeSuccess } = useBridgeExecution()
 
     const isWrongChain = isConnected && walletChainId !== fromChainId
+    const isUnsupportedChain =
+        isConnected &&
+        !BRIDGE_SUPPORTED_CHAIN_IDS.includes(
+            walletChainId as (typeof BRIDGE_SUPPORTED_CHAIN_IDS)[number]
+        )
 
     const amountInBigInt = useMemo(() => {
         if (!amountIn || !fromToken) return 0n
@@ -103,6 +121,13 @@ export function BridgeCard() {
     const handleBridge = async () => {
         if (!isConnected) {
             setIsConnectModalOpen(true)
+            return
+        }
+        if (isUnsupportedChain) {
+            setFromChainId(DEFAULT_BRIDGE_CHAIN_ID)
+            setToChainId(0)
+            setToToken(null)
+            switchChain({ chainId: DEFAULT_BRIDGE_CHAIN_ID })
             return
         }
         if (isWrongChain) {
@@ -137,7 +162,10 @@ export function BridgeCard() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Label htmlFor="bridge-amount-in">From</Label>
-                            <ChainSelect selectedChainId={fromChainId} onSelect={setFromChainId} />
+                            <ChainSelect
+                                selectedChainId={isUnsupportedChain ? -1 : fromChainId}
+                                onSelect={setFromChainId}
+                            />
                         </div>
                         <span
                             className="text-xs text-muted-foreground cursor-pointer hover:underline"
@@ -175,7 +203,7 @@ export function BridgeCard() {
                             }}
                         />
                         <TokenSelect
-                            token={fromToken}
+                            token={isUnsupportedChain ? null : fromToken}
                             tokens={fromTokens}
                             onSelect={setFromToken}
                         />
@@ -200,7 +228,10 @@ export function BridgeCard() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Label htmlFor="bridge-amount-out">To</Label>
-                            <ChainSelect selectedChainId={toChainId} onSelect={setToChainId} />
+                            <ChainSelect
+                                selectedChainId={isUnsupportedChain ? -1 : toChainId}
+                                onSelect={setToChainId}
+                            />
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -213,7 +244,11 @@ export function BridgeCard() {
                             autoComplete="off"
                             value={isQuoteLoading ? '...' : estimatedOutput}
                         />
-                        <TokenSelect token={toToken} tokens={toTokens} onSelect={setToToken} />
+                        <TokenSelect
+                            token={isUnsupportedChain ? null : toToken}
+                            tokens={toTokens}
+                            onSelect={setToToken}
+                        />
                     </div>
                 </div>
 
@@ -354,33 +389,37 @@ export function BridgeCard() {
                         className="w-full"
                         size="lg"
                         disabled={
-                            isQuoteLoading ||
-                            !fromToken ||
-                            !toToken ||
-                            isSameChain ||
-                            isInsufficientBalance ||
-                            isExecuting ||
-                            (!route && !isWrongChain)
+                            isUnsupportedChain
+                                ? false
+                                : isQuoteLoading ||
+                                  !fromToken ||
+                                  !toToken ||
+                                  isSameChain ||
+                                  isInsufficientBalance ||
+                                  isExecuting ||
+                                  (!route && !isWrongChain)
                         }
                         onClick={handleBridge}
                     >
                         {!isConnected
                             ? 'Connect Wallet'
-                            : isSameChain
-                              ? 'Select Different Chains'
-                              : isWrongChain
-                                ? `Switch to ${getChainMetadata(fromChainId)?.name ?? 'Source Chain'}`
-                                : isInsufficientBalance
-                                  ? 'Insufficient Balance'
-                                  : !amountIn || parseFloat(amountIn) <= 0
-                                    ? 'Enter Amount'
-                                    : isExecuting
-                                      ? 'Bridging...'
-                                      : isQuoteLoading
-                                        ? 'Fetching Quote...'
-                                        : !route
-                                          ? 'No Route Available'
-                                          : 'Bridge'}
+                            : isUnsupportedChain
+                              ? `Switch to ${getChainMetadata(DEFAULT_BRIDGE_CHAIN_ID)?.name ?? 'Base'}`
+                              : isSameChain
+                                ? 'Select Different Chains'
+                                : isWrongChain
+                                  ? `Switch to ${getChainMetadata(fromChainId)?.name ?? 'Source Chain'}`
+                                  : isInsufficientBalance
+                                    ? 'Insufficient Balance'
+                                    : !amountIn || parseFloat(amountIn) <= 0
+                                      ? 'Enter Amount'
+                                      : isExecuting
+                                        ? 'Bridging...'
+                                        : isQuoteLoading
+                                          ? 'Fetching Quote...'
+                                          : !route
+                                            ? 'No Route Available'
+                                            : 'Bridge'}
                     </Button>
 
                     {/* Bridge status tracker */}

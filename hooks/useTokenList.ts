@@ -1,8 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useChainId } from 'wagmi'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import { ponderRequest } from '@/lib/ponder-client'
 import type { LaunchToken } from '@/types/launchpad'
 
@@ -86,12 +87,15 @@ interface UseTokenListResult {
 }
 
 export function useTokenList(): UseTokenListResult {
+    const chainId = useChainId()
+    const supported = isLaunchpadChain(chainId)
+
     const {
         data: result,
         isLoading,
         refetch,
     } = useQuery({
-        queryKey: ['launchpad-token-list'],
+        queryKey: ['launchpad-token-list', chainId],
         queryFn: async () => {
             const data = await ponderRequest<TokenListResponse>(TOKEN_LIST_QUERY)
             const tokens = data.launchTokens.items.map(
@@ -106,7 +110,7 @@ export function useTokenList(): UseTokenListResult {
                     link3: t.link3 ?? '',
                     creator: t.creator as Address,
                     createdTime: t.createdTime,
-                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    chainId,
                     graduatedAt: t.graduatedAt ?? null,
                     isGraduated: t.isGraduated === 1,
                 })
@@ -131,7 +135,17 @@ export function useTokenList(): UseTokenListResult {
             return { tokens, snapshotMap }
         },
         staleTime: 30_000,
+        enabled: supported,
     })
+
+    if (!supported) {
+        return {
+            tokens: [],
+            snapshotMap: new Map<string, SnapshotData>(),
+            isLoading: false,
+            refetch: () => {},
+        }
+    }
 
     return {
         tokens: result?.tokens ?? [],

@@ -1,7 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useChainId } from 'wagmi'
 import type { Address } from 'viem'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import { ponderRequest } from '@/lib/ponder-client'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
@@ -56,12 +58,15 @@ interface SwapEventsResponse {
 }
 
 export function useAllSwapEvents() {
+    const chainId = useChainId()
+    const supported = isLaunchpadChain(chainId)
+
     const {
         data: events = [],
         isLoading,
         ...rest
     } = useQuery({
-        queryKey: ['all-swap-events'],
+        queryKey: ['all-swap-events', chainId],
         queryFn: async (): Promise<EnrichedSwapEvent[]> => {
             const data = await ponderRequest<SwapEventsResponse>(ALL_SWAP_EVENTS_QUERY)
 
@@ -95,8 +100,13 @@ export function useAllSwapEvents() {
             })
         },
         staleTime: 15_000,
-        refetchInterval: 15_000,
+        refetchInterval: supported ? 15_000 : false,
+        enabled: supported,
     })
+
+    if (!supported) {
+        return { data: [], isLoading: false }
+    }
 
     return { data: events, isLoading, ...rest }
 }
