@@ -12,10 +12,17 @@ import {
 } from '@/lib/swap-params'
 import { toast } from 'sonner'
 import { getChainMetadata } from '@/lib/wagmi'
+import type { Token } from '@/types/tokens'
 
 const URL_UPDATE_DEBOUNCE_MS = 500
 
-export function useSwapUrlSync() {
+/** True when the store token's address matches the URL address (or the URL has no such param). */
+function matchesUrlAddress(token: Token | null, address: string | undefined): boolean {
+    if (!address) return true
+    return !!token && token.address.toLowerCase() === address.toLowerCase()
+}
+
+export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const chainId = useChainId()
@@ -37,7 +44,7 @@ export function useSwapUrlSync() {
     const initialSearchParamsRef = useRef<string | null>(null)
     const applyUrlParams = useCallback(
         (urlParams: ReturnType<typeof parseSwapSearchParams>, targetChainId: number) => {
-            const parsed = parseAndValidateSwapParams(targetChainId, urlParams)
+            const parsed = parseAndValidateSwapParams(targetChainId, urlParams, tokens)
             isUpdatingFromUrlRef.current = true
             setIsUpdatingFromUrl(true)
             if (parsed.tokenIn) {
@@ -54,12 +61,12 @@ export function useSwapUrlSync() {
                 setIsUpdatingFromUrl(false)
             }, 0)
         },
-        [setTokenIn, setTokenOut, setAmountIn, setIsUpdatingFromUrl]
+        [setTokenIn, setTokenOut, setAmountIn, setIsUpdatingFromUrl, tokens]
     )
     useEffect(() => {
         if (isUpdatingFromUrlRef.current) return
         const urlParams = parseSwapSearchParams(searchParams)
-        const parsed = parseAndValidateSwapParams(chainId, urlParams)
+        const parsed = parseAndValidateSwapParams(chainId, urlParams, tokens)
         if (initialSearchParamsRef.current === null) {
             initialSearchParamsRef.current = searchParams.toString()
         }
@@ -107,15 +114,28 @@ export function useSwapUrlSync() {
             lastProcessedChainIdRef.current = chainId
             return
         }
-        applyUrlParams(urlParams, chainId)
+        // On the first run always apply. On re-runs (e.g. the async token list just
+        // loaded), only re-apply when the store doesn't already reflect the URL tokens
+        // AND we now resolved something new — this retries a previously-unresolvable
+        // launchpad/V3 token without stomping tokens the user changed after load.
+        const state = useSwapStore.getState()
+        const storeMatchesUrl =
+            matchesUrlAddress(state.tokenIn, urlParams.input) &&
+            matchesUrlAddress(state.tokenOut, urlParams.output)
+        const needsApply =
+            !hasInitializedRef.current ||
+            (!storeMatchesUrl && !!(parsed.tokenIn || parsed.tokenOut))
+        if (needsApply) {
+            applyUrlParams(urlParams, chainId)
+        }
         isInitialLoadRef.current = false
         hasInitializedRef.current = true
         lastProcessedChainIdRef.current = chainId
-    }, [searchParams, chainId, switchChain, applyUrlParams, router])
+    }, [searchParams, chainId, switchChain, applyUrlParams, router, tokens])
     useEffect(() => {
         if (pendingUrlParamsRef.current && lastProcessedChainIdRef.current !== chainId) {
             const urlParams = pendingUrlParamsRef.current
-            const parsed = parseAndValidateSwapParams(chainId, urlParams)
+            const parsed = parseAndValidateSwapParams(chainId, urlParams, tokens)
             if (!parsed.targetChainId || parsed.targetChainId === chainId) {
                 applyUrlParams(urlParams, chainId)
                 pendingUrlParamsRef.current = null
@@ -159,5 +179,16 @@ export function useSwapUrlSync() {
         isSwitchingChain,
     ])
 
-    return { isUpdatingFromUrl: isUpdatingFromUrlRef.current }
+    // Whether a URL-provided token is still waiting to be applied to the store.
+    // While true, the swap card must not run its default-token initialization, or it
+    // would clobber the (possibly async-resolving) URL token.
+    const rawUrlParams = parseSwapSearchParams(searchParams)
+    const hasUrlTokenParam = !!(rawUrlParams.input || rawUrlParams.output)
+    const storeMatchesUrl =
+        matchesUrlAddress(tokenIn, rawUrlParams.input) &&
+        matchesUrlAddress(tokenOut, rawUrlParams.output)
+    const urlTokensPending =
+        hasUrlTokenParam && !storeMatchesUrl && (isTokensLoading || !hasInitializedRef.current)
+
+    return { isUpdatingFromUrl: isUpdatingFromUrlRef.current, urlTokensPending }
 }

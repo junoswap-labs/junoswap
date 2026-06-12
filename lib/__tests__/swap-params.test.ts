@@ -75,6 +75,25 @@ describe('lib/swap-params', () => {
             expect(result.errors).toContain('Input and output tokens cannot be the same')
         })
 
+        it('resolves a token found only in the dynamic token list', async () => {
+            const { parseAndValidateSwapParams } = await getModule()
+            const dynamicToken: Token = {
+                address: '0xdeadbeef1234567890abcdef1234567890abcdef' as `0x${string}`,
+                symbol: 'DYN',
+                name: 'Dynamic',
+                decimals: 18,
+                chainId: 96,
+            }
+            const result = parseAndValidateSwapParams(
+                96,
+                { input: dynamicToken.address, output: mockToken2.address },
+                [dynamicToken, mockToken2]
+            )
+            expect(result.tokenIn).toEqual(dynamicToken)
+            expect(result.tokenOut).toEqual(mockToken2)
+            expect(result.isValid).toBe(true)
+        })
+
         it('uses target chain from URL params', async () => {
             const { parseAndValidateSwapParams } = await getModule()
             const result = parseAndValidateSwapParams(1, {

@@ -38,13 +38,13 @@ interface SwapCardProps {
 }
 
 export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
-    useSwapUrlSync()
     const { address, isConnected } = useAccount()
     const chainId = useChainId()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     const [isRateFlipped, setIsRateFlipped] = useState(false)
-    const { tokens: chainTokens } = useChainTokens(chainId)
+    const { tokens: chainTokens, isLoading: isLoadingTokens } = useChainTokens(chainId)
     const tokens = tokensOverride || chainTokens
+    const { urlTokensPending } = useSwapUrlSync(tokens, isLoadingTokens)
     const {
         tokenIn,
         tokenOut,
@@ -310,6 +310,10 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
         prevChainIdRef.current = chainId
     }, [chainId, setTokenIn, setTokenOut, isUpdatingFromUrl])
     useEffect(() => {
+        // Don't default-init while a URL-provided token is still resolving, or we'd
+        // clobber it (URL sync and this effect can run in the same passive-effect flush
+        // with a stale `tokenIn === null` closure).
+        if (isUpdatingFromUrl || urlTokensPending) return
         if (!hasInitializedTokensRef.current && !tokenIn && tokens.length > 0 && tokens[0]) {
             setTokenIn(tokens[0])
             if (chainId === bitkub.id && !tokenOut) {
@@ -318,7 +322,16 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
             }
             hasInitializedTokensRef.current = true
         }
-    }, [tokenIn, tokenOut, tokens, chainId, setTokenIn, setTokenOut])
+    }, [
+        tokenIn,
+        tokenOut,
+        tokens,
+        chainId,
+        setTokenIn,
+        setTokenOut,
+        isUpdatingFromUrl,
+        urlTokensPending,
+    ])
     const isConfirmingApproval = approvalHash && isConfirmingApprovalRaw
     const isConfirmingSwap = swapHash && isConfirmingSwapRaw
     const handleSwapTokens = () => {
