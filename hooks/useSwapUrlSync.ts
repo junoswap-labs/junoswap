@@ -44,7 +44,7 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
     const initialSearchParamsRef = useRef<string | null>(null)
     const applyUrlParams = useCallback(
         (urlParams: ReturnType<typeof parseSwapSearchParams>, targetChainId: number) => {
-            const parsed = parseAndValidateSwapParams(targetChainId, urlParams, tokens)
+            const parsed = parseAndValidateSwapParams(targetChainId, urlParams)
             isUpdatingFromUrlRef.current = true
             setIsUpdatingFromUrl(true)
             if (parsed.tokenIn) {
@@ -61,12 +61,12 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
                 setIsUpdatingFromUrl(false)
             }, 0)
         },
-        [setTokenIn, setTokenOut, setAmountIn, setIsUpdatingFromUrl, tokens]
+        [setTokenIn, setTokenOut, setAmountIn, setIsUpdatingFromUrl]
     )
     useEffect(() => {
         if (isUpdatingFromUrlRef.current) return
         const urlParams = parseSwapSearchParams(searchParams)
-        const parsed = parseAndValidateSwapParams(chainId, urlParams, tokens)
+        const parsed = parseAndValidateSwapParams(chainId, urlParams)
         if (initialSearchParamsRef.current === null) {
             initialSearchParamsRef.current = searchParams.toString()
         }
@@ -114,28 +114,15 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
             lastProcessedChainIdRef.current = chainId
             return
         }
-        // On the first run always apply. On re-runs (e.g. the async token list just
-        // loaded), only re-apply when the store doesn't already reflect the URL tokens
-        // AND we now resolved something new — this retries a previously-unresolvable
-        // launchpad/V3 token without stomping tokens the user changed after load.
-        const state = useSwapStore.getState()
-        const storeMatchesUrl =
-            matchesUrlAddress(state.tokenIn, urlParams.input) &&
-            matchesUrlAddress(state.tokenOut, urlParams.output)
-        const needsApply =
-            !hasInitializedRef.current ||
-            (!storeMatchesUrl && !!(parsed.tokenIn || parsed.tokenOut))
-        if (needsApply) {
-            applyUrlParams(urlParams, chainId)
-        }
+        applyUrlParams(urlParams, chainId)
         isInitialLoadRef.current = false
         hasInitializedRef.current = true
         lastProcessedChainIdRef.current = chainId
-    }, [searchParams, chainId, switchChain, applyUrlParams, router, tokens])
+    }, [searchParams, chainId, switchChain, applyUrlParams, router])
     useEffect(() => {
         if (pendingUrlParamsRef.current && lastProcessedChainIdRef.current !== chainId) {
             const urlParams = pendingUrlParamsRef.current
-            const parsed = parseAndValidateSwapParams(chainId, urlParams, tokens)
+            const parsed = parseAndValidateSwapParams(chainId, urlParams)
             if (!parsed.targetChainId || parsed.targetChainId === chainId) {
                 applyUrlParams(urlParams, chainId)
                 pendingUrlParamsRef.current = null
@@ -143,6 +130,31 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
             }
         }
     }, [chainId, applyUrlParams])
+    // Backfill launchpad / V3 tokens that aren't in the static list and only become
+    // resolvable once the async token list loads. This runs separately from the main
+    // URL→store effect and ONLY fills empty slots — it never overwrites a token the
+    // user picked, so manual token changes are never reverted.
+    useEffect(() => {
+        if (!hasInitializedRef.current) return
+        if (isUpdatingFromUrlRef.current) return
+        if (pendingUrlParamsRef.current) return
+        if (!tokens || tokens.length === 0) return
+        const urlParams = parseSwapSearchParams(searchParams)
+        const parsed = parseAndValidateSwapParams(chainId, urlParams, tokens)
+        if (parsed.targetChainId && parsed.targetChainId !== chainId) return
+        const state = useSwapStore.getState()
+        const needIn = !!parsed.tokenIn && !state.tokenIn
+        const needOut = !!parsed.tokenOut && !state.tokenOut
+        if (!needIn && !needOut) return
+        isUpdatingFromUrlRef.current = true
+        setIsUpdatingFromUrl(true)
+        if (needIn) setTokenIn(parsed.tokenIn!)
+        if (needOut) setTokenOut(parsed.tokenOut!)
+        setTimeout(() => {
+            isUpdatingFromUrlRef.current = false
+            setIsUpdatingFromUrl(false)
+        }, 0)
+    }, [tokens, searchParams, chainId, setTokenIn, setTokenOut, setIsUpdatingFromUrl])
     const debouncedTokenIn = useDebounce(tokenIn, URL_UPDATE_DEBOUNCE_MS)
     const debouncedTokenOut = useDebounce(tokenOut, URL_UPDATE_DEBOUNCE_MS)
     const debouncedAmountIn = useDebounce(amountIn, URL_UPDATE_DEBOUNCE_MS)
