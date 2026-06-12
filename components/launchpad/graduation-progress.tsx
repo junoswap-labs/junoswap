@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { calculateGraduationProgress, isReadyToGraduate } from '@/services/launchpad'
+import { calculateGraduationProgress, isReadyToGraduate, formatKub } from '@/services/launchpad'
 import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
@@ -23,6 +23,8 @@ export function GraduationProgress({
     onGraduate,
     className,
 }: GraduationProgressProps) {
+    const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
+
     if (isGraduated) {
         return (
             <div className={cn('space-y-1', className)}>
@@ -38,14 +40,13 @@ export function GraduationProgress({
                 </div>
                 <div className="flex justify-between text-xs">
                     <span className="text-green-500 font-medium">Graduated</span>
-                    <span className="text-muted-foreground">100%</span>
+                    <span className="text-muted-foreground">{formatKub(graduationAmount)} KUB</span>
                 </div>
             </div>
         )
     }
 
     const ready = isReadyToGraduate(nativeReserve, tokenReserve, graduationAmount, isGraduated)
-    const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
 
     if (ready) {
         return (
@@ -62,7 +63,7 @@ export function GraduationProgress({
                 </div>
                 <div className="flex justify-between text-xs">
                     <span className="text-amber-500 font-medium">Ready to Graduate</span>
-                    <span className="text-muted-foreground">100%</span>
+                    <span className="text-muted-foreground">{formatKub(nativeReserve)} KUB</span>
                 </div>
                 {onGraduate && (
                     <Button
@@ -90,7 +91,10 @@ export function GraduationProgress({
                     }}
                 />
             </div>
-            <div className="flex justify-end text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                    {formatKub(nativeReserve)} / {formatKub(graduationAmount)} KUB
+                </span>
                 <span>{progress.toFixed(1)}%</span>
             </div>
         </div>
