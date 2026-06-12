@@ -15,7 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { TokenIcon } from '@/components/ui/token-icon'
 import { EmptyState } from '@/components/ui/empty-state'
-import { ChevronDown, Search, Copy, SearchX, Check } from 'lucide-react'
+import { ChevronDown, Search, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatBalance } from '@/services/tokens'
 import { toastSuccess } from '@/lib/toast'
@@ -76,7 +76,7 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
             <ScrollArea className="h-96">
                 <div className="py-2 pr-4">
                     {filteredTokens.length === 0 ? (
-                        <EmptyState icon={SearchX} title="No tokens found" compact />
+                        <EmptyState title="No tokens found" />
                     ) : (
                         <div className="space-y-1">
                             {filteredTokens.map((token) => {

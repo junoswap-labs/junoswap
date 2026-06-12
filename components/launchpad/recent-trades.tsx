@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
-import { Activity, Search, ArrowUpDown, User, SlidersHorizontal } from 'lucide-react'
+import { Search, ArrowUpDown, User, SlidersHorizontal } from 'lucide-react'
 import type { SwapEventData } from '@/hooks/useTokenSwapEvents'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
@@ -423,17 +423,11 @@ export function RecentTrades({
                     </div>
                 ) : filteredTrades.length === 0 && (result?.data?.length ?? 0) > 0 ? (
                     <EmptyState
-                        compact
-                        icon={Activity}
-                        variant="subtle"
                         title="No matching trades"
                         description="Try adjusting your filters"
                     />
                 ) : filteredTrades.length === 0 ? (
                     <EmptyState
-                        compact
-                        icon={Activity}
-                        variant="subtle"
                         title="No trades yet"
                         description="Trades will appear here once the token is traded"
                     />

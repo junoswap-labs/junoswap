@@ -6,7 +6,7 @@ import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ExplorerLink } from '@/components/ui/explorer-link'
-import { Users } from 'lucide-react'
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -140,9 +140,6 @@ export function TokenHolders({
                     </div>
                 ) : holders.length === 0 ? (
                     <EmptyState
-                        compact
-                        icon={Users}
-                        variant="subtle"
                         title="No holders yet"
                         description="Holders will appear here once the token is traded"
                     />

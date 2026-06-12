@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { Droplets, Minus, Plus, Wallet, Zap } from 'lucide-react'
+import { Minus, Plus, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -332,7 +332,6 @@ export function PositionsList() {
     if (!address) {
         return (
             <EmptyState
-                icon={Wallet}
                 title="Connect Wallet"
                 description="Connect your wallet to view your liquidity positions."
                 action={<ConnectButton />}
@@ -345,7 +344,6 @@ export function PositionsList() {
     if (allPositions.length === 0) {
         return (
             <EmptyState
-                icon={Droplets}
                 title="No liquidity positions"
                 description="You don't have any liquidity positions yet."
                 action={

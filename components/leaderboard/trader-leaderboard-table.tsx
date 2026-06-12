@@ -2,7 +2,6 @@
 
 import { cn, formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
-import { Users, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import type { TraderAgg } from '@/hooks/useLeaderboardTraders'
 import type { TraderSortKey, SortDirection } from '@/types/leaderboard'
 
@@ -28,6 +27,7 @@ interface TraderLeaderboardTableProps {
     sortKey: TraderSortKey
     sortDirection: SortDirection
     onSort: (key: TraderSortKey) => void
+    chainId: number
 }
 
 function formatUsd(value: number, nativeUsdPrice: number | null): string {
@@ -138,6 +138,7 @@ export function TraderLeaderboardTable({
     sortKey,
     sortDirection,
     onSort,
+    chainId,
 }: TraderLeaderboardTableProps) {
     const tableHeader = (
         <TableHeader>
@@ -188,9 +189,6 @@ export function TraderLeaderboardTable({
     if (traders.length === 0) {
         return (
             <EmptyState
-                compact
-                icon={Users}
-                variant="subtle"
                 title="No traders found"
                 description="No trading activity found for this time period"
             />
@@ -211,10 +209,7 @@ export function TraderLeaderboardTable({
                             )}
                             onClick={() =>
                                 window.open(
-                                    getExplorerAddressUrl(
-                                        PUMP_CORE_NATIVE_CHAIN_ID,
-                                        trader.address
-                                    ),
+                                    getExplorerAddressUrl(chainId, trader.address),
                                     '_blank'
                                 )
                             }

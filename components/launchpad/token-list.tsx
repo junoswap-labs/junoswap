@@ -7,7 +7,6 @@ import { TokenCard } from './token-card'
 import { SortTabs } from './sort-tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Coins, SearchX } from 'lucide-react'
 
 interface TokenListProps {
     searchQuery?: string
@@ -78,7 +77,6 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     if (tokens.length === 0) {
         return (
             <EmptyState
-                icon={Coins}
                 title="No tokens yet"
                 description="Be the first to create a token on the launchpad!"
             />
@@ -88,7 +86,6 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     if (filtered.length === 0) {
         return (
             <EmptyState
-                icon={SearchX}
                 title="No results"
                 description={`No tokens matching "${searchQuery.trim()}"`}
             />

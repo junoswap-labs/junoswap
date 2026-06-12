@@ -1,6 +1,15 @@
 import { formatEther } from 'viem'
+import { kubTestnet } from '@/lib/wagmi'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import type { LeaderboardTimePeriod } from '@/types/leaderboard'
+
+/** Chains that have indexed Ponder swap data for the leaderboard. */
+export const LEADERBOARD_SUPPORTED_CHAINS = new Set<number>([kubTestnet.id])
+
+/** Returns true if the given chain has indexed leaderboard/points data. */
+export function isLeaderboardSupportedChain(chainId: number): boolean {
+    return LEADERBOARD_SUPPORTED_CHAINS.has(chainId)
+}
 
 export function getTimeThreshold(period: LeaderboardTimePeriod): number {
     if (period === 'all') return 0

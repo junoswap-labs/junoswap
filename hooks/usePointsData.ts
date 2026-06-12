@@ -2,8 +2,13 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAccount } from 'wagmi'
-import { getTimeThreshold, fetchSwapEvents, safeFormatEther } from '@/lib/leaderboard-utils'
+import { useAccount, useChainId } from 'wagmi'
+import {
+    getTimeThreshold,
+    fetchSwapEvents,
+    safeFormatEther,
+    isLeaderboardSupportedChain,
+} from '@/lib/leaderboard-utils'
 import type { PointsTrader, PointsTimePeriod, PointsSortKey, SortDirection } from '@/types/points'
 
 export interface UserPointsSummary {
@@ -43,15 +48,31 @@ export function usePointsData(
     nativeUsdPrice: number | null
 ) {
     const { address: userAddress } = useAccount()
+    const chainId = useChainId()
+    const isSupportedChain = isLeaderboardSupportedChain(chainId)
 
     const { data: rawSwapEvents } = useQuery({
-        queryKey: ['points-data', timePeriod],
+        queryKey: ['points-data', timePeriod, chainId],
         queryFn: () => fetchSwapEvents(getTimeThreshold(timePeriod)),
+        enabled: isSupportedChain,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })
 
     return useMemo(() => {
+        if (!isSupportedChain) {
+            return {
+                traders: [],
+                totalCount: 0,
+                totalPages: 0,
+                totalPointsAll: 0,
+                totalVolumeUsd: 0,
+                userSummary: null,
+                isLoading: false,
+                isSupportedChain,
+            }
+        }
+
         if (!rawSwapEvents || nativeUsdPrice === null) {
             return {
                 traders: [],
@@ -61,6 +82,7 @@ export function usePointsData(
                 totalVolumeUsd: 0,
                 userSummary: null,
                 isLoading: true,
+                isSupportedChain,
             }
         }
 
@@ -171,6 +193,16 @@ export function usePointsData(
             totalVolumeUsd,
             userSummary,
             isLoading: false,
+            isSupportedChain,
         }
-    }, [rawSwapEvents, nativeUsdPrice, sortKey, sortDirection, searchQuery, page, userAddress])
+    }, [
+        rawSwapEvents,
+        nativeUsdPrice,
+        sortKey,
+        sortDirection,
+        searchQuery,
+        page,
+        userAddress,
+        isSupportedChain,
+    ])
 }

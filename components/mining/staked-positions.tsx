@@ -94,14 +94,21 @@ export function StakedPositions() {
         openUnstakeDialog(stakedPosition)
     }
     if (!stakerAddress) {
-        return null
+        return (
+            <div className="space-y-4">
+                <h2 className="text-lg font-semibold">My Staked Positions</h2>
+                <EmptyState
+                    title="Not available"
+                    description="LP Mining is not available on this chain."
+                />
+            </div>
+        )
     }
     if (!address) {
         return (
             <EmptyState
                 title="Connect wallet"
                 description="Connect your wallet to view staked positions."
-                compact
             />
         )
     }
@@ -126,7 +133,6 @@ export function StakedPositions() {
                 <EmptyState
                     title="No staked positions"
                     description="Stake your LP positions in a mining pool to earn rewards."
-                    compact
                 />
             </div>
         )

@@ -1,5 +1,6 @@
 'use client'
 
+import { useChainId } from 'wagmi'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
@@ -12,6 +13,7 @@ import { Search } from 'lucide-react'
 import type { TraderSortKey } from '@/types/leaderboard'
 
 export function LeaderboardContent() {
+    const chainId = useChainId()
     const {
         settings,
         page,
@@ -73,6 +75,7 @@ export function LeaderboardContent() {
                             sortKey={settings.sortKey}
                             sortDirection={settings.sortDirection}
                             onSort={handleSort}
+                            chainId={chainId}
                         />
                     </CardContent>
                 </Card>

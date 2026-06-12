@@ -61,7 +61,6 @@ export function TokenList({ tokens, isLoading }: TokenListProps) {
             <EmptyState
                 title="No Token Balances"
                 description="You don't hold any tokens on this chain yet."
-                variant="subtle"
             />
         )
     }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAccount, useChainId } from 'wagmi'
-import { ArrowDown, ArrowUp, Layers, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -294,7 +294,6 @@ function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading
     if (pools.length === 0) {
         return (
             <EmptyState
-                icon={Layers}
                 title="No pools available"
                 description="No pools available on this chain."
             />

@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react'
 import { useChainId, useSwitchChain } from 'wagmi'
 import { supportedChains, getChainMetadata, kubTestnet } from '@/lib/wagmi'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Loader2, ChevronDown, Search, Check } from 'lucide-react'
 import { toastSuccess, toastError } from '@/lib/toast'
@@ -128,12 +129,7 @@ function NetworkSwitcherModal({ open, onOpenChange }: NetworkSwitcherModalProps)
                         </div>
                     )}
 
-                    {!hasResults && (
-                        <div className="flex flex-col items-center justify-center py-8 gap-2">
-                            <Search className="h-8 w-8 text-muted-foreground/50" />
-                            <p className="text-sm text-muted-foreground">No chains found</p>
-                        </div>
-                    )}
+                    {!hasResults && <EmptyState title="No chains found" className="py-8" />}
                 </div>
             </DialogContent>
         </Dialog>

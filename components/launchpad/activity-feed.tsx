@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { formatEther } from 'viem'
-import { Activity } from 'lucide-react'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useAllSwapEvents } from '@/hooks/useAllSwapEvents'
 import { formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { formatAddress, cn, formatTimeAgo } from '@/lib/utils'
@@ -97,14 +97,7 @@ export function ActivityTicker() {
     }
 
     if (events.length === 0) {
-        return (
-            <div className="mb-4 overflow-hidden px-3 py-2">
-                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/50">
-                    <Activity className="h-3.5 w-3.5" />
-                    <span>No recent activity</span>
-                </div>
-            </div>
-        )
+        return <EmptyState title="No recent activity" className="mb-4 px-3 py-2" />
     }
 
     // Duplicate events for seamless loop

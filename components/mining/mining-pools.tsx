@@ -78,7 +78,6 @@ export function MiningPools() {
             <EmptyState
                 title="Not available"
                 description="LP Mining is not available on this chain."
-                compact
             />
         )
     }
@@ -136,7 +135,6 @@ export function MiningPools() {
                 <EmptyState
                     title="No active mining incentives"
                     description="Check back later for new rewards programs."
-                    compact
                 />
             ) : (
                 <Card>

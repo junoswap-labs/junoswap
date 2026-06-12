@@ -8,7 +8,7 @@ import { kubTestnet } from '@/lib/wagmi'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TokenDetailPage } from '@/components/launchpad/token-detail-page'
-import { Unplug, AlertTriangle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function TokenPage() {
@@ -39,8 +39,6 @@ function TokenPageContent() {
             <div className="flex min-h-screen items-start justify-center p-4">
                 <div className="w-full max-w-lg space-y-4">
                     <EmptyState
-                        icon={Unplug}
-                        variant="error"
                         title="Chain Not Supported"
                         description="Launchpad is currently available on KUB Testnet only. Please switch your network."
                     />
@@ -54,8 +52,6 @@ function TokenPageContent() {
             <div className="flex min-h-screen items-start justify-center p-4">
                 <div className="w-full max-w-lg space-y-4">
                     <EmptyState
-                        icon={AlertTriangle}
-                        variant="error"
                         title="Invalid Token"
                         description="The token address in the URL is not valid."
                         action={

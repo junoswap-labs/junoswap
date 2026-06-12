@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
-import { Activity, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 
 import { useUserActivity } from '@/hooks/useUserActivity'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
@@ -195,7 +195,7 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
     const { data: result, isLoading } = useUserActivity(address, chainId, page, 'all')
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
-    const events = result?.data ?? []
+    const events = useMemo(() => result?.data ?? [], [result?.data])
     const totalCount = result?.totalCount ?? 0
     const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
@@ -204,62 +204,49 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
     return (
         <div className="space-y-4">
             {isLoading ? (
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-2">
-                        <LoadingSkeleton />
-                    </CardContent>
-                </Card>
+                <LoadingSkeleton />
             ) : events.length === 0 ? (
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-2">
-                        <EmptyState
-                            compact
-                            icon={Activity}
-                            variant="subtle"
-                            title="No trades yet"
-                            description="Your trade history will appear here"
-                        />
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    title="No trades yet"
+                    description="Your trade history will appear here"
+                />
             ) : (
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-2">
-                        <div className="space-y-1">
-                            {dateGroups.map((group) => (
-                                <div key={group.label}>
-                                    {/* Date header */}
-                                    <div className="flex items-center gap-3 px-3 py-2">
-                                        <span className="text-xs font-medium text-muted-foreground shrink-0">
-                                            {group.label}
-                                        </span>
-                                        <Separator className="flex-1 bg-border/40" />
-                                    </div>
-
-                                    {/* Trade cards */}
-                                    {group.events.map((event, i) => (
-                                        <ActivityCard
-                                            key={event.id}
-                                            event={event}
-                                            nativeUsdPrice={nativeUsdPrice}
-                                            index={i}
-                                        />
-                                    ))}
+                <>
+                    <div className="space-y-1">
+                        {dateGroups.map((group) => (
+                            <div key={group.label}>
+                                {/* Date header */}
+                                <div className="flex items-center gap-3 px-3 py-2">
+                                    <span className="text-xs font-medium text-muted-foreground shrink-0">
+                                        {group.label}
+                                    </span>
+                                    <Separator className="flex-1 bg-border/40" />
                                 </div>
-                            ))}
-                        </div>
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-center border-t border-border/40 px-3 py-3 mt-2">
-                                <PaginationControls
-                                    currentPage={page}
-                                    totalPages={totalPages}
-                                    onPageChange={setPage}
-                                />
+                                {/* Trade cards */}
+                                {group.events.map((event, i) => (
+                                    <ActivityCard
+                                        key={event.id}
+                                        event={event}
+                                        nativeUsdPrice={nativeUsdPrice}
+                                        index={i}
+                                    />
+                                ))}
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-center border-t border-border/40 px-3 py-3 mt-2">
+                            <PaginationControls
+                                currentPage={page}
+                                totalPages={totalPages}
+                                onPageChange={setPage}
+                            />
+                        </div>
+                    )}
+                </>
             )}
         </div>
     )

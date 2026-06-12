@@ -1,11 +1,10 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useAccount, useChainId } from 'wagmi'
-import { Plus, Unplug } from 'lucide-react'
+import { useAccount } from 'wagmi'
+import { Plus } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/empty-state'
 import { PoolsList } from '@/components/positions/pools'
 import { PositionsList } from '@/components/positions/positions-list'
 import { AddLiquidityDialog } from '@/components/positions/add-liquidity-dialog'
@@ -21,29 +20,13 @@ import {
     UnstakeDialog,
 } from '@/components/mining'
 import { useEarnStore, useActiveTab } from '@/store/earn-store'
-import { getV3Config } from '@/lib/dex-config'
 import { ConnectModal } from '@/components/web3/connect-modal'
 
 function EarnContent() {
     const { isConnected } = useAccount()
-    const chainId = useChainId()
     const activeTab = useActiveTab()
     const { setActiveTab, openAddLiquidity } = useEarnStore()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
-    const dexConfig = getV3Config(chainId)
-    if (!dexConfig?.positionManager) {
-        return (
-            <div className="flex min-h-screen items-start justify-center p-4">
-                <div className="w-full max-w-md space-y-4">
-                    <EmptyState
-                        icon={Unplug}
-                        title="Chain Not Supported"
-                        description="Liquidity management is not available on this chain. Please switch to a supported chain like KUB Chain or JBC."
-                    />
-                </div>
-            </div>
-        )
-    }
     return (
         <div className="flex min-h-screen items-start justify-center p-4 pt-8">
             <div className="w-full max-w-5xl space-y-4">

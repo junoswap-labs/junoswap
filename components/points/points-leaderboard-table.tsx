@@ -2,7 +2,6 @@
 
 import { cn, formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
@@ -16,7 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
 import { PointsTierBadge } from './points-tier-badge'
 import { getTierForPoints } from '@/types/points'
-import { Users, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import type { PointsTrader } from '@/types/points'
 import type { PointsSortKey, SortDirection } from '@/types/points'
 
@@ -30,6 +29,7 @@ interface PointsLeaderboardTableProps {
     sortDirection: SortDirection
     onSort: (key: PointsSortKey) => void
     userAddress?: string
+    chainId: number
 }
 
 function SortableHead({
@@ -109,6 +109,7 @@ export function PointsLeaderboardTable({
     sortDirection,
     onSort,
     userAddress,
+    chainId,
 }: PointsLeaderboardTableProps) {
     const header = (
         <TableHeader>
@@ -153,9 +154,6 @@ export function PointsLeaderboardTable({
     if (traders.length === 0) {
         return (
             <EmptyState
-                compact
-                icon={Users}
-                variant="subtle"
                 title="No traders found"
                 description="No trading activity found for this time period"
             />
@@ -183,10 +181,7 @@ export function PointsLeaderboardTable({
                                 )}
                                 onClick={() =>
                                     window.open(
-                                        getExplorerAddressUrl(
-                                            PUMP_CORE_NATIVE_CHAIN_ID,
-                                            trader.address
-                                        ),
+                                        getExplorerAddressUrl(chainId, trader.address),
                                         '_blank'
                                     )
                                 }

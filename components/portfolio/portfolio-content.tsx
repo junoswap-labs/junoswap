@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { Wallet } from 'lucide-react'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
@@ -82,7 +81,6 @@ export function PortfolioContent() {
             <div className="flex min-h-screen items-start justify-center p-4">
                 <div className="w-full max-w-md space-y-4">
                     <EmptyState
-                        icon={Wallet}
                         title="Connect Wallet"
                         description="Connect your wallet to view your portfolio, track net worth, and monitor PNL."
                     />

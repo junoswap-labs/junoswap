@@ -2,11 +2,11 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { usePublicClient } from 'wagmi'
+import { usePublicClient, useChainId } from 'wagmi'
 import { formatEther, type Address } from 'viem'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 import { useTokenDiscovery } from '@/hooks/use-token-discovery'
 import { useMultiBalances } from '@/hooks/use-multi-balances'
 import { useTokenPrices } from '@/hooks/use-token-prices'
@@ -61,7 +61,8 @@ export function useLeaderboardTraders(
     page: number,
     nativeUsdPrice: number | null
 ) {
-    const chainId = PUMP_CORE_NATIVE_CHAIN_ID
+    const chainId = useChainId()
+    const isSupportedChain = isLeaderboardSupportedChain(chainId)
     const { allTokens, getTokenType } = useTokenDiscovery(chainId)
 
     const erc20Tokens = useMemo(
@@ -71,7 +72,7 @@ export function useLeaderboardTraders(
 
     // Step 1: Fetch Ponder data (swap events + token holders)
     const { data: raw, isLoading: isPonderLoading } = useQuery({
-        queryKey: ['leaderboard-traders', timePeriod],
+        queryKey: ['leaderboard-traders', timePeriod, chainId],
         queryFn: async () => {
             const since = getTimeThreshold(timePeriod)
             const [swapEvents, v3SwapEvents, tokenHolders] = await Promise.all([
@@ -81,6 +82,7 @@ export function useLeaderboardTraders(
             ])
             return { swapEvents: [...swapEvents, ...v3SwapEvents], tokenHolders }
         },
+        enabled: isSupportedChain,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })
@@ -98,7 +100,7 @@ export function useLeaderboardTraders(
     const publicClient = usePublicClient({ chainId })
 
     const { data: nativeBalanceMap, isLoading: isNativeLoading } = useQuery({
-        queryKey: ['leaderboard-native-balances', uniqueAddresses],
+        queryKey: ['leaderboard-native-balances', uniqueAddresses, chainId],
         queryFn: async () => {
             const map = new Map<string, number>()
             const results = await Promise.all(
@@ -260,10 +262,21 @@ export function useLeaderboardTraders(
         perAddressStats,
     ])
 
+    if (!isSupportedChain) {
+        return {
+            traders: [],
+            totalCount: 0,
+            totalPages: 0,
+            isLoading: false,
+            isSupportedChain,
+        }
+    }
+
     return {
         traders: result.traders,
         totalCount: result.totalCount,
         totalPages: result.totalPages,
         isLoading: isPonderLoading || isNativeLoading || isErc20Loading,
+        isSupportedChain,
     }
 }

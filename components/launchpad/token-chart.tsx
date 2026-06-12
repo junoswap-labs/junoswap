@@ -24,7 +24,7 @@ import { useTokenPriceHistory, TIMEFRAMES } from '@/hooks/useTokenPriceHistory'
 import type { ChartMode } from '@/types/chart'
 import { TIMEFRAME_DURATIONS } from '@/types/chart'
 import { cn } from '@/lib/utils'
-import { BarChart3 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { calculatePriceFromSqrtPrice, computeDailyMetrics } from '@/services/chart'
 import type { DailyMetrics } from '@/services/chart'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
@@ -559,13 +559,10 @@ export function TokenChart({
 
             {/* Empty state overlay */}
             {!isLoading && displayData.length === 0 && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 top-11 flex flex-col items-center justify-center gap-3">
-                    <div className="relative flex h-16 w-16 items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-muted/40" />
-                        <BarChart3 className="relative h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                    <span className="text-sm text-muted-foreground/70">No trading data yet</span>
-                </div>
+                <EmptyState
+                    title="No trading data yet"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 top-11"
+                />
             )}
         </div>
     )
