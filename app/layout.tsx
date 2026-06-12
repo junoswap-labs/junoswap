@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+    metadataBase: new URL('https://junoswap.trade'),
     title: 'Junoswap — Web3 Aggregation Platform',
     description:
         'Compare DEX rates across multiple chains. Swap tokens at the best price, bridge instantly, and launch your own memecoin — all on Junoswap.',

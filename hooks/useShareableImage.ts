@@ -5,7 +5,7 @@ import { toPng, toBlob } from 'html-to-image'
 import { toastSuccess, toastError } from '@/lib/toast'
 
 interface UseShareableImageReturn {
-    downloadImage: (element: HTMLElement) => Promise<void>
+    downloadImage: (element: HTMLElement, filename?: string) => Promise<void>
     shareImage: (element: HTMLElement) => Promise<void>
     copyToClipboard: (element: HTMLElement) => Promise<void>
     isGenerating: boolean
@@ -22,12 +22,12 @@ export function useShareableImage(): UseShareableImageReturn {
     }, [])
 
     const downloadImage = useCallback(
-        async (element: HTMLElement) => {
+        async (element: HTMLElement, filename = 'junoswap-points.png') => {
             setIsGenerating(true)
             try {
                 const dataUrl = await generateImage(element)
                 const link = document.createElement('a')
-                link.download = 'junoswap-points.png'
+                link.download = filename
                 link.href = dataUrl
                 link.click()
                 toastSuccess('Image downloaded!')

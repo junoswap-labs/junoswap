@@ -19,7 +19,8 @@ import { RecentTrades } from './recent-trades'
 import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
-import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
+import { ShareTokenDialog } from './share-token-dialog'
+import { Globe, ArrowLeft, Copy, Check, Share2 } from 'lucide-react'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 
@@ -72,6 +73,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const name = tokenInfo?.name || 'Unknown Token'
     const decimals = 18 // Launch tokens always use 18 decimals
     const [copied, setCopied] = useState(false)
+    const [shareOpen, setShareOpen] = useState(false)
 
     const copyAddress = () => {
         navigator.clipboard.writeText(tokenAddr)
@@ -134,22 +136,48 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             </div>
                         </div>
 
-                        {/* CA badge — right side */}
-                        <button
-                            onClick={copyAddress}
-                            className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-4 py-2 transition-colors hover:bg-muted shrink-0"
-                            title="Copy contract address"
-                        >
-                            <span className="font-mono text-xs text-muted-foreground">
-                                {formatAddress(tokenAddr)}
-                            </span>
-                            {copied ? (
-                                <Check className="h-3.5 w-3.5 text-green-400" />
-                            ) : (
-                                <Copy className="h-3.5 w-3.5 text-muted-foreground/50" />
-                            )}
-                        </button>
+                        {/* CA badge + share — right side */}
+                        <div className="flex shrink-0 items-center gap-2">
+                            <button
+                                onClick={copyAddress}
+                                className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-4 py-2 transition-colors hover:bg-muted"
+                                title="Copy contract address"
+                            >
+                                <span className="font-mono text-xs text-muted-foreground">
+                                    {formatAddress(tokenAddr)}
+                                </span>
+                                {copied ? (
+                                    <Check className="h-3.5 w-3.5 text-green-400" />
+                                ) : (
+                                    <Copy className="h-3.5 w-3.5 text-muted-foreground/50" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setShareOpen(true)}
+                                className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 transition-colors hover:bg-muted"
+                                title="Share token"
+                            >
+                                <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
+                                    Share
+                                </span>
+                            </button>
+                        </div>
                     </div>
+
+                    <ShareTokenDialog
+                        open={shareOpen}
+                        onOpenChange={setShareOpen}
+                        tokenAddr={tokenAddr}
+                        symbol={symbol}
+                        name={name}
+                        logo={tokenInfo?.logo}
+                        marketCap={marketCap}
+                        priceChange1dPct={
+                            snapshotMap.get(tokenAddr.toLowerCase())?.priceChange1dPct ?? null
+                        }
+                        isGraduated={isGraduated}
+                    />
 
                     {/* Inline market stats */}
                     <TokenStats
