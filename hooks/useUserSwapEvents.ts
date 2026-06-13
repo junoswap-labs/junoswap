@@ -31,6 +31,7 @@ interface V3SwapEventsPage {
         items: Array<{
             id: string
             tokenAddr: string
+            tokenIsToken0: number
             amount0: string
             amount1: string
             timestamp: number
@@ -52,6 +53,7 @@ const V3_SWAP_EVENTS_QUERY = `
       items {
         id
         tokenAddr
+        tokenIsToken0
         amount0
         amount1
         timestamp
@@ -113,24 +115,20 @@ async function fetchAllV3SwapEvents(sender: string): Promise<UserSwapEvent[]> {
         const data = await ponderRequest<V3SwapEventsPage>(V3_SWAP_EVENTS_QUERY, { sender, after })
         const items = data.v3SwapEvents.items
         for (const e of items) {
-            const amount0 = BigInt(e.amount0)
-            const amount1 = BigInt(e.amount1)
-            const isBuy = amount0 < 0n
+            // amount0/amount1 are pool-perspective deltas: positive = token into the
+            // pool (user pays), negative = out of the pool (user receives). Use
+            // tokenIsToken0 to pick which side is the token vs native — the launch
+            // token can sort to either side of WKUB.
+            const tokenIsToken0 = e.tokenIsToken0 === 1
+            const tokenAmt = BigInt(tokenIsToken0 ? e.amount0 : e.amount1)
+            const nativeAmt = BigInt(tokenIsToken0 ? e.amount1 : e.amount0)
+            const abs = (x: bigint) => (x < 0n ? -x : x)
+            const isBuy = tokenAmt < 0n // token leaves the pool => user receives it
             events.push({
                 tokenAddr: e.tokenAddr.toLowerCase(),
                 isBuy,
-                amountIn: isBuy
-                    ? amount1 < 0n
-                        ? (-amount1).toString()
-                        : '0'
-                    : (-amount0).toString(),
-                amountOut: isBuy
-                    ? amount0 < 0n
-                        ? '0'
-                        : amount0.toString()
-                    : amount1 < 0n
-                      ? '0'
-                      : amount1.toString(),
+                amountIn: (isBuy ? abs(nativeAmt) : abs(tokenAmt)).toString(),
+                amountOut: (isBuy ? abs(tokenAmt) : abs(nativeAmt)).toString(),
                 timestamp: e.timestamp,
             })
         }

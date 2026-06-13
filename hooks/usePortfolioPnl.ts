@@ -1,57 +1,61 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useSwapAggregation } from '@/hooks/use-swap-aggregation'
+import {
+    computePortfolioPnl,
+    type TokenPnl,
+    type PortfolioPnlTotals,
+} from '@/services/dex/portfolio-pnl'
 import type { UserSwapEvent } from '@/hooks/useUserSwapEvents'
 import type { TokenHolding } from '@/hooks/use-multi-balances'
 
-interface PnlData {
-    costBasisUsd: number
-    unrealizedPnl: number
-    pnlPercent: number
+const EMPTY_TOTALS: PortfolioPnlTotals = {
+    totalInvestedUsd: 0,
+    realizedUsd: 0,
+    unrealizedUsd: 0,
+    totalPnlUsd: 0,
+    totalPnlPercent: 0,
 }
 
+/**
+ * Weighted-average, realized + unrealized PnL for the portfolio, denominated in
+ * historical USD. `pnlByToken` is keyed by held-token address (for the cards);
+ * `totals` aggregates every token with swap history, including fully-exited
+ * positions whose realized gains no longer appear as holdings.
+ */
 export function usePortfolioPnl(
     swapEvents: UserSwapEvent[] | undefined,
     holdings: Map<string, TokenHolding>,
     prices: Map<string, number | null>,
-    nativeUsdPrice: number | null
+    priceAt: (timestamp: number) => number
 ) {
-    // Convert holdings to the flat numeric map useSwapAggregation expects
-    const holderMap = useMemo(() => {
-        const map = new Map<string, Map<string, number>>()
-        const tokenMap = new Map<string, number>()
+    const balanceByToken = useMemo(() => {
+        const map = new Map<string, number>()
         for (const [key, holding] of holdings) {
             const balance = Number(holding.formattedBalance)
-            if (balance > 0) tokenMap.set(key, balance)
-        }
-        // Single address, use placeholder key
-        if (tokenMap.size > 0) {
-            map.set('self', tokenMap)
+            if (balance > 0) map.set(key, balance)
         }
         return map
     }, [holdings])
 
-    // Convert UserSwapEvent[] to SwapEventInput[]
-    const swapInputs = useMemo(
-        () =>
-            swapEvents?.map((e) => ({
-                tokenAddr: e.tokenAddr,
-                sender: 'self',
-                isBuy: e.isBuy,
-                amountIn: e.amountIn,
-                amountOut: e.amountOut,
-            })),
-        [swapEvents]
-    )
-
-    const { perTokenPnl } = useSwapAggregation(swapInputs, holderMap, prices, nativeUsdPrice)
-
     return useMemo(() => {
-        const pnlMap = new Map<string, PnlData | null>()
-        for (const key of holdings.keys()) {
-            pnlMap.set(key, perTokenPnl.get(key) ?? null)
+        if (!swapEvents || swapEvents.length === 0) {
+            return { pnlByToken: new Map<string, TokenPnl | null>(), totals: EMPTY_TOTALS }
         }
-        return pnlMap
-    }, [holdings, perTokenPnl])
+
+        const { perToken, totals } = computePortfolioPnl(
+            swapEvents,
+            balanceByToken,
+            prices,
+            priceAt
+        )
+
+        // Expose only held tokens to the cards; null for tokens without history.
+        const pnlByToken = new Map<string, TokenPnl | null>()
+        for (const key of holdings.keys()) {
+            pnlByToken.set(key, perToken.get(key) ?? null)
+        }
+
+        return { pnlByToken, totals }
+    }, [swapEvents, balanceByToken, prices, priceAt, holdings])
 }

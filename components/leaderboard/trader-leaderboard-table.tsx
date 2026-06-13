@@ -39,23 +39,13 @@ function RankCell({ rank }: { rank: number }) {
     return <span className="font-mono text-muted-foreground">{rank}</span>
 }
 
-function PnlCell({
-    pnlNative,
-    nativeUsdPrice,
-}: {
-    pnlNative: number
-    nativeUsdPrice: number | null
-}) {
-    const isPositive = pnlNative >= 0
+function PnlCell({ pnlUsd }: { pnlUsd: number }) {
+    const isPositive = pnlUsd >= 0
     const colorClass = isPositive ? 'text-emerald-400' : 'text-red-400'
-    const usd = nativeUsdPrice !== null ? Math.abs(pnlNative * nativeUsdPrice) : Math.abs(pnlNative)
-    const prefix = nativeUsdPrice !== null ? '$' : ''
 
     return (
         <span className={cn('font-mono tracking-tight text-sm', colorClass)}>
-            {isPositive ? '+' : '-'}
-            {prefix}
-            {formatCompact(usd)}
+            {isPositive ? '+' : '-'}${formatCompact(Math.abs(pnlUsd))}
         </span>
     )
 }
@@ -227,10 +217,7 @@ export function TraderLeaderboardTable({
                             </TableCell>
 
                             <TableCell className="py-2.5" onClick={(e) => e.stopPropagation()}>
-                                <PnlCell
-                                    pnlNative={trader.pnlNative}
-                                    nativeUsdPrice={nativeUsdPrice}
-                                />
+                                <PnlCell pnlUsd={trader.pnlUsd} />
                             </TableCell>
 
                             <TableCell className="py-2.5 font-mono tracking-tight text-sm text-muted-foreground">

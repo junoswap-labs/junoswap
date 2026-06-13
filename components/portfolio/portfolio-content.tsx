@@ -13,6 +13,7 @@ import { usePortfolioTokens } from '@/hooks/usePortfolioTokens'
 import { usePortfolioBalances } from '@/hooks/usePortfolioBalances'
 import { usePortfolioPrices } from '@/hooks/usePortfolioPrices'
 import { useUserSwapEvents } from '@/hooks/useUserSwapEvents'
+import { useNativeUsdPriceHistory } from '@/hooks/useNativeUsdPriceHistory'
 import { usePortfolioPnl } from '@/hooks/usePortfolioPnl'
 import { usePortfolioStore } from '@/store/portfolio-store'
 import { ConnectModal } from '@/components/web3/connect-modal'
@@ -29,7 +30,8 @@ export function PortfolioContent() {
     const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(tokens, chainId)
     const prices = usePortfolioPrices(holdings, nativeUsdPrice, chainId, getTokenType)
     const { data: swapEvents } = useUserSwapEvents(address, chainId)
-    const pnlMap = usePortfolioPnl(swapEvents, holdings, prices, nativeUsdPrice)
+    const { priceAt } = useNativeUsdPriceHistory(chainId, nativeUsdPrice)
+    const { pnlByToken, totals: pnlTotals } = usePortfolioPnl(swapEvents, holdings, prices, priceAt)
 
     const portfolioTokens = useMemo<PortfolioToken[]>(() => {
         const result: PortfolioToken[] = []
@@ -38,7 +40,7 @@ export function PortfolioContent() {
             const priceUsd = prices.get(key) ?? null
             const balanceNum = parseFloat(holding.formattedBalance)
             const valueUsd = priceUsd !== null ? priceUsd * balanceNum : 0
-            const pnl = pnlMap.get(key)
+            const pnl = pnlByToken.get(key)
             const tokenType = getTokenType(holding.token)
 
             result.push({
@@ -47,32 +49,26 @@ export function PortfolioContent() {
                 formattedBalance: holding.formattedBalance,
                 priceUsd,
                 valueUsd,
-                pnlUsd: pnl?.unrealizedPnl ?? null,
+                pnlUsd: pnl?.totalPnlUsd ?? null,
                 pnlPercent: pnl?.pnlPercent ?? null,
                 tokenType,
             })
         }
 
         return result
-    }, [holdings, prices, pnlMap, getTokenType])
+    }, [holdings, prices, pnlByToken, getTokenType])
 
     const summary = useMemo<Summary>(() => {
         const netWorth = portfolioTokens.reduce((sum, t) => sum + t.valueUsd, 0)
 
-        const tokensWithPnl = portfolioTokens.filter((t) => t.pnlUsd !== null)
-        const totalPnl =
-            tokensWithPnl.length > 0
-                ? tokensWithPnl.reduce((sum, t) => sum + (t.pnlUsd ?? 0), 0)
-                : null
-        const totalCostBasis = tokensWithPnl.reduce(
-            (sum, t) => sum + (t.valueUsd - (t.pnlUsd ?? 0)),
-            0
-        )
-        const totalPnlPercent =
-            totalCostBasis > 0 && totalPnl !== null ? (totalPnl / totalCostBasis) * 100 : null
+        // Total PnL aggregates every traded token (incl. fully-exited positions),
+        // so realized gains aren't lost when a position no longer shows as a holding.
+        const hasPnl = pnlTotals.totalInvestedUsd > 0
+        const totalPnl = hasPnl ? pnlTotals.totalPnlUsd : null
+        const totalPnlPercent = hasPnl ? pnlTotals.totalPnlPercent : null
 
         return { netWorth, totalPnl, totalPnlPercent }
-    }, [portfolioTokens])
+    }, [portfolioTokens, pnlTotals])
 
     const isLoading = isBalancesLoading || isPriceLoading
 

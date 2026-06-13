@@ -10,7 +10,11 @@ import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 import { useTokenDiscovery } from '@/hooks/use-token-discovery'
 import { useMultiBalances } from '@/hooks/use-multi-balances'
 import { useTokenPrices } from '@/hooks/use-token-prices'
-import { useSwapAggregation } from '@/hooks/use-swap-aggregation'
+import { useNativeUsdPriceHistory } from '@/hooks/useNativeUsdPriceHistory'
+import {
+    computeTraderStatsByAddress,
+    type LeaderboardSwapEvent,
+} from '@/services/dex/portfolio-pnl'
 import { getTimeThreshold, fetchSwapEvents, fetchV3SwapEvents } from '@/lib/leaderboard-utils'
 import type { LeaderboardTimePeriod, TraderSortKey, SortDirection } from '@/types/leaderboard'
 
@@ -18,7 +22,7 @@ export interface TraderAgg {
     rank: number
     address: string
     netWorthNative: number
-    pnlNative: number
+    pnlUsd: number
     pnlPercent: number
     volumeNative: number
     tradeCount: number
@@ -128,6 +132,7 @@ export function useLeaderboardTraders(
 
     // Step 4: Fetch prices
     const priceMap = useTokenPrices(allTokens, chainId, nativeUsdPrice, getTokenType)
+    const { priceAt } = useNativeUsdPriceHistory(chainId, nativeUsdPrice)
 
     // Step 5: Build numeric holder map for swap aggregation
     const numericHolderMap = useMemo(() => {
@@ -142,25 +147,19 @@ export function useLeaderboardTraders(
         return map
     }, [holdings])
 
-    // Step 6: Swap aggregation (volume, PNL, trade counts)
-    const swapInputs = useMemo(
-        () =>
+    // Step 6: Per-trader PNL (same engine as the portfolio), volume & trade counts
+    const perAddressStats = useMemo(() => {
+        const events: LeaderboardSwapEvent[] =
             raw?.swapEvents.map((e) => ({
                 tokenAddr: e.tokenAddr,
                 sender: e.sender,
-                isBuy: e.isBuy,
+                isBuy: e.isBuy === 1,
                 amountIn: e.amountIn,
                 amountOut: e.amountOut,
-            })),
-        [raw]
-    )
-
-    const { perAddressStats } = useSwapAggregation(
-        swapInputs,
-        numericHolderMap,
-        priceMap,
-        nativeUsdPrice
-    )
+                timestamp: e.timestamp,
+            })) ?? []
+        return computeTraderStatsByAddress(events, numericHolderMap, priceMap, priceAt)
+    }, [raw, numericHolderMap, priceMap, priceAt])
 
     // Step 7: Compute net worth per address, merge with swap stats, sort & paginate
     const result = useMemo(() => {
@@ -201,7 +200,7 @@ export function useLeaderboardTraders(
                 rank: 0,
                 address: addr,
                 netWorthNative: netWorth,
-                pnlNative: stats?.pnlNative ?? 0,
+                pnlUsd: stats?.pnlUsd ?? 0,
                 pnlPercent: stats?.pnlPercent ?? 0,
                 volumeNative: stats?.volumeNative ?? 0,
                 tradeCount: stats?.tradeCount ?? 0,
@@ -219,8 +218,8 @@ export function useLeaderboardTraders(
                     bVal = b.netWorthNative
                     break
                 case 'pnl':
-                    aVal = a.pnlNative
-                    bVal = b.pnlNative
+                    aVal = a.pnlUsd
+                    bVal = b.pnlUsd
                     break
                 case 'volume':
                     aVal = a.volumeNative
