@@ -58,17 +58,25 @@ describe('calculateSellOutput', () => {
 })
 
 describe('calculateGraduationProgress', () => {
+    const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
+
     it('returns 0 when graduation amount is 0', () => {
-        expect(calculateGraduationProgress(100n, 0n)).toBe(0)
+        expect(calculateGraduationProgress(100n, INITIAL_TOKEN, 0n)).toBe(0)
     })
 
-    it('calculates percentage correctly', () => {
-        expect(calculateGraduationProgress(25n, 100n)).toBe(25)
-        expect(calculateGraduationProgress(50n, 100n)).toBe(50)
+    it('returns 0 when token reserve is 0', () => {
+        expect(calculateGraduationProgress(100n, 0n, 4000n)).toBe(0)
+    })
+
+    it('calculates percentage correctly using ratio', () => {
+        // 25% progress: nativeReserve = 1000, tokenReserve = INITIAL_TOKEN, graduationAmount = 4000
+        // progress = (INITIAL_TOKEN * 1000 * 100) / (INITIAL_TOKEN * 4000) = 25
+        expect(calculateGraduationProgress(1000n, INITIAL_TOKEN, 4000n)).toBe(25)
+        expect(calculateGraduationProgress(2000n, INITIAL_TOKEN, 4000n)).toBe(50)
     })
 
     it('caps at 100', () => {
-        expect(calculateGraduationProgress(200n, 100n)).toBe(100)
+        expect(calculateGraduationProgress(8000n, INITIAL_TOKEN, 4000n)).toBe(100)
     })
 })
 
