@@ -48,9 +48,9 @@ function buildBondingCurveQuery(hasIsBuy: boolean, hasSender: boolean) {
 }
 
 const V3_SWAP_EVENTS_QUERY = `
-  query V3SwapEvents($tokenAddr: String!, $limit: Int!, $offset: Int!, $sender: String) {
+  query V3SwapEvents($tokenAddr: String!, $limit: Int!, $offset: Int!, $txFrom: String) {
     v3SwapEvents(
-      where: { tokenAddr: $tokenAddr, sender: $sender },
+      where: { tokenAddr: $tokenAddr, txFrom: $txFrom },
       orderBy: "timestamp",
       orderDirection: "desc",
       limit: $limit,
@@ -130,23 +130,52 @@ export function useTokenSwapEvents(
             const offset = (page - 1) * pageSize
             const fetchLimit = pageSize + 1
 
-            // For graduated tokens, query V3 swap events from Ponder
+            // For graduated tokens, merge V3 + bonding curve events
             if (isGraduated) {
-                const variables: Record<string, unknown> = {
+                // --- Bonding curve events (historical, finite) ---
+                const hasBcIsBuy = filters?.isBuy !== undefined
+                const hasBcSender = !!filters?.sender
+                const bcQuery = buildBondingCurveQuery(hasBcIsBuy, hasBcSender)
+                const bcVariables: Record<string, unknown> = {
+                    tokenAddr: tokenAddr.toLowerCase(),
+                    limit: 1000, // BC events are finite after graduation
+                    offset: 0,
+                }
+                if (hasBcIsBuy) bcVariables.isBuy = filters!.isBuy! ? 1 : 0
+                if (hasBcSender) bcVariables.sender = filters!.sender!.toLowerCase()
+
+                // --- V3 events (server-side pagination, txFrom filter) ---
+                const v3Variables: Record<string, unknown> = {
                     tokenAddr: tokenAddr.toLowerCase(),
                     limit: fetchLimit,
                     offset,
                 }
                 if (filters?.sender) {
-                    variables.sender = filters.sender.toLowerCase()
+                    v3Variables.txFrom = filters.sender.toLowerCase()
                 }
 
-                const result = await ponderRequest<V3SwapEventsResponse>(
-                    V3_SWAP_EVENTS_QUERY,
-                    variables
-                )
+                // Fetch both in parallel
+                const [bcResult, v3Result] = await Promise.all([
+                    ponderRequest<BondingCurveSwapEventsResponse>(bcQuery, bcVariables),
+                    ponderRequest<V3SwapEventsResponse>(V3_SWAP_EVENTS_QUERY, v3Variables),
+                ])
 
-                let allItems = result.v3SwapEvents.items.map((e) => {
+                // Normalize bonding curve events
+                const bcItems = bcResult.swapEvents.items.map((e) => ({
+                    blockNumber: BigInt(e.blockNumber),
+                    timestamp: e.timestamp,
+                    sender: e.sender as Address,
+                    isBuy: e.isBuy === 1,
+                    tokenAddr,
+                    amountIn: BigInt(e.amountIn),
+                    amountOut: BigInt(e.amountOut),
+                    reserveIn: BigInt(e.reserveIn),
+                    reserveOut: BigInt(e.reserveOut),
+                    transactionHash: e.transactionHash as `0x${string}`,
+                }))
+
+                // Normalize V3 events
+                let v3Items = v3Result.v3SwapEvents.items.map((e) => {
                     const amount0 = BigInt(e.amount0)
                     const amount1 = BigInt(e.amount1)
 
@@ -170,12 +199,17 @@ export function useTokenSwapEvents(
 
                 // V3 isBuy is computed client-side, filter here if needed
                 if (filters?.isBuy !== undefined) {
-                    allItems = allItems.filter((item) => item.isBuy === filters.isBuy)
+                    v3Items = v3Items.filter((item) => item.isBuy === filters.isBuy)
                 }
 
-                const hasMore = allItems.length > pageSize
-                const data = hasMore ? allItems.slice(0, pageSize) : allItems
-                const totalCount = allItems.length + offset
+                // Merge: V3 events (newer) first, then BC events (older).
+                // All V3 timestamps >= graduatedAt and all BC timestamps < graduatedAt,
+                // so both desc-sorted sets concatenate cleanly.
+                const merged = [...v3Items, ...bcItems]
+
+                const hasMore = merged.length > pageSize
+                const data = hasMore ? merged.slice(0, pageSize) : merged
+                const totalCount = merged.length + offset
 
                 return { data, totalCount }
             }

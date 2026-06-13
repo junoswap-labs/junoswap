@@ -1,7 +1,12 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { calculateGraduationProgress, isReadyToGraduate, formatKub } from '@/services/launchpad'
+import {
+    calculateGraduationProgress,
+    calculateGraduationTarget,
+    isReadyToGraduate,
+    formatKub,
+} from '@/services/launchpad'
 import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
@@ -23,7 +28,8 @@ export function GraduationProgress({
     onGraduate,
     className,
 }: GraduationProgressProps) {
-    const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
+    const progress = calculateGraduationProgress(nativeReserve, tokenReserve, graduationAmount)
+    const targetKub = calculateGraduationTarget(tokenReserve, graduationAmount)
 
     if (isGraduated) {
         return (
@@ -40,7 +46,7 @@ export function GraduationProgress({
                 </div>
                 <div className="flex justify-between text-xs">
                     <span className="text-green-500 font-medium">Graduated</span>
-                    <span className="text-muted-foreground">{formatKub(graduationAmount)} KUB</span>
+                    <span className="text-muted-foreground">{formatKub(targetKub)} KUB</span>
                 </div>
             </div>
         )
@@ -93,7 +99,7 @@ export function GraduationProgress({
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
                 <span>
-                    {formatKub(nativeReserve)} / {formatKub(graduationAmount)} KUB
+                    {formatKub(nativeReserve)} / {formatKub(targetKub)} KUB
                 </span>
                 <span>{progress.toFixed(1)}%</span>
             </div>
