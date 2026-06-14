@@ -99,7 +99,7 @@ export function TokenCard({ portfolioToken }: TokenCardProps) {
                                 <span
                                     className={cn(
                                         'font-mono text-xs font-medium',
-                                        isPnlPositive ? 'text-emerald-500' : 'text-red-500'
+                                        isPnlPositive ? 'text-positive' : 'text-negative'
                                     )}
                                 >
                                     {isPnlPositive ? '+' : '-'}${Math.abs(pnlUsd).toFixed(2)}

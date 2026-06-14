@@ -79,10 +79,10 @@ function useChartColors() {
             crosshairColor: isDark ? 'hsl(228, 12%, 25%)' : 'hsl(220, 12%, 70%)',
             crosshairLabelBg: isDark ? 'hsl(232, 14%, 14%)' : 'hsl(220, 12%, 92%)',
             borderColor: isDark ? 'hsl(228, 12%, 10%)' : 'hsl(220, 12%, 88%)',
-            volumeUp: isDark ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.3)',
-            volumeDown: isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.3)',
-            ohlcvUp: isDark ? 'text-emerald-400' : 'text-emerald-600',
-            ohlcvDown: isDark ? 'text-red-400' : 'text-red-600',
+            volumeUp: isDark ? 'rgba(30, 215, 96, 0.25)' : 'rgba(30, 215, 96, 0.3)',
+            volumeDown: isDark ? 'rgba(233, 20, 41, 0.25)' : 'rgba(233, 20, 41, 0.3)',
+            ohlcvUp: 'text-positive',
+            ohlcvDown: 'text-negative',
         }),
         [isDark]
     )
@@ -327,12 +327,12 @@ export function TokenChart({
         })
 
         const candleSeries = chart.addSeries(CandlestickSeries, {
-            upColor: 'rgb(34, 197, 94)',
-            downColor: 'rgb(239, 68, 68)',
-            borderUpColor: 'rgb(34, 197, 94)',
-            borderDownColor: 'rgb(239, 68, 68)',
-            wickUpColor: 'rgb(34, 197, 94)',
-            wickDownColor: 'rgb(239, 68, 68)',
+            upColor: 'rgb(30, 215, 96)',
+            downColor: 'rgb(233, 20, 41)',
+            borderUpColor: 'rgb(30, 215, 96)',
+            borderDownColor: 'rgb(233, 20, 41)',
+            wickUpColor: 'rgb(30, 215, 96)',
+            wickDownColor: 'rgb(233, 20, 41)',
             lastValueVisible: false,
             priceLineVisible: false,
         })
@@ -443,7 +443,7 @@ export function TokenChart({
             const isUp = lastCandle.close >= lastCandle.open
             priceLineRef.current = candleSeriesRef.current.createPriceLine({
                 price: lastCandle.close,
-                color: isUp ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)',
+                color: isUp ? 'rgb(30, 215, 96)' : 'rgb(233, 20, 41)',
                 lineWidth: 1,
                 lineStyle: 2, // dashed
                 axisLabelVisible: true,

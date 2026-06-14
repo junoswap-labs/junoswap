@@ -134,7 +134,7 @@ export function StakeDialog() {
                             </span>
                             <Badge
                                 variant="outline"
-                                className="bg-green-500/10 text-green-500 border-green-500/20"
+                                className="bg-positive/10 text-positive border-positive/20"
                             >
                                 {selectedIncentive.isActive ? 'Active' : 'Inactive'}
                             </Badge>
@@ -226,7 +226,7 @@ function PositionOption({ position, isSelected }: PositionOptionProps) {
                     {position.inRange ? (
                         <Badge
                             variant="outline"
-                            className="bg-green-500/10 text-green-500 border-green-500/20"
+                            className="bg-positive/10 text-positive border-positive/20"
                         >
                             In Range
                         </Badge>

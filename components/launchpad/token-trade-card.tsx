@@ -463,8 +463,8 @@ export function TokenTradeCard({
         return (
             <Card>
                 <CardContent className="p-4 sm:p-6">
-                    <div className="rounded-lg bg-green-500/10 p-4 sm:p-6 text-center">
-                        <p className="text-lg font-semibold text-green-500">Token Graduated!</p>
+                    <div className="rounded-lg bg-positive/10 p-4 sm:p-6 text-center">
+                        <p className="text-lg font-semibold text-positive">Token Graduated!</p>
                         <p className="mt-2 text-sm text-muted-foreground">
                             V3 pool not found. Trading unavailable.
                         </p>
@@ -486,13 +486,13 @@ export function TokenTradeCard({
                         <TabsList className="relative grid w-full grid-cols-2 rounded-lg bg-muted/40 p-1">
                             <TabsTrigger
                                 value="buy"
-                                className="relative z-10 flex items-center justify-center rounded-md py-2 text-sm font-medium tracking-wide uppercase transition-all duration-200 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-emerald-500/20"
+                                className="relative z-10 flex items-center justify-center rounded-md py-2 text-sm font-medium tracking-wide uppercase transition-all duration-200 data-[state=active]:bg-positive data-[state=active]:text-positive-foreground data-[state=active]:shadow-sm data-[state=active]:shadow-positive/20"
                             >
                                 Buy
                             </TabsTrigger>
                             <TabsTrigger
                                 value="sell"
-                                className="relative z-10 flex items-center justify-center rounded-md py-2 text-sm font-medium tracking-wide uppercase transition-all duration-200 data-[state=active]:bg-rose-500 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-rose-500/20"
+                                className="relative z-10 flex items-center justify-center rounded-md py-2 text-sm font-medium tracking-wide uppercase transition-all duration-200 data-[state=active]:bg-negative data-[state=active]:text-negative-foreground data-[state=active]:shadow-sm data-[state=active]:shadow-negative/20"
                             >
                                 Sell
                             </TabsTrigger>

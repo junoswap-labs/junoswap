@@ -12,10 +12,10 @@ export const contentType = 'image/png'
 const BRAND_FROM = '#ff3333' // primary (hsl(0 100% 60%))
 const BRAND_TO = '#FF914D'
 const CARD_BG = '#0a0e14'
-const EMERALD_BG = 'rgba(16,185,129,0.15)'
-const EMERALD_TEXT = '#34d399'
-const RED_BG = 'rgba(239,68,68,0.15)'
-const RED_TEXT = '#f87171'
+const EMERALD_BG = 'rgba(30, 215, 96, 0.15)'
+const EMERALD_TEXT = '#1ED760'
+const RED_BG = 'rgba(233, 20, 41, 0.15)'
+const RED_TEXT = '#E91429'
 
 // Formats satori can rasterize — webp and others crash the renderer.
 const SATORI_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/svg+xml']

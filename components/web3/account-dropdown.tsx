@@ -85,7 +85,7 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
                                 {address &&
                                     (copied ? (
                                         <Check
-                                            className="h-3.5 w-3.5 flex-shrink-0 text-green-500"
+                                            className="h-3.5 w-3.5 flex-shrink-0 text-positive"
                                             aria-hidden="true"
                                         />
                                     ) : (

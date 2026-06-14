@@ -74,8 +74,8 @@ export function TokenCard({
                                                 className={cn(
                                                     'ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums',
                                                     priceChange1dPct >= 0
-                                                        ? 'bg-emerald-500/15 text-emerald-500'
-                                                        : 'bg-red-500/15 text-red-500'
+                                                        ? 'bg-positive/15 text-positive'
+                                                        : 'bg-negative/15 text-negative'
                                                 )}
                                             >
                                                 {priceChange1dPct >= 0 ? '+' : ''}
@@ -110,12 +110,12 @@ export function TokenCard({
                                                 style={{
                                                     width: `${progress}%`,
                                                     background:
-                                                        'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                                                        'linear-gradient(90deg, rgb(30 215 96 / 0.3), rgb(30 215 96))',
                                                 }}
                                             />
                                         </div>
                                         {isGraduated && (
-                                            <span className="text-xs text-green-500 font-medium">
+                                            <span className="text-xs text-positive font-medium">
                                                 Graduated
                                             </span>
                                         )}

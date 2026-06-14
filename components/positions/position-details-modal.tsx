@@ -100,9 +100,9 @@ export function PositionDetailsModal() {
                         ) : inRange ? (
                             <Badge
                                 variant="outline"
-                                className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                                className="bg-positive/15 text-positive border-positive/25"
                             >
-                                <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-positive" />
                                 In Range
                             </Badge>
                         ) : (
@@ -174,7 +174,7 @@ export function PositionDetailsModal() {
                                             {selectedPosition.token0Info.symbol}
                                         </span>
                                         <span
-                                            className={`text-sm font-medium font-mono tracking-tight ${hasFees ? 'text-emerald-400' : ''}`}
+                                            className={`text-sm font-medium font-mono tracking-tight ${hasFees ? 'text-positive' : ''}`}
                                         >
                                             {fees0Formatted}
                                         </span>
@@ -184,7 +184,7 @@ export function PositionDetailsModal() {
                                             {selectedPosition.token1Info.symbol}
                                         </span>
                                         <span
-                                            className={`text-sm font-medium font-mono tracking-tight ${hasFees ? 'text-emerald-400' : ''}`}
+                                            className={`text-sm font-medium font-mono tracking-tight ${hasFees ? 'text-positive' : ''}`}
                                         >
                                             {fees1Formatted}
                                         </span>

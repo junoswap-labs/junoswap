@@ -41,7 +41,7 @@ function RankCell({ rank }: { rank: number }) {
 
 function PnlCell({ pnlUsd }: { pnlUsd: number }) {
     const isPositive = pnlUsd >= 0
-    const colorClass = isPositive ? 'text-emerald-400' : 'text-red-400'
+    const colorClass = isPositive ? 'text-positive' : 'text-negative'
 
     return (
         <span className={cn('font-mono tracking-tight text-sm', colorClass)}>

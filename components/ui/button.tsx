@@ -20,8 +20,8 @@ const buttonVariants = cva(
                 ghost: 'hover:bg-accent hover:text-accent-foreground',
                 link: 'text-primary underline-offset-4 hover:underline',
                 success:
-                    'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800',
-                danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 active:bg-red-800',
+                    'bg-positive text-positive-foreground shadow-sm hover:bg-positive/90 active:bg-positive/80',
+                danger: 'bg-negative text-negative-foreground shadow-sm hover:bg-negative/90 active:bg-negative/80',
                 warning: 'bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:bg-amber-700',
             },
             size: {

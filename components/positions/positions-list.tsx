@@ -74,9 +74,9 @@ function PositionCard({
                             ) : position.inRange ? (
                                 <Badge
                                     variant="outline"
-                                    className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                                    className="bg-positive/15 text-positive border-positive/25"
                                 >
-                                    <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                    <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-positive" />
                                     In Range
                                 </Badge>
                             ) : (
@@ -131,7 +131,7 @@ function PositionCard({
                             {hasFees ? (
                                 <div className="space-y-1">
                                     <div className="flex items-baseline gap-1 min-w-0">
-                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400 truncate">
+                                        <span className="text-sm font-medium font-mono tracking-tight text-positive truncate">
                                             {formatTokenAmount(
                                                 position.tokensOwed0,
                                                 position.token0Info.decimals
@@ -142,7 +142,7 @@ function PositionCard({
                                         </span>
                                     </div>
                                     <div className="flex items-baseline gap-1 min-w-0">
-                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400 truncate">
+                                        <span className="text-sm font-medium font-mono tracking-tight text-positive truncate">
                                             {formatTokenAmount(
                                                 position.tokensOwed1,
                                                 position.token1Info.decimals

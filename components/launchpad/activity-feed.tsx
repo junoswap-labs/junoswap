@@ -31,13 +31,13 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
             <span
                 className={cn(
                     'h-1.5 w-1.5 shrink-0 rounded-full',
-                    event.isBuy ? 'bg-emerald-400' : 'bg-red-400'
+                    event.isBuy ? 'bg-positive' : 'bg-negative'
                 )}
             />
             {/* Symbol */}
             <span className="font-semibold">{symbol}</span>
             {/* Action */}
-            <span className={cn('font-medium', event.isBuy ? 'text-emerald-400' : 'text-red-400')}>
+            <span className={cn('font-medium', event.isBuy ? 'text-positive' : 'text-negative')}>
                 {event.isBuy ? 'bought' : 'sold'}
             </span>
             {/* Amount */}

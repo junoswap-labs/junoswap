@@ -77,7 +77,7 @@ function ActivityCard({
                         <TokenIcon src={event.tokenLogo} symbol={event.tokenSymbol} size="sm" />
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 font-mono text-sm tracking-tight">
-                                <span className="font-semibold text-red-400">
+                                <span className="font-semibold text-negative">
                                     -
                                     {event.isBuy
                                         ? formatKub(nativeAmount)
@@ -88,7 +88,7 @@ function ActivityCard({
                                 </span>
                             </div>
                             <div className="mt-0.5 flex items-center gap-1.5 font-mono text-xs tracking-tight">
-                                <span className="font-semibold text-emerald-400">
+                                <span className="font-semibold text-positive">
                                     +
                                     {event.isBuy
                                         ? formatTokenAmount(tokenAmount)
@@ -118,7 +118,7 @@ function ActivityCard({
 
                         <div className="flex flex-1 items-baseline gap-4 font-mono text-sm tracking-tight">
                             <span className="shrink-0">
-                                <span className="font-semibold text-red-400">
+                                <span className="font-semibold text-negative">
                                     -
                                     {event.isBuy
                                         ? formatKub(nativeAmount)
@@ -129,7 +129,7 @@ function ActivityCard({
                                 </span>
                             </span>
                             <span className="shrink-0">
-                                <span className="font-semibold text-emerald-400">
+                                <span className="font-semibold text-positive">
                                     +
                                     {event.isBuy
                                         ? formatTokenAmount(tokenAmount)
@@ -168,7 +168,7 @@ function TransferCard({ event, index }: { event: ActivityEvent; index: number })
     const counterparty = event.counterparty ?? ''
     const txUrl = getExplorerTxUrl(PUMP_CORE_NATIVE_CHAIN_ID, event.transactionHash)
     const Icon = isSent ? ArrowUpRight : ArrowDownLeft
-    const amountColor = isSent ? 'text-red-400' : 'text-emerald-400'
+    const amountColor = isSent ? 'text-negative' : 'text-positive'
 
     return (
         <a href={txUrl} target="_blank" rel="noopener noreferrer" className="block">

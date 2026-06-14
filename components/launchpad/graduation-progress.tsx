@@ -40,12 +40,12 @@ export function GraduationProgress({
                         style={{
                             width: '100%',
                             background:
-                                'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                                'linear-gradient(90deg, rgb(30 215 96 / 0.3), rgb(30 215 96))',
                         }}
                     />
                 </div>
                 <div className="flex justify-between text-xs">
-                    <span className="text-green-500 font-medium">Graduated</span>
+                    <span className="text-positive font-medium">Graduated</span>
                     <span className="text-muted-foreground">{formatKub(targetKub)} KUB</span>
                 </div>
             </div>

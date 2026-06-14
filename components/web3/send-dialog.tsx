@@ -126,7 +126,7 @@ export function SendDialog({ open, onOpenChange }: SendDialogProps) {
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Recipient</span>
                             {isValidRecipient ? (
-                                <span className="flex items-center gap-1 text-xs text-emerald-500">
+                                <span className="flex items-center gap-1 text-xs text-positive">
                                     <Check className="h-3 w-3" aria-hidden="true" /> Valid address
                                 </span>
                             ) : recipientInput ? (

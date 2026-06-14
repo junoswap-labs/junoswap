@@ -141,13 +141,13 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             >
                                 <Copy className="h-3.5 w-3.5 text-muted-foreground/50 sm:hidden" />
                                 {copied && (
-                                    <Check className="h-3.5 w-3.5 text-green-400 sm:hidden" />
+                                    <Check className="h-3.5 w-3.5 text-positive sm:hidden" />
                                 )}
                                 <span className="font-mono text-xs text-muted-foreground">
                                     {formatAddress(tokenAddr)}
                                 </span>
                                 {copied ? (
-                                    <Check className="hidden h-3.5 w-3.5 text-green-400 sm:block" />
+                                    <Check className="hidden h-3.5 w-3.5 text-positive sm:block" />
                                 ) : (
                                     <Copy className="hidden h-3.5 w-3.5 text-muted-foreground/50 sm:block" />
                                 )}

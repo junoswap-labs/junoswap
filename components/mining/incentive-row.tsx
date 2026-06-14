@@ -33,7 +33,7 @@ export function IncentiveRow({ incentive, onStake }: IncentiveRowProps) {
 
     const statusColor =
         status === 'active'
-            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+            ? 'bg-positive/15 text-positive border-positive/25'
             : status === 'pending'
               ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
               : 'bg-gray-500/10 text-gray-500 border-gray-500/20'

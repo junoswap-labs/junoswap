@@ -199,9 +199,9 @@ function StakedPositionCard({ stakedPosition, onUnstake }: StakedPositionCardPro
                     {incentive.isActive ? (
                         <Badge
                             variant="outline"
-                            className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                            className="bg-positive/15 text-positive border-positive/25"
                         >
-                            <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-positive" />
                             Active
                         </Badge>
                     ) : (

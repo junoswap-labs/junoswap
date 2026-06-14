@@ -137,8 +137,8 @@ export function ShareTokenDialog({
                                             className={cn(
                                                 'inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums',
                                                 priceChange1dPct >= 0
-                                                    ? 'bg-emerald-500/15 text-emerald-400'
-                                                    : 'bg-red-500/15 text-red-400'
+                                                    ? 'bg-positive/15 text-positive'
+                                                    : 'bg-negative/15 text-negative'
                                             )}
                                         >
                                             {priceChange1dPct >= 0 ? '+' : ''}
@@ -146,7 +146,7 @@ export function ShareTokenDialog({
                                         </span>
                                     )}
                                     {isGraduated && (
-                                        <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-400">
+                                        <span className="inline-flex items-center rounded-md bg-positive/15 px-1.5 py-0.5 text-xs font-semibold text-positive">
                                             Graduated
                                         </span>
                                     )}

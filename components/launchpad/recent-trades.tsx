@@ -103,8 +103,8 @@ function TradeRow({
                     className={cn(
                         'inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold',
                         trade.isBuy
-                            ? 'bg-emerald-500/15 text-emerald-400'
-                            : 'bg-red-500/15 text-red-400'
+                            ? 'bg-positive/15 text-positive'
+                            : 'bg-negative/15 text-negative'
                     )}
                 >
                     {trade.isBuy ? 'Buy' : 'Sell'}
@@ -120,7 +120,7 @@ function TradeRow({
             <TableCell
                 className={cn(
                     'py-2.5 font-mono tracking-tight',
-                    trade.isBuy ? 'text-emerald-400' : 'text-red-400'
+                    trade.isBuy ? 'text-positive' : 'text-negative'
                 )}
             >
                 {formatTokenAmount(tokenAmount)}

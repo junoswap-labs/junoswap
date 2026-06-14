@@ -29,16 +29,16 @@ function StatusRow({
     return (
         <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
-                {phase === 'done' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                {phase === 'done' && <CheckCircle2 className="h-4 w-4 text-positive" />}
                 {phase === 'active' && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
                 {phase === 'pending' && <Clock className="h-4 w-4 text-muted-foreground" />}
-                {phase === 'failed' && <XCircle className="h-4 w-4 text-red-500" />}
+                {phase === 'failed' && <XCircle className="h-4 w-4 text-negative" />}
                 <span
                     className={
                         phase === 'done'
-                            ? 'text-green-500'
+                            ? 'text-positive'
                             : phase === 'failed'
-                              ? 'text-red-500'
+                              ? 'text-negative'
                               : phase === 'active'
                                 ? 'text-blue-500'
                                 : 'text-muted-foreground'
