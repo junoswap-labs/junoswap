@@ -4,7 +4,7 @@ import { getRoutes } from '@lifi/sdk'
 import type { Route, RoutesRequest } from '@lifi/types'
 import type { Address } from 'viem'
 
-export interface BridgeRoutesParams {
+interface BridgeRoutesParams {
     fromChainId: number
     toChainId: number
     fromTokenAddress: string

@@ -2,7 +2,7 @@ import type { Token } from '@/types/tokens'
 import type { Address } from 'viem'
 import { kubTestnet, jbc, bitkub, worldchain, base, bsc, isNativeToken } from './wagmi'
 
-export const KUSDT_ADDRESS = '0x7d984C24d2499D840eB3b7016077164e15E5faA6' as const
+const KUSDT_ADDRESS = '0x7d984C24d2499D840eB3b7016077164e15E5faA6' as const
 
 /**
  * Get the allowance function name for a token

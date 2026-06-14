@@ -47,7 +47,7 @@ export function buildV2QuoteParams(
 /**
  * V2 Swap parameters interface
  */
-export interface V2SwapParams {
+interface V2SwapParams {
     tokenIn: Address
     tokenOut: Address
     amountIn: bigint
@@ -109,7 +109,7 @@ export function buildMultiHopSwapPath(
 /**
  * V2 Multi-hop Swap parameters interface
  */
-export interface V2MultiHopSwapParams {
+interface V2MultiHopSwapParams {
     path: Address[]
     amountIn: bigint
     amountOutMinimum: bigint

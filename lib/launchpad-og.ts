@@ -5,7 +5,7 @@
 
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 
-export interface LaunchTokenMeta {
+interface LaunchTokenMeta {
     address: string
     name: string
     symbol: string

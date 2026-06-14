@@ -21,7 +21,7 @@ export function buildCollectFeesParams(tokenId: bigint, recipient: Address): Col
 /**
  * Encode collect function call
  */
-export function encodeCollect(params: CollectCallParams): Hex {
+function encodeCollect(params: CollectCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'collect',
@@ -32,7 +32,7 @@ export function encodeCollect(params: CollectCallParams): Hex {
 /**
  * Encode unwrapWETH9 function call
  */
-export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
+function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'unwrapWETH9',
@@ -43,7 +43,7 @@ export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): He
 /**
  * Encode sweepToken function call
  */
-export function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
+function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'sweepToken',

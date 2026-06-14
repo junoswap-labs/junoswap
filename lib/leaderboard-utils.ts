@@ -4,7 +4,7 @@ import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import type { LeaderboardTimePeriod } from '@/types/leaderboard'
 
 /** Chains that have indexed Ponder swap data for the leaderboard. */
-export const LEADERBOARD_SUPPORTED_CHAINS = new Set<number>([kubTestnet.id])
+const LEADERBOARD_SUPPORTED_CHAINS = new Set<number>([kubTestnet.id])
 
 /** Returns true if the given chain has indexed leaderboard/points data. */
 export function isLeaderboardSupportedChain(chainId: number): boolean {

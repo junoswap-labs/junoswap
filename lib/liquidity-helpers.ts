@@ -23,11 +23,6 @@ export const MAX_TICK = 887272
  */
 export const MIN_SQRT_RATIO = 4295128739n
 
-/**
- * Maximum sqrt ratio (corresponds to MAX_TICK)
- */
-export const MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342n
-
 // ============ Tick/Price Conversions ============
 
 /**
@@ -475,7 +470,6 @@ export function calculateRangePercentage(
 export function calculateSliderViewport(
     tickLower: number,
     tickUpper: number,
-    _tickSpacing: number,
     preset: RangePreset
 ): { lower: number; upper: number } {
     if (preset === 'full') {

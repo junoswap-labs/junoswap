@@ -37,7 +37,7 @@ export interface PortfolioPnlTotals {
     totalPnlPercent: number
 }
 
-export interface PortfolioPnlResult {
+interface PortfolioPnlResult {
     /** Keyed by lowercased token address; covers every token with swap history. */
     perToken: Map<string, TokenPnl>
     totals: PortfolioPnlTotals
@@ -146,7 +146,7 @@ export interface LeaderboardSwapEvent extends PnlSwapEvent {
     sender: string
 }
 
-export interface AddressTraderStats {
+interface AddressTraderStats {
     pnlUsd: number
     pnlPercent: number
     volumeNative: number

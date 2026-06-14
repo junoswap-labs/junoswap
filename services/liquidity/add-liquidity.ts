@@ -82,7 +82,7 @@ export function buildIncreaseLiquidityParams(
 /**
  * Encode mint function call
  */
-export function encodeMint(params: MintCallParams): Hex {
+function encodeMint(params: MintCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'mint',
@@ -93,7 +93,7 @@ export function encodeMint(params: MintCallParams): Hex {
 /**
  * Encode increaseLiquidity function call
  */
-export function encodeIncreaseLiquidity(params: IncreaseLiquidityCallParams): Hex {
+function encodeIncreaseLiquidity(params: IncreaseLiquidityCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'increaseLiquidity',
@@ -104,7 +104,7 @@ export function encodeIncreaseLiquidity(params: IncreaseLiquidityCallParams): He
 /**
  * Encode createAndInitializePoolIfNecessary function call
  */
-export function encodeCreateAndInitializePool(
+function encodeCreateAndInitializePool(
     token0: Address,
     token1: Address,
     fee: number,
@@ -120,7 +120,7 @@ export function encodeCreateAndInitializePool(
 /**
  * Encode refundETH function call
  */
-export function encodeRefundETH(): Hex {
+function encodeRefundETH(): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'refundETH',

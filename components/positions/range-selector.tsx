@@ -101,15 +101,10 @@ function InteractiveRangeBar({
         if (isDraggingRef.current && frozenViewportRef.current) {
             return frozenViewportRef.current
         }
-        const vp = calculateSliderViewport(
-            config.tickLower,
-            config.tickUpper,
-            tickSpacing,
-            config.preset
-        )
+        const vp = calculateSliderViewport(config.tickLower, config.tickUpper, config.preset)
         frozenViewportRef.current = vp
         return vp
-    }, [config.tickLower, config.tickUpper, tickSpacing, config.preset])
+    }, [config.tickLower, config.tickUpper, config.preset])
 
     // Map ticks to slider positions (0-SLIDER_RESOLUTION)
     const [sliderLower, sliderUpper] = useMemo(() => {

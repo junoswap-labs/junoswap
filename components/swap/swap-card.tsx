@@ -214,7 +214,6 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
         amountIn: amountInBigInt,
         amountOutMinimum,
         recipient: address ?? '0x0',
-        slippage: settings.slippage,
         deadlineMinutes: settings.deadlineMinutes,
         route: selectedDexRoute?.route,
         skipSimulation: skipSwapSimulation,
