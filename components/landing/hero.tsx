@@ -56,7 +56,7 @@ export function Hero() {
     return (
         <section
             ref={sectionRef}
-            className="relative flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden"
+            className="relative -mt-16 flex min-h-[100dvh] items-center overflow-hidden"
         >
             {/* Cool-void fallback (matches the WebGL canvas) shown during SSR / before it loads */}
             <div className="absolute inset-0 -z-10 bg-[#04050B] bg-[radial-gradient(ellipse_46%_38%_at_50%_52%,hsl(28_100%_60%_/_0.10),transparent_70%)]" />
