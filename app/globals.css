@@ -180,6 +180,22 @@
         animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
+    /* Gentle bob for the hero scroll cue */
+    @keyframes hero-bob {
+        0%, 100% {
+            transform: translateY(0);
+            opacity: 0.6;
+        }
+        50% {
+            transform: translateY(6px);
+            opacity: 1;
+        }
+    }
+
+    .animate-hero-bob {
+        animation: hero-bob 2.4s ease-in-out infinite;
+    }
+
     /* Stagger system — elements hidden until is-visible triggers the animation */
     [data-reveal] {
         opacity: 0;

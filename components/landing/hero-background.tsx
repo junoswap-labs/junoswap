@@ -4,13 +4,13 @@ import { useEffect, useRef, useCallback } from 'react'
 import warpVert from '@/shaders/warp.vert'
 import warpFrag from '@/shaders/warp.frag'
 
-// Fire palette — warm amber-red → orange → gold
-const BG_COLOR = { r: 0.024, g: 0.031, b: 0.071 } // deep navy #060812
-const ACCENT1 = { r: 1.0, g: 0.302, b: 0.0 } // #FF4D00 — warm amber-red
-const ACCENT2 = { r: 1.0, g: 0.569, b: 0.302 } // #FF914D — bright orange
-const ACCENT3 = { r: 1.0, g: 0.843, b: 0.0 } // #FFD700 — gold
+// Cool void canvas + single warm focal accent (orange → gold)
+const BG_COLOR = { r: 0.016, g: 0.02, b: 0.043 } // near-black void #04050B
+const ACCENT1 = { r: 1.0, g: 0.302, b: 0.0 } // #FF4D00 — unused, kept for uniform plumbing
+const ACCENT2 = { r: 1.0, g: 0.569, b: 0.302 } // #FF914D — orange (glow halo)
+const ACCENT3 = { r: 1.0, g: 0.843, b: 0.0 } // #FFD700 — gold (glow core)
 
-const ENTRANCE_DURATION = 2.5 // seconds
+const ENTRANCE_DURATION = 3.0 // seconds
 const MOUSE_LERP = 0.05
 
 interface Vec2 {
