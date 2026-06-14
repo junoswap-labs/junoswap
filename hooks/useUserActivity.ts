@@ -40,6 +40,20 @@ interface V3SwapPage {
     }
 }
 
+interface TransferPage {
+    transferEvents: {
+        items: Array<{
+            id: string
+            tokenAddr: string
+            from: string
+            to: string
+            amount: string
+            timestamp: number
+            transactionHash: string
+        }>
+    }
+}
+
 interface TokenMetaPage {
     launchTokens: {
         items: Array<{
@@ -126,6 +140,39 @@ async function fetchV3Events(
     }
 }
 
+async function fetchTransferEvents(
+    sender: string,
+    limit: number
+): Promise<{ items: TransferPage['transferEvents']['items']; totalCount: number }> {
+    // The generated Ponder filter supports OR, so a single query covers both
+    // incoming and outgoing transfers for the connected wallet.
+    const query = `
+        query UserTransfers($sender: String!, $limit: Int!) {
+            transferEvents(
+                where: { OR: [{ from: $sender }, { to: $sender }] },
+                orderBy: "timestamp",
+                orderDirection: "desc",
+                limit: $limit
+            ) {
+                items {
+                    id tokenAddr from to amount timestamp transactionHash
+                }
+            }
+        }
+    `
+    const data = await ponderRequest<TransferPage>(query, { sender, limit })
+    const countQuery = `
+        query UserTransferCount($sender: String!) {
+            transferEvents(where: { OR: [{ from: $sender }, { to: $sender }] }, limit: 0) { items { id } }
+        }
+    `
+    const countData = await ponderRequest<TransferPage>(countQuery, { sender })
+    return {
+        items: data.transferEvents.items,
+        totalCount: countData.transferEvents.items.length,
+    }
+}
+
 async function fetchTokenMeta(): Promise<
     Map<string, { symbol: string; name: string; logo: string }>
 > {
@@ -166,16 +213,18 @@ export function useUserActivity(
             const sender = address.toLowerCase()
 
             try {
-                const [tokenMeta, bcResult, v3Result] = await Promise.all([
+                const [tokenMeta, bcResult, v3Result, transferResult] = await Promise.all([
                     fetchTokenMeta(),
                     fetchBondingCurveEvents(sender, PAGE_SIZE + 50),
                     fetchV3Events(sender, PAGE_SIZE + 50),
+                    fetchTransferEvents(sender, PAGE_SIZE + 50),
                 ])
 
                 // Map bonding curve events
                 const bcEvents: ActivityEvent[] = bcResult.items.map((e) => {
                     const meta = tokenMeta.get(e.tokenAddr.toLowerCase())
                     return {
+                        kind: 'trade' as const,
                         id: e.id,
                         tokenAddr: e.tokenAddr.toLowerCase(),
                         tokenSymbol: meta?.symbol || e.tokenAddr.slice(0, 6) + '…',
@@ -197,6 +246,7 @@ export function useUserActivity(
                     const isBuy = amount0 < 0n
                     const meta = tokenMeta.get(e.tokenAddr.toLowerCase())
                     return {
+                        kind: 'trade' as const,
                         id: e.id,
                         tokenAddr: e.tokenAddr.toLowerCase(),
                         tokenSymbol: meta?.symbol || e.tokenAddr.slice(0, 6) + '…',
@@ -221,13 +271,49 @@ export function useUserActivity(
                     }
                 })
 
-                // Merge and sort descending
-                let allEvents = [...bcEvents, ...v3Events].sort((a, b) => b.timestamp - a.timestamp)
+                // Swap tx hashes — a V3 swap moves the token between pool and
+                // trader in the same tx, emitting a Transfer we'd otherwise show
+                // twice. Drop any transfer whose tx already produced a swap.
+                const swapTxHashes = new Set([
+                    ...bcResult.items.map((e) => e.transactionHash),
+                    ...v3Result.items.map((e) => e.transactionHash),
+                ])
 
-                // Apply type filter
+                const transferEvents: ActivityEvent[] = transferResult.items
+                    .filter((e) => !swapTxHashes.has(e.transactionHash))
+                    .map((e) => {
+                        const isReceived = e.to.toLowerCase() === sender
+                        const meta = tokenMeta.get(e.tokenAddr.toLowerCase())
+                        return {
+                            kind: 'transfer' as const,
+                            id: e.id,
+                            tokenAddr: e.tokenAddr.toLowerCase(),
+                            tokenSymbol: meta?.symbol || e.tokenAddr.slice(0, 6) + '…',
+                            tokenName: meta?.name || '',
+                            tokenLogo: meta?.logo || '',
+                            isBuy: false,
+                            amountIn: '0',
+                            amountOut: '0',
+                            direction: isReceived ? ('in' as const) : ('out' as const),
+                            counterparty: (isReceived ? e.from : e.to).toLowerCase(),
+                            transferAmount: e.amount,
+                            timestamp: e.timestamp,
+                            transactionHash: e.transactionHash,
+                            sender,
+                        }
+                    })
+
+                // Merge and sort descending
+                let allEvents = [...bcEvents, ...v3Events, ...transferEvents].sort(
+                    (a, b) => b.timestamp - a.timestamp
+                )
+
+                // Apply type filter — buy/sell are trade-only filters; exclude transfers
                 if (typeFilter !== 'all') {
                     const isBuyFilter = typeFilter === 'buy'
-                    allEvents = allEvents.filter((e) => e.isBuy === isBuyFilter)
+                    allEvents = allEvents.filter(
+                        (e) => e.kind === 'trade' && e.isBuy === isBuyFilter
+                    )
                 }
 
                 const totalCount = allEvents.length

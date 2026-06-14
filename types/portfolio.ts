@@ -21,13 +21,20 @@ export interface PortfolioSummary {
 
 export interface ActivityEvent {
     id: string
+    /** Discriminator for merged feed rendering. */
+    kind: 'trade' | 'transfer'
     tokenAddr: string
     tokenSymbol: string
     tokenName: string
     tokenLogo: string
+    /** trade-only */
     isBuy: boolean
     amountIn: string
     amountOut: string
+    /** transfer-only — 'in' = received, 'out' = sent */
+    direction?: 'in' | 'out'
+    counterparty?: string
+    transferAmount?: string
     timestamp: number
     transactionHash: string
     sender: string

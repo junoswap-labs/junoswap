@@ -1,7 +1,8 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
-import { formatEther } from 'viem'
+import { formatEther, zeroAddress } from 'viem'
 import { readERC20Metadata } from './erc20-read.js'
+import { PUMP_CORE_NATIVE_ADDRESS } from '../abis/pump-core-native'
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
 const _VIRTUAL_AMOUNT = 3400n * 10n ** 18n
@@ -227,4 +228,33 @@ ponder.on('PumpCoreNative:Graduation', async ({ event, context }) => {
         isGraduated: 1,
         graduatedAt: Number(event.block.timestamp),
     })
+})
+
+// Launch-token ERC20 transfers. Feeds the Portfolio activity feed's transfer
+// rows. We exclude mints/burns (the zero address) and bonding-curve swaps
+// (counterparty is PumpCoreNative) — those are already captured as swapEvent,
+// so recording them here would duplicate trades as transfers. tokenHolder
+// balances are owned by the swap handlers and intentionally left untouched.
+const PUMP_CORE_NATIVE_LOWER = PUMP_CORE_NATIVE_ADDRESS.toLowerCase()
+ponder.on('LaunchToken:Transfer', async ({ event, context }) => {
+    const { from, to, amount } = event.args
+    const fromLower = from.toLowerCase()
+    const toLower = to.toLowerCase()
+
+    if (fromLower === zeroAddress || toLower === zeroAddress) return
+    if (fromLower === PUMP_CORE_NATIVE_LOWER || toLower === PUMP_CORE_NATIVE_LOWER) return
+
+    await context.db
+        .insert(schema.transferEvent)
+        .values({
+            id: `${event.block.number}-${event.log.logIndex}`,
+            tokenAddr: event.log.address.toLowerCase(),
+            from: fromLower,
+            to: toLower,
+            amount: amount.toString(),
+            blockNumber: Number(event.block.number),
+            timestamp: Number(event.block.timestamp),
+            transactionHash: event.transaction.hash,
+        })
+        .onConflictDoNothing()
 })

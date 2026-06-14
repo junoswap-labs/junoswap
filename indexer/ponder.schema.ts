@@ -30,6 +30,20 @@ export const swapEvent = onchainTable('swap_event', (t) => ({
     transactionHash: t.text().notNull(),
 }))
 
+// P2P (and swap-related) ERC20 transfers of launch tokens. Mints/burns and
+// bonding-curve swaps are filtered in the handler, so this captures genuine
+// token movements — what the Portfolio activity feed shows as transfers.
+export const transferEvent = onchainTable('transfer_event', (t) => ({
+    id: t.text().primaryKey(),
+    tokenAddr: t.text().notNull(),
+    from: t.text().notNull(),
+    to: t.text().notNull(),
+    amount: t.text().notNull(),
+    blockNumber: t.integer().notNull(),
+    timestamp: t.integer().notNull(),
+    transactionHash: t.text().notNull(),
+}))
+
 export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     tokenAddr: t.text().primaryKey(),
     lastPrice: t.text().default('0'),
