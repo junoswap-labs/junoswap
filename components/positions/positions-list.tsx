@@ -24,13 +24,8 @@ function PositionCard({
     position: PositionWithTokens
     isStaked?: boolean
 }) {
-    const {
-        openPositionDetails,
-        openCollectFees,
-        openRemoveLiquidity,
-        openIncreaseLiquidity,
-        setActiveTab,
-    } = useEarnStore()
+    const { openPositionDetails, openCollectFees, openRemoveLiquidity, openIncreaseLiquidity } =
+        useEarnStore()
     const hasFees = position.tokensOwed0 > 0n || position.tokensOwed1 > 0n
     const isClosed = position.liquidity === 0n
     return (
@@ -172,17 +167,9 @@ function PositionCard({
                 <Separator className="my-4" />
                 <div className="flex gap-2">
                     {isStaked ? (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setActiveTab('mining')
-                            }}
-                        >
+                        <Button size="sm" variant="outline" className="flex-1" disabled>
                             <Zap className="h-3.5 w-3.5" />
-                            Manage Staking
+                            Staked
                         </Button>
                     ) : (
                         <>
