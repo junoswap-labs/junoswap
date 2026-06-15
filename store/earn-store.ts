@@ -44,7 +44,7 @@ interface EarnStore {
     miningSettings: MiningSettings
 
     // Active tab
-    activeTab: 'pools' | 'positions' | 'mining'
+    activeTab: 'pools' | 'positions'
 
     // Actions
     setSelectedPool: (pool: V3PoolData | null) => void
@@ -54,7 +54,7 @@ interface EarnStore {
     setToken0: (token: Token | null) => void
     setToken1: (token: Token | null) => void
     setFee: (fee: number) => void
-    setActiveTab: (tab: 'pools' | 'positions' | 'mining') => void
+    setActiveTab: (tab: 'pools' | 'positions') => void
 
     // Modal controls
     openAddLiquidity: (pool?: V3PoolData) => void

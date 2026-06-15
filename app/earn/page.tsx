@@ -12,13 +12,7 @@ import { RemoveLiquidityDialog } from '@/components/positions/remove-liquidity-d
 import { CollectFeesDialog } from '@/components/positions/collect-fees-dialog'
 import { PositionDetailsModal } from '@/components/positions/position-details-modal'
 import { IncreaseLiquidityDialog } from '@/components/positions/increase-liquidity-dialog'
-import {
-    MiningPools,
-    MiningSummary,
-    StakedPositions,
-    StakeDialog,
-    UnstakeDialog,
-} from '@/components/mining'
+import { MiningFarms, StakedPositions, StakeDialog, UnstakeDialog } from '@/components/mining'
 import { useEarnStore, useActiveTab } from '@/store/earn-store'
 import { ConnectModal } from '@/components/web3/connect-modal'
 
@@ -32,14 +26,13 @@ function EarnContent() {
             <div className="w-full max-w-5xl space-y-4">
                 <Tabs
                     value={activeTab}
-                    onValueChange={(v) => setActiveTab(v as 'pools' | 'positions' | 'mining')}
+                    onValueChange={(v) => setActiveTab(v as 'pools' | 'positions')}
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6">
                             <TabsList>
                                 <TabsTrigger value="pools">Pools</TabsTrigger>
                                 <TabsTrigger value="positions">My Positions</TabsTrigger>
-                                <TabsTrigger value="mining">Mining</TabsTrigger>
                             </TabsList>
                         </div>
                         <Button
@@ -56,15 +49,12 @@ function EarnContent() {
                             New Position
                         </Button>
                     </div>
-                    <TabsContent value="pools">
+                    <TabsContent value="pools" className="space-y-6">
+                        <MiningFarms />
                         <PoolsList />
                     </TabsContent>
-                    <TabsContent value="positions">
+                    <TabsContent value="positions" className="space-y-6">
                         <PositionsList />
-                    </TabsContent>
-                    <TabsContent value="mining" className="space-y-6">
-                        <MiningSummary />
-                        <MiningPools />
                         <StakedPositions />
                     </TabsContent>
                 </Tabs>
