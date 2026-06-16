@@ -6,9 +6,11 @@ import { useAccount, useChainId } from 'wagmi'
 import {
     getTimeThreshold,
     fetchSwapEvents,
+    fetchV3SwapEvents,
     safeFormatEther,
     isLeaderboardSupportedChain,
 } from '@/lib/leaderboard-utils'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import type { PointsTrader, PointsTimePeriod, PointsSortKey, SortDirection } from '@/types/points'
 
 export interface UserPointsSummary {
@@ -53,7 +55,16 @@ export function usePointsData(
 
     const { data: rawSwapEvents } = useQuery({
         queryKey: ['points-data', timePeriod, chainId],
-        queryFn: () => fetchSwapEvents(getTimeThreshold(timePeriod)),
+        queryFn: async () => {
+            const since = getTimeThreshold(timePeriod)
+            // Bonding-curve volume only exists on the launchpad chain; V3 volume
+            // is indexed for all supported chains. Count both where available.
+            const [bondingCurve, v3] = await Promise.all([
+                isLaunchpadChain(chainId) ? fetchSwapEvents(since) : Promise.resolve([]),
+                fetchV3SwapEvents(chainId, since),
+            ])
+            return [...bondingCurve, ...v3]
+        },
         enabled: isSupportedChain,
         staleTime: 30_000,
         refetchInterval: 30_000,
@@ -73,7 +84,7 @@ export function usePointsData(
             }
         }
 
-        if (!rawSwapEvents || nativeUsdPrice === null) {
+        if (!rawSwapEvents) {
             return {
                 traders: [],
                 totalCount: 0,
@@ -85,6 +96,10 @@ export function usePointsData(
                 isSupportedChain,
             }
         }
+
+        // A chain may have no indexed native/USD stable-pool price yet. Fall back
+        // to 0 (points/volume render as 0) rather than hanging on "loading".
+        const effectiveNativeUsdPrice = nativeUsdPrice ?? 0
 
         interface SwapAgg {
             volumeNative: number
@@ -113,13 +128,13 @@ export function usePointsData(
 
         const allTraders: PointsTrader[] = []
         for (const [addr, agg] of bySender) {
-            const volumeUsd = agg.volumeNative * nativeUsdPrice
+            const volumeUsd = agg.volumeNative * effectiveNativeUsdPrice
             allTraders.push({
                 rank: 0,
                 address: addr,
                 volumeNative: agg.volumeNative,
                 volumeUsd,
-                points: Math.floor(volumeUsd / 100),
+                points: Math.floor(agg.volumeNative / 50),
                 tradeCount: agg.tradeCount,
                 buyCount: agg.buyCount,
                 sellCount: agg.sellCount,

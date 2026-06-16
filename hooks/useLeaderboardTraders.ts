@@ -7,6 +7,7 @@ import { formatEther, type Address } from 'viem'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import { useTokenDiscovery } from '@/hooks/use-token-discovery'
 import { useMultiBalances } from '@/hooks/use-multi-balances'
 import { useTokenPrices } from '@/hooks/use-token-prices'
@@ -79,10 +80,13 @@ export function useLeaderboardTraders(
         queryKey: ['leaderboard-traders', timePeriod, chainId],
         queryFn: async () => {
             const since = getTimeThreshold(timePeriod)
+            // Bonding-curve swaps and launch-token holders only exist on the
+            // launchpad chain; V3 swaps are indexed for all supported chains.
+            const includeLaunchpad = isLaunchpadChain(chainId)
             const [swapEvents, v3SwapEvents, tokenHolders] = await Promise.all([
-                fetchSwapEvents(since),
-                fetchV3SwapEvents(since),
-                fetchTokenHolders(),
+                includeLaunchpad ? fetchSwapEvents(since) : Promise.resolve([]),
+                fetchV3SwapEvents(chainId, since),
+                includeLaunchpad ? fetchTokenHolders() : Promise.resolve([]),
             ])
             return { swapEvents: [...swapEvents, ...v3SwapEvents], tokenHolders }
         },

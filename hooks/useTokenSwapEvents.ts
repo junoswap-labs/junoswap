@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import { ponderRequest } from '@/lib/ponder-client'
+import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import type { SwapEventData } from '@/lib/rpc/launchpad-queries'
 
 export type { SwapEventData }
@@ -48,9 +49,9 @@ function buildBondingCurveQuery(hasIsBuy: boolean, hasSender: boolean) {
 }
 
 const V3_SWAP_EVENTS_QUERY = `
-  query V3SwapEvents($tokenAddr: String!, $limit: Int!, $offset: Int!, $txFrom: String) {
+  query V3SwapEvents($tokenAddr: String!, $limit: Int!, $offset: Int!, $txFrom: String, $chainId: Int!) {
     v3SwapEvents(
-      where: { tokenAddr: $tokenAddr, txFrom: $txFrom },
+      where: { tokenAddr: $tokenAddr, txFrom: $txFrom, chainId: $chainId },
       orderBy: "timestamp",
       orderDirection: "desc",
       limit: $limit,
@@ -149,6 +150,7 @@ export function useTokenSwapEvents(
                     tokenAddr: tokenAddr.toLowerCase(),
                     limit: fetchLimit,
                     offset,
+                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
                 }
                 if (filters?.sender) {
                     v3Variables.txFrom = filters.sender.toLowerCase()

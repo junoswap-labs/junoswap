@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 
 export interface NativeUsdPricePoint {
     timestamp: number
@@ -94,7 +94,7 @@ export function makePriceAt(
 }
 
 export function useNativeUsdPriceHistory(chainId: number, fallbackPrice: number | null) {
-    const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
+    const isSupportedChain = isLeaderboardSupportedChain(chainId)
 
     const { data } = useQuery({
         queryKey: ['native-usd-price-history', chainId],
@@ -106,7 +106,7 @@ export function useNativeUsdPriceHistory(chainId: number, fallbackPrice: number 
                 throw e
             }
         },
-        enabled: isLaunchpadChain,
+        enabled: isSupportedChain,
         staleTime: 5 * 60_000,
     })
 

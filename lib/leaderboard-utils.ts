@@ -1,10 +1,10 @@
 import { formatEther } from 'viem'
-import { kubTestnet } from '@/lib/wagmi'
+import { kubTestnet, bitkub, jbc } from '@/lib/wagmi'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import type { LeaderboardTimePeriod } from '@/types/leaderboard'
 
-/** Chains that have indexed Ponder swap data for the leaderboard. */
-const LEADERBOARD_SUPPORTED_CHAINS = new Set<number>([kubTestnet.id])
+/** Chains that have indexed Ponder V3 swap data for the leaderboard/points/portfolio. */
+const LEADERBOARD_SUPPORTED_CHAINS = new Set<number>([kubTestnet.id, bitkub.id, jbc.id])
 
 /** Returns true if the given chain has indexed leaderboard/points data. */
 export function isLeaderboardSupportedChain(chainId: number): boolean {
@@ -66,8 +66,13 @@ export async function fetchSwapEvents(sinceTimestamp: number): Promise<SwapEvent
     }
 }
 
-export async function fetchV3SwapEvents(sinceTimestamp: number): Promise<SwapEventRow[]> {
-    const where = sinceTimestamp > 0 ? `where: { timestamp_gte: ${sinceTimestamp} }, ` : ''
+export async function fetchV3SwapEvents(
+    chainId: number,
+    sinceTimestamp: number
+): Promise<SwapEventRow[]> {
+    const filters = [`chainId: ${chainId}`]
+    if (sinceTimestamp > 0) filters.push(`timestamp_gte: ${sinceTimestamp}`)
+    const where = `where: { ${filters.join(', ')} }, `
     const query = `{
         v3SwapEvents(${where}orderBy: "timestamp", orderDirection: "desc", limit: 1000) {
             items { tokenAddr txFrom tokenIsToken0 amount0 amount1 timestamp }

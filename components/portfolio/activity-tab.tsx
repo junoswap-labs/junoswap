@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
 import { ExternalLink, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
@@ -10,9 +10,9 @@ import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-pric
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { cn, formatTimeAgo, formatAddress } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
-import { TokenIcon } from '@/components/ui/token-icon'
-import { Card, CardContent } from '@/components/ui/card'
+import { getChainMetadata } from '@/lib/wagmi'
+import { findTokenByAddress } from '@/lib/tokens'
+import { TokenIcon, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
@@ -20,6 +20,7 @@ import { PaginationControls } from '@/components/ui/pagination'
 import type { ActivityEvent } from '@/types/portfolio'
 
 const PAGE_SIZE = 20
+const NATIVE_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
 
 // ── Date grouping ───────────────────────────────────────────────────
 
@@ -45,216 +46,178 @@ function groupByDate(events: ActivityEvent[]): { label: string; events: Activity
     return Array.from(groups.entries()).map(([label, events]) => ({ label, events }))
 }
 
-// ── Individual trade card ───────────────────────────────────────────
+// ── Shared row pieces ───────────────────────────────────────────────
 
-function ActivityCard({
+function TypeChip({ children, className }: { children: ReactNode; className?: string }) {
+    return (
+        <span
+            className={cn(
+                'inline-flex shrink-0 items-center rounded px-2 py-0.5 text-[11px] font-semibold',
+                className
+            )}
+        >
+            {children}
+        </span>
+    )
+}
+
+function AmountLeg({
+    src,
+    symbol,
+    sign,
+    amount,
+    tone,
+}: {
+    src?: string | null
+    symbol: string
+    sign: string
+    amount: string
+    tone: string
+}) {
+    return (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-xs tracking-tight sm:text-sm">
+            <TokenIcon src={src || undefined} symbol={symbol} size="xs" />
+            <span className={cn('font-semibold', tone)}>
+                {sign}
+                {amount}
+            </span>
+            <span className="text-muted-foreground">{symbol}</span>
+        </span>
+    )
+}
+
+// ── Unified activity row (trade + transfer branches) ────────────────
+
+function ActivityRow({
     event,
+    nativeLogo,
+    nativeSymbol,
     nativeUsdPrice,
-    index,
+    chainId,
 }: {
     event: ActivityEvent
+    nativeLogo?: string
+    nativeSymbol: string
     nativeUsdPrice: number | null
-    index: number
+    chainId: number
 }) {
+    const txUrl = getExplorerTxUrl(chainId, event.transactionHash)
+    const isTransfer = event.kind === 'transfer'
+
+    // Trade legs: a buy gives native / receives token; a sell gives token / receives native.
     const nativeAmount = BigInt(event.isBuy ? event.amountIn : event.amountOut)
     const tokenAmount = BigInt(event.isBuy ? event.amountOut : event.amountIn)
     const valueKub = parseFloat(formatEther(nativeAmount))
     const displayValue = nativeUsdPrice !== null ? valueKub * nativeUsdPrice : valueKub
-    const txUrl = getExplorerTxUrl(PUMP_CORE_NATIVE_CHAIN_ID, event.transactionHash)
+    const outIsNative = event.isBuy
+    const outText = outIsNative ? formatKub(nativeAmount) : formatTokenAmount(tokenAmount)
+    const inText = outIsNative ? formatTokenAmount(tokenAmount) : formatKub(nativeAmount)
+    const outSrc = outIsNative ? nativeLogo : event.tokenLogo
+    const outSymbol = outIsNative ? nativeSymbol : event.tokenSymbol
+    const inSrc = outIsNative ? event.tokenLogo : nativeLogo
+    const inSymbol = outIsNative ? event.tokenSymbol : nativeSymbol
 
-    return (
-        <a href={txUrl} target="_blank" rel="noopener noreferrer" className="block">
-            <Card
-                className={cn(
-                    'transition-colors hover:bg-muted/20',
-                    index % 2 === 1 && 'bg-muted/5',
-                    'border-0 shadow-none rounded-lg'
-                )}
-            >
-                <CardContent className="px-3 py-3 sm:px-4">
-                    {/* Mobile layout */}
-                    <div className="flex items-center gap-3 sm:hidden">
-                        <TokenIcon src={event.tokenLogo} symbol={event.tokenSymbol} size="sm" />
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 font-mono text-sm tracking-tight">
-                                <span className="font-semibold text-negative">
-                                    -
-                                    {event.isBuy
-                                        ? formatKub(nativeAmount)
-                                        : formatTokenAmount(tokenAmount)}
-                                </span>
-                                <span className="text-muted-foreground">
-                                    {event.isBuy ? 'KUB' : event.tokenSymbol}
-                                </span>
-                            </div>
-                            <div className="mt-0.5 flex items-center gap-1.5 font-mono text-xs tracking-tight">
-                                <span className="font-semibold text-positive">
-                                    +
-                                    {event.isBuy
-                                        ? formatTokenAmount(tokenAmount)
-                                        : formatKub(nativeAmount)}
-                                </span>
-                                <span className="text-muted-foreground truncate">
-                                    {event.isBuy ? event.tokenSymbol : 'KUB'}
-                                </span>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="font-mono tracking-tight">
-                                    {nativeUsdPrice !== null
-                                        ? `$${formatCompact(displayValue)}`
-                                        : `${formatCompact(displayValue)} KUB`}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <span>{formatTimeAgo(event.timestamp)}</span>
-                                    <ExternalLink className="h-3 w-3" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Desktop layout */}
-                    <div className="hidden items-center gap-3 sm:flex">
-                        <TokenIcon src={event.tokenLogo} symbol={event.tokenSymbol} size="md" />
-
-                        <div className="flex flex-1 items-baseline gap-4 font-mono text-sm tracking-tight">
-                            <span className="shrink-0">
-                                <span className="font-semibold text-negative">
-                                    -
-                                    {event.isBuy
-                                        ? formatKub(nativeAmount)
-                                        : formatTokenAmount(tokenAmount)}
-                                </span>
-                                <span className="ml-1 text-muted-foreground">
-                                    {event.isBuy ? 'KUB' : event.tokenSymbol}
-                                </span>
-                            </span>
-                            <span className="shrink-0">
-                                <span className="font-semibold text-positive">
-                                    +
-                                    {event.isBuy
-                                        ? formatTokenAmount(tokenAmount)
-                                        : formatKub(nativeAmount)}
-                                </span>
-                                <span className="ml-1 text-muted-foreground truncate">
-                                    {event.isBuy ? event.tokenSymbol : 'KUB'}
-                                </span>
-                            </span>
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                            <div className="font-mono text-sm text-muted-foreground tracking-tight">
-                                {nativeUsdPrice !== null
-                                    ? `$${formatCompact(displayValue)}`
-                                    : `${formatCompact(displayValue)} KUB`}
-                            </div>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground w-28 justify-end">
-                            <span>{formatTimeAgo(event.timestamp)}</span>
-                            <ExternalLink className="h-3 w-3" />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </a>
-    )
-}
-
-// ── Individual transfer card ────────────────────────────────────────
-
-function TransferCard({ event, index }: { event: ActivityEvent; index: number }) {
+    // Transfer direction.
     const isSent = event.direction === 'out'
-    const amount = BigInt(event.transferAmount ?? '0')
+    const transferAmount = BigInt(event.transferAmount ?? '0')
     const counterparty = event.counterparty ?? ''
-    const txUrl = getExplorerTxUrl(PUMP_CORE_NATIVE_CHAIN_ID, event.transactionHash)
-    const Icon = isSent ? ArrowUpRight : ArrowDownLeft
-    const amountColor = isSent ? 'text-negative' : 'text-positive'
+    const TransferIcon = isSent ? ArrowUpRight : ArrowDownLeft
 
     return (
-        <a href={txUrl} target="_blank" rel="noopener noreferrer" className="block">
-            <Card
-                className={cn(
-                    'transition-colors hover:bg-muted/20',
-                    index % 2 === 1 && 'bg-muted/5',
-                    'border-0 shadow-none rounded-lg'
-                )}
-            >
-                <CardContent className="px-3 py-3 sm:px-4">
-                    {/* Mobile layout */}
-                    <div className="flex items-center gap-3 sm:hidden">
-                        <TokenIcon src={event.tokenLogo} symbol={event.tokenSymbol} size="sm" />
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 font-mono text-sm tracking-tight">
-                                <span className={cn('font-semibold', amountColor)}>
-                                    {isSent ? '-' : '+'}
-                                    {formatTokenAmount(amount)}
-                                </span>
-                                <span className="text-muted-foreground">{event.tokenSymbol}</span>
-                            </div>
-                            <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                                <Icon className="h-3 w-3 shrink-0" />
-                                <span className="truncate">
-                                    {isSent ? 'Sent to ' : 'Received from '}
-                                    <span className="font-mono">{formatAddress(counterparty)}</span>
-                                </span>
-                            </div>
-                            <div className="mt-1 flex items-center justify-end gap-2 text-xs text-muted-foreground">
-                                <span>{formatTimeAgo(event.timestamp)}</span>
-                                <ExternalLink className="h-3 w-3" />
-                            </div>
-                        </div>
-                    </div>
+        <a
+            href={txUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/30 sm:px-4"
+        >
+            {/* Type chip — leads every row (neutral; direction is read from the amount color + arrow) */}
+            <TypeChip className="bg-muted text-muted-foreground">
+                {isTransfer ? (isSent ? 'Send' : 'Receive') : 'Swap'}
+            </TypeChip>
 
-                    {/* Desktop layout */}
-                    <div className="hidden items-center gap-3 sm:flex">
-                        <TokenIcon src={event.tokenLogo} symbol={event.tokenSymbol} size="md" />
-
-                        <div className="flex flex-1 items-baseline gap-4 font-mono text-sm tracking-tight">
-                            <span className="shrink-0">
-                                <span className={cn('font-semibold', amountColor)}>
-                                    {isSent ? '-' : '+'}
-                                    {formatTokenAmount(amount)}
-                                </span>
-                                <span className="ml-1 text-muted-foreground">
-                                    {event.tokenSymbol}
-                                </span>
-                            </span>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                            <Icon className="h-3 w-3" />
-                            <span>
-                                {isSent ? 'Sent to ' : 'Received from '}
+            {/* Token icon(s) sit directly in front of each amount */}
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+                {isTransfer ? (
+                    <>
+                        <AmountLeg
+                            src={event.tokenLogo}
+                            symbol={event.tokenSymbol}
+                            sign={isSent ? '-' : '+'}
+                            amount={formatTokenAmount(transferAmount)}
+                            tone={isSent ? 'text-negative' : 'text-positive'}
+                        />
+                        <span className="inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                            <TransferIcon className="h-3 w-3 shrink-0" />
+                            <span className="truncate">
+                                {isSent ? 'to ' : 'from '}
                                 <span className="font-mono">{formatAddress(counterparty)}</span>
                             </span>
-                        </div>
+                        </span>
+                    </>
+                ) : (
+                    <>
+                        <AmountLeg
+                            src={outSrc}
+                            symbol={outSymbol}
+                            sign="-"
+                            amount={outText}
+                            tone="text-negative"
+                        />
+                        <AmountLeg
+                            src={inSrc}
+                            symbol={inSymbol}
+                            sign="+"
+                            amount={inText}
+                            tone="text-positive"
+                        />
+                    </>
+                )}
+            </div>
 
-                        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground w-28 justify-end">
-                            <span>{formatTimeAgo(event.timestamp)}</span>
-                            <ExternalLink className="h-3 w-3" />
-                        </div>
+            {/* Right: USD value (trades only) + time + explorer link */}
+            <div className="shrink-0 text-right">
+                {!isTransfer && (
+                    <div className="font-mono text-xs tracking-tight text-muted-foreground sm:text-sm">
+                        {nativeUsdPrice !== null
+                            ? `$${formatCompact(displayValue)}`
+                            : `${formatCompact(displayValue)} ${nativeSymbol}`}
                     </div>
-                </CardContent>
-            </Card>
+                )}
+                <div
+                    className={cn(
+                        'flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground',
+                        !isTransfer && 'mt-0.5'
+                    )}
+                >
+                    <span>{formatTimeAgo(event.timestamp)}</span>
+                    <ExternalLink className="h-3 w-3" />
+                </div>
+            </div>
         </a>
     )
 }
 
-// ── Loading skeleton ────────────────────────────────────────────────
+// ── Loading skeleton (mirrors the row layout) ───────────────────────
 
 function LoadingSkeleton() {
     return (
-        <div className="space-y-2">
+        <div className="space-y-1">
             {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className={cn('rounded-lg px-4 py-3', i % 2 === 1 && 'bg-muted/5')}>
-                    <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 animate-pulse rounded-full bg-muted/40" />
-                        <div className="flex-1 space-y-2">
-                            <div className="h-4 w-24 animate-pulse rounded bg-muted/40" />
-                            <div className="h-3 w-40 animate-pulse rounded bg-muted/30" />
+                <div key={i} className="flex items-center gap-3 rounded-lg px-3 py-3 sm:px-4">
+                    <div className="h-5 w-12 shrink-0 animate-pulse rounded bg-muted/50" />
+                    <div className="flex flex-1 flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                            <TokenIconSkeleton size="xs" />
+                            <div className="h-3.5 w-20 animate-pulse rounded bg-muted/40" />
                         </div>
-                        <div className="h-4 w-16 animate-pulse rounded bg-muted/30" />
-                        <div className="h-3 w-12 animate-pulse rounded bg-muted/30" />
+                        <div className="flex items-center gap-1.5">
+                            <TokenIconSkeleton size="xs" />
+                            <div className="h-3.5 w-24 animate-pulse rounded bg-muted/40" />
+                        </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <div className="h-3.5 w-14 animate-pulse rounded bg-muted/40" />
+                        <div className="h-3 w-10 animate-pulse rounded bg-muted/30" />
                     </div>
                 </div>
             ))}
@@ -274,6 +237,11 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
 
     const { data: result, isLoading } = useUserActivity(address, chainId, page, 'all')
     const { nativeUsdPrice } = useNativeUsdPriceContext()
+
+    // Resolve the native token (logo + symbol) once per chain for swap-pair icons.
+    const nativeToken = useMemo(() => findTokenByAddress(chainId, NATIVE_ADDRESS), [chainId])
+    const nativeSymbol = nativeToken?.symbol ?? getChainMetadata(chainId)?.symbol ?? 'KUB'
+    const nativeLogo = nativeToken?.logo
 
     const events = useMemo(() => result?.data ?? [], [result?.data])
     const totalCount = result?.totalCount ?? 0
@@ -296,33 +264,31 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
                         {dateGroups.map((group) => (
                             <div key={group.label}>
                                 {/* Date header */}
-                                <div className="flex items-center gap-3 px-3 py-2">
-                                    <span className="text-xs font-medium text-muted-foreground shrink-0">
+                                <div className="flex items-center gap-3 px-3 py-2 sm:px-4">
+                                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
                                         {group.label}
                                     </span>
                                     <Separator className="flex-1 bg-border/40" />
                                 </div>
 
-                                {/* Activity cards */}
-                                {group.events.map((event, i) =>
-                                    event.kind === 'transfer' ? (
-                                        <TransferCard key={event.id} event={event} index={i} />
-                                    ) : (
-                                        <ActivityCard
-                                            key={event.id}
-                                            event={event}
-                                            nativeUsdPrice={nativeUsdPrice}
-                                            index={i}
-                                        />
-                                    )
-                                )}
+                                {/* Activity rows */}
+                                {group.events.map((event) => (
+                                    <ActivityRow
+                                        key={event.id}
+                                        event={event}
+                                        nativeLogo={nativeLogo}
+                                        nativeSymbol={nativeSymbol}
+                                        nativeUsdPrice={nativeUsdPrice}
+                                        chainId={chainId}
+                                    />
+                                ))}
                             </div>
                         ))}
                     </div>
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="flex items-center justify-center border-t border-border/40 px-3 py-3 mt-2">
+                        <div className="mt-2 flex items-center justify-center border-t border-border/40 px-3 py-3">
                             <PaginationControls
                                 currentPage={page}
                                 totalPages={totalPages}

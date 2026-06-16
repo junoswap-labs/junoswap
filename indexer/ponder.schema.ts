@@ -70,6 +70,7 @@ export const tokenHolder = onchainTable('token_holder', (t) => ({
 
 export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
     id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     poolAddress: t.text().notNull(),
     tokenAddr: t.text().notNull(),
     // Whether tokenAddr is token0 of the pool. The paired token is always wrapped
