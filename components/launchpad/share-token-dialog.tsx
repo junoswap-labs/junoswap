@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Address } from 'viem'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,9 @@ import { TokenIcon } from '@/components/ui/token-icon'
 import { formatCompact } from '@/services/launchpad'
 import { cn } from '@/lib/utils'
 import { toastSuccess } from '@/lib/toast'
+import { useShareableImage } from '@/hooks/useShareableImage'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
-import { Check, Copy, ArrowRight } from 'lucide-react'
+import { Check, Copy, ArrowRight, Download } from 'lucide-react'
 
 interface ShareTokenDialogProps {
     open: boolean
@@ -61,6 +62,8 @@ export function ShareTokenDialog({
     isGraduated,
 }: ShareTokenDialogProps) {
     const [copied, setCopied] = useState(false)
+    const cardRef = useRef<HTMLDivElement>(null)
+    const { downloadImage, isGenerating } = useShareableImage()
 
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
@@ -87,6 +90,11 @@ export function ShareTokenDialog({
         window.open(intentUrl, '_blank', 'noopener,noreferrer')
     }
 
+    const saveImage = () => {
+        if (!cardRef.current) return
+        downloadImage(cardRef.current, `junoswap-${symbol.toLowerCase()}.png`)
+    }
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md gap-4 rounded-2xl p-4 sm:gap-5 sm:p-6">
@@ -98,7 +106,7 @@ export function ShareTokenDialog({
                 </DialogHeader>
 
                 {/* Premium token card — captured as image */}
-                <div className="overflow-hidden rounded-xl bg-[#0a0e14]">
+                <div ref={cardRef} className="overflow-hidden rounded-xl bg-[#0a0e14]">
                     <div
                         className="relative overflow-hidden rounded-xl border border-white/10"
                         style={{
@@ -186,6 +194,16 @@ export function ShareTokenDialog({
                     >
                         <XIcon className="h-4 w-4" />
                         Share on X
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={saveImage}
+                        disabled={isGenerating}
+                        className="h-11 w-full rounded-xl sm:h-12"
+                        size="lg"
+                    >
+                        <Download className="h-4 w-4" />
+                        Save image
                     </Button>
                 </div>
             </DialogContent>

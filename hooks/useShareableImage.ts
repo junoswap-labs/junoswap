@@ -25,19 +25,31 @@ export function useShareableImage(): UseShareableImageReturn {
         async (element: HTMLElement, filename = 'junoswap-points.png') => {
             setIsGenerating(true)
             try {
-                const dataUrl = await generateImage(element)
+                // Use a blob + object URL rather than a data URL: iOS Safari
+                // ignores the `download` attribute for data: URLs, so this keeps
+                // the save flow working on both desktop and mobile.
+                const blob = await toBlob(element, {
+                    pixelRatio: 2,
+                    backgroundColor: '#0a0e1a',
+                })
+                if (!blob) throw new Error('Failed to generate image')
+
+                const url = URL.createObjectURL(blob)
                 const link = document.createElement('a')
                 link.download = filename
-                link.href = dataUrl
+                link.href = url
+                link.rel = 'noopener'
+                document.body.appendChild(link)
                 link.click()
-                toastSuccess('Image downloaded!')
+                link.remove()
+                URL.revokeObjectURL(url)
             } catch (error) {
                 toastError(error instanceof Error ? error : 'Failed to generate image')
             } finally {
                 setIsGenerating(false)
             }
         },
-        [generateImage]
+        []
     )
 
     const copyToClipboard = useCallback(
