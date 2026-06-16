@@ -58,8 +58,8 @@ const V3_SWAP_EVENTS_QUERY = `
       offset: $offset
     ) {
       items {
-        sender
-        recipient
+        txFrom
+        tokenIsToken0
         amount0
         amount1
         sqrtPriceX96
@@ -90,8 +90,8 @@ interface BondingCurveSwapEventsResponse {
 interface V3SwapEventsResponse {
     v3SwapEvents: {
         items: Array<{
-            sender: string
-            recipient: string
+            txFrom: string
+            tokenIsToken0: number
             amount0: string
             amount1: string
             sqrtPriceX96: string
@@ -181,14 +181,19 @@ export function useTokenSwapEvents(
                     const amount0 = BigInt(e.amount0)
                     const amount1 = BigInt(e.amount1)
 
-                    const isBuy = amount0 < 0n
-                    const tokenAmount = isBuy ? amount0 : amount1
-                    const nativeAmount = isBuy ? amount1 : amount0
+                    // Launch token can be token0 or token1; tokenIsToken0 disambiguates.
+                    const tokenIsToken0 = e.tokenIsToken0 === 1
+                    const tokenAmount = tokenIsToken0 ? amount0 : amount1
+                    const nativeAmount = tokenIsToken0 ? amount1 : amount0
+
+                    // V3 amounts are signed from the pool's view: negative = pool paid
+                    // out to user. User receives the token on a buy.
+                    const isBuy = tokenAmount < 0n
 
                     return {
                         blockNumber: BigInt(e.blockNumber),
                         timestamp: e.timestamp,
-                        sender: (e.recipient ?? e.sender) as Address,
+                        sender: e.txFrom as Address, // actual signer, not the router
                         isBuy,
                         tokenAddr,
                         amountIn: absBigInt(isBuy ? nativeAmount : tokenAmount),
