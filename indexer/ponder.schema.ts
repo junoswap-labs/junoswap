@@ -30,6 +30,20 @@ export const swapEvent = onchainTable('swap_event', (t) => ({
     transactionHash: t.text().notNull(),
 }))
 
+// P2P (and swap-related) ERC20 transfers of launch tokens. Mints/burns and
+// bonding-curve swaps are filtered in the handler, so this captures genuine
+// token movements — what the Portfolio activity feed shows as transfers.
+export const transferEvent = onchainTable('transfer_event', (t) => ({
+    id: t.text().primaryKey(),
+    tokenAddr: t.text().notNull(),
+    from: t.text().notNull(),
+    to: t.text().notNull(),
+    amount: t.text().notNull(),
+    blockNumber: t.integer().notNull(),
+    timestamp: t.integer().notNull(),
+    transactionHash: t.text().notNull(),
+}))
+
 export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     tokenAddr: t.text().primaryKey(),
     lastPrice: t.text().default('0'),
@@ -41,6 +55,9 @@ export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     totalVolumeNative: t.text().default('0'),
     holderCount: t.integer().default(0),
     lastSwapAt: t.integer(),
+    price1dAgo: t.text(),
+    price1dAgoTimestamp: t.integer(),
+    priceChange1dPct: t.text(),
     updatedAt: t.integer().notNull(),
 }))
 
@@ -53,8 +70,13 @@ export const tokenHolder = onchainTable('token_holder', (t) => ({
 
 export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
     id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     poolAddress: t.text().notNull(),
     tokenAddr: t.text().notNull(),
+    // Whether tokenAddr is token0 of the pool. The paired token is always wrapped
+    // native, so this disambiguates which of amount0/amount1 is the token vs native —
+    // the launch token can sort to either side of WKUB.
+    tokenIsToken0: t.integer().notNull().default(1),
     sender: t.text().notNull(),
     recipient: t.text().notNull(),
     txFrom: t.text().notNull(),
@@ -106,6 +128,17 @@ export const nativeUsdPrice = onchainTable('native_usd_price', (t) => ({
     price: t.text().notNull(),
     poolAddress: t.text().notNull(),
     updatedAt: t.integer().notNull(),
+}))
+
+// Append-only history of the native (KUB) USD price, one row per native/stablecoin
+// pool swap. Lets the portfolio value each trade at the KUB/USD rate at its timestamp
+// instead of repricing all history at the current rate. Reconstructed on reindex.
+export const nativeUsdPriceSnapshot = onchainTable('native_usd_price_snapshot', (t) => ({
+    id: t.text().primaryKey(), // `${chainId}-${blockNumber}-${logIndex}`
+    chainId: t.integer().notNull(),
+    price: t.text().notNull(),
+    timestamp: t.integer().notNull(),
+    blockNumber: t.integer().notNull(),
 }))
 
 export const v3TokenSnapshot = onchainTable('v3_token_snapshot', (t) => ({

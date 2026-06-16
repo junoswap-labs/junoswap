@@ -32,9 +32,18 @@ export function buildSwapSearchParams(params: SwapUrlParams): URLSearchParams {
 }
 
 /**
- * Validate and resolve token address to Token object
+ * Validate and resolve token address to Token object.
+ *
+ * `tokens` is the full, dynamic token list for the chain (static + graduated + V3).
+ * The static list is checked first to preserve existing behavior; if the address
+ * isn't there we fall back to the dynamic list so launchpad / Ponder V3 tokens
+ * (which are never in the static lists) can resolve from shared links.
  */
-function resolveTokenFromAddress(chainId: number, address: string | undefined): Token | null {
+function resolveTokenFromAddress(
+    chainId: number,
+    address: string | undefined,
+    tokens?: Token[]
+): Token | null {
     if (!address) return null
 
     // Validate address format
@@ -47,8 +56,17 @@ function resolveTokenFromAddress(chainId: number, address: string | undefined): 
         return findTokenByAddress(chainId, '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') || null
     }
 
-    // Find in token list
-    return findTokenByAddress(chainId, address) || null
+    // Find in static token list
+    const staticMatch = findTokenByAddress(chainId, address)
+    if (staticMatch) return staticMatch
+
+    // Fall back to the dynamic token list (graduated / V3 tokens)
+    if (tokens) {
+        const lower = address.toLowerCase()
+        return tokens.find((t) => t.address.toLowerCase() === lower) ?? null
+    }
+
+    return null
 }
 
 /**
@@ -77,7 +95,8 @@ function parseChainId(chainParam: string | undefined): number | null {
  */
 export function parseAndValidateSwapParams(
     chainId: number,
-    urlParams: SwapUrlParams
+    urlParams: SwapUrlParams,
+    tokens?: Token[]
 ): ParsedSwapUrlParams {
     const errors: string[] = []
     const targetChainId = parseChainId(urlParams.chain)
@@ -86,8 +105,8 @@ export function parseAndValidateSwapParams(
     const resolveChainId = targetChainId ?? chainId
 
     // Resolve tokens
-    const tokenIn = resolveTokenFromAddress(resolveChainId, urlParams.input)
-    const tokenOut = resolveTokenFromAddress(resolveChainId, urlParams.output)
+    const tokenIn = resolveTokenFromAddress(resolveChainId, urlParams.input, tokens)
+    const tokenOut = resolveTokenFromAddress(resolveChainId, urlParams.output, tokens)
 
     // Validate amount
     const amountIn = validateAmountString(urlParams.amount)

@@ -24,6 +24,14 @@ const config: Config = {
                     DEFAULT: 'hsl(var(--destructive))',
                     foreground: 'hsl(var(--destructive-foreground))',
                 },
+                positive: {
+                    DEFAULT: 'hsl(var(--positive))',
+                    foreground: 'hsl(var(--positive-foreground))',
+                },
+                negative: {
+                    DEFAULT: 'hsl(var(--negative))',
+                    foreground: 'hsl(var(--negative-foreground))',
+                },
                 muted: {
                     DEFAULT: 'hsl(var(--muted))',
                     foreground: 'hsl(var(--muted-foreground))',

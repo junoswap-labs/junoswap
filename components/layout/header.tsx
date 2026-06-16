@@ -13,11 +13,33 @@ import {
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Menu } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const pathname = usePathname()
+    const isLanding = pathname === '/'
+
+    // On the landing page the hero renders behind this nav. Keep the nav
+    // transparent while the hero is still under it, then restore the normal
+    // translucent background once the user scrolls past the hero.
+    const [scrolled, setScrolled] = useState(false)
+    useEffect(() => {
+        if (!isLanding) {
+            setScrolled(false)
+            return
+        }
+        const onScroll = () => setScrolled(window.scrollY > window.innerHeight - 64)
+        onScroll()
+        window.addEventListener('scroll', onScroll, { passive: true })
+        window.addEventListener('resize', onScroll)
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            window.removeEventListener('resize', onScroll)
+        }
+    }, [isLanding])
+
+    const transparent = isLanding && !scrolled
     const navLinks = [
         { href: '/swap', label: 'Swap' },
         { href: '/earn', label: 'Earn' },
@@ -28,70 +50,24 @@ export function Header() {
         { href: '/points', label: 'Points' },
     ]
     return (
-        <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header
+            className={`sticky top-0 z-50 w-full transition-colors duration-300 ${
+                transparent
+                    ? // Hero is dark in both themes, so force the nav into the dark
+                      // token context while it's transparent over it. `text-foreground`
+                      // is set on the header itself so its computed (light) color
+                      // inherits down to icon-only elements (hamburger, chain chevron)
+                      // that don't carry their own text-color class — without it they'd
+                      // keep inheriting the body's light-theme (dark) color and vanish.
+                      // Portaled overlays (mobile sheet, modals) render elsewhere and
+                      // keep their own page-theme styling.
+                      'dark bg-transparent text-foreground'
+                    : 'bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'
+            }`}
+        >
             <div className="flex h-16 items-center px-4 lg:px-6">
-                {/* Left group: Hamburger (mobile) + Logo + Desktop Nav */}
+                {/* Left group: Logo + Desktop Nav */}
                 <div className="flex items-center gap-1 md:gap-6 lg:gap-8">
-                    {/* Mobile hamburger - left of logo */}
-                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                        <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="md:hidden -ml-2 mr-1">
-                                <Menu className="h-5 w-5" />
-                                <span className="sr-only">Toggle menu</span>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent
-                            side="left"
-                            className="bg-background/95 backdrop-blur w-[240px] sm:w-[280px]"
-                        >
-                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-                            {/* Drawer header */}
-                            <Link
-                                href="/"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="flex items-center space-x-2 mt-2 mb-6"
-                            >
-                                <div
-                                    className="bg-gradient-to-br from-primary to-[#FF914D]"
-                                    style={{
-                                        width: 24,
-                                        height: 24,
-                                        WebkitMaskImage: 'url(/logo.svg)',
-                                        maskImage: 'url(/logo.svg)',
-                                        WebkitMaskSize: 'contain',
-                                        maskSize: 'contain',
-                                        WebkitMaskRepeat: 'no-repeat',
-                                        maskRepeat: 'no-repeat',
-                                    }}
-                                />
-                                <span className="text-lg font-bold bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-transparent">
-                                    Junoswap
-                                </span>
-                            </Link>
-
-                            {/* Nav links */}
-                            <nav className="flex flex-col gap-1">
-                                {navLinks.map((link) => {
-                                    const isActive = pathname === link.href
-                                    return (
-                                        <Link
-                                            key={link.href}
-                                            href={link.href}
-                                            className={`flex items-center min-h-[48px] px-4 py-3 text-[15px] font-medium transition-all duration-150 ${
-                                                isActive
-                                                    ? 'text-foreground'
-                                                    : 'text-muted-foreground border-transparent'
-                                            }`}
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                        >
-                                            {link.label}
-                                        </Link>
-                                    )
-                                })}
-                            </nav>
-                        </SheetContent>
-                    </Sheet>
-
                     {/* Logo */}
                     <Link href="/" className="flex items-center space-x-2">
                         <div
@@ -144,6 +120,42 @@ export function Header() {
                 <div className="flex items-center gap-2">
                     <NetworkSwitcher />
                     <ConnectButton />
+                    {/* Mobile hamburger - right edge */}
+                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="md:hidden -mr-2 ml-1">
+                                <Menu className="h-5 w-5" />
+                                <span className="sr-only">Toggle menu</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent
+                            side="top"
+                            className="bg-background/95 backdrop-blur top-16 max-h-[calc(100vh-4rem)] overflow-y-auto"
+                        >
+                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+
+                            {/* Nav links */}
+                            <nav className="flex flex-col gap-1">
+                                {navLinks.map((link) => {
+                                    const isActive = pathname === link.href
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            className={`flex items-center min-h-[48px] px-4 py-3 text-[15px] font-medium transition-all duration-150 ${
+                                                isActive
+                                                    ? 'text-foreground'
+                                                    : 'text-muted-foreground border-transparent'
+                                            }`}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                        >
+                                            {link.label}
+                                        </Link>
+                                    )
+                                })}
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
                 </div>
             </div>
         </header>

@@ -12,10 +12,17 @@ import {
 } from '@/lib/swap-params'
 import { toast } from 'sonner'
 import { getChainMetadata } from '@/lib/wagmi'
+import type { Token } from '@/types/tokens'
 
 const URL_UPDATE_DEBOUNCE_MS = 500
 
-export function useSwapUrlSync() {
+/** True when the store token's address matches the URL address (or the URL has no such param). */
+function matchesUrlAddress(token: Token | null, address: string | undefined): boolean {
+    if (!address) return true
+    return !!token && token.address.toLowerCase() === address.toLowerCase()
+}
+
+export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const chainId = useChainId()
@@ -123,6 +130,31 @@ export function useSwapUrlSync() {
             }
         }
     }, [chainId, applyUrlParams])
+    // Backfill launchpad / V3 tokens that aren't in the static list and only become
+    // resolvable once the async token list loads. This runs separately from the main
+    // URL→store effect and ONLY fills empty slots — it never overwrites a token the
+    // user picked, so manual token changes are never reverted.
+    useEffect(() => {
+        if (!hasInitializedRef.current) return
+        if (isUpdatingFromUrlRef.current) return
+        if (pendingUrlParamsRef.current) return
+        if (!tokens || tokens.length === 0) return
+        const urlParams = parseSwapSearchParams(searchParams)
+        const parsed = parseAndValidateSwapParams(chainId, urlParams, tokens)
+        if (parsed.targetChainId && parsed.targetChainId !== chainId) return
+        const state = useSwapStore.getState()
+        const needIn = !!parsed.tokenIn && !state.tokenIn
+        const needOut = !!parsed.tokenOut && !state.tokenOut
+        if (!needIn && !needOut) return
+        isUpdatingFromUrlRef.current = true
+        setIsUpdatingFromUrl(true)
+        if (needIn) setTokenIn(parsed.tokenIn!)
+        if (needOut) setTokenOut(parsed.tokenOut!)
+        setTimeout(() => {
+            isUpdatingFromUrlRef.current = false
+            setIsUpdatingFromUrl(false)
+        }, 0)
+    }, [tokens, searchParams, chainId, setTokenIn, setTokenOut, setIsUpdatingFromUrl])
     const debouncedTokenIn = useDebounce(tokenIn, URL_UPDATE_DEBOUNCE_MS)
     const debouncedTokenOut = useDebounce(tokenOut, URL_UPDATE_DEBOUNCE_MS)
     const debouncedAmountIn = useDebounce(amountIn, URL_UPDATE_DEBOUNCE_MS)
@@ -159,5 +191,16 @@ export function useSwapUrlSync() {
         isSwitchingChain,
     ])
 
-    return { isUpdatingFromUrl: isUpdatingFromUrlRef.current }
+    // Whether a URL-provided token is still waiting to be applied to the store.
+    // While true, the swap card must not run its default-token initialization, or it
+    // would clobber the (possibly async-resolving) URL token.
+    const rawUrlParams = parseSwapSearchParams(searchParams)
+    const hasUrlTokenParam = !!(rawUrlParams.input || rawUrlParams.output)
+    const storeMatchesUrl =
+        matchesUrlAddress(tokenIn, rawUrlParams.input) &&
+        matchesUrlAddress(tokenOut, rawUrlParams.output)
+    const urlTokensPending =
+        hasUrlTokenParam && !storeMatchesUrl && (isTokensLoading || !hasInitializedRef.current)
+
+    return { isUpdatingFromUrl: isUpdatingFromUrlRef.current, urlTokensPending }
 }

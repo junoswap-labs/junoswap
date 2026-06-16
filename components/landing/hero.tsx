@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const HeroBackground = dynamic(
@@ -55,16 +56,16 @@ export function Hero() {
     return (
         <section
             ref={sectionRef}
-            className="relative flex min-h-[100dvh] items-center overflow-hidden"
+            className="relative -mt-16 flex min-h-[100dvh] items-center overflow-hidden"
         >
-            {/* CSS gradient fallback shown during SSR / before WebGL loads */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_60%,hsl(0_100%_60%_/_0.08),hsl(23_100%_65%_/_0.06),transparent)]" />
+            {/* Cool-void fallback (matches the WebGL canvas) shown during SSR / before it loads */}
+            <div className="absolute inset-0 -z-10 bg-[#04050B] bg-[radial-gradient(ellipse_46%_38%_at_50%_52%,hsl(28_100%_60%_/_0.10),transparent_70%)]" />
             <HeroBackground />
             <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div ref={textRef} className="mx-auto max-w-3xl text-center lg:max-w-4xl">
                     <h1
-                        className="animate-reveal-up text-4xl font-bold tracking-tight text-[hsl(210,20%,98%)] sm:text-5xl lg:text-6xl xl:text-7xl"
-                        style={{ animationDelay: '0.3s' }}
+                        className="animate-reveal-up text-balance text-4xl font-semibold leading-[1.05] tracking-tight text-[hsl(210,20%,98%)] sm:text-5xl lg:text-6xl xl:text-7xl"
+                        style={{ animationDelay: '0.4s', animationDuration: '1.1s' }}
                     >
                         Trade, Launch & Win
                         <span className="whitespace-nowrap bg-gradient-to-r from-primary to-[#FF914D] bg-clip-text text-transparent">
@@ -73,25 +74,33 @@ export function Hero() {
                         </span>
                     </h1>
                     <p
-                        className="animate-reveal-up mt-4 text-lg leading-8 text-[hsl(220,8%,55%)] sm:mt-6 sm:text-xl"
-                        style={{ animationDelay: '0.5s' }}
+                        className="animate-reveal-up mx-auto mt-5 max-w-xl text-balance text-lg leading-8 text-[hsl(220,10%,64%)] sm:mt-6 sm:text-xl"
+                        style={{ animationDelay: '0.65s', animationDuration: '1.1s' }}
                     >
                         Best rates. Any chain. One platform.
                     </p>
                     <div
-                        className="animate-reveal-up mt-8 sm:mt-10"
-                        style={{ animationDelay: '0.7s' }}
+                        className="animate-reveal-up mt-9 sm:mt-11"
+                        style={{ animationDelay: '0.9s', animationDuration: '1.1s' }}
                     >
                         <Link href="/swap">
-                            <Button
-                                size="xl"
-                                className="group w-full bg-[hsl(210,20%,98%)] text-[hsl(230,15%,3.5%)] hover:bg-[hsl(210,20%,98%)/0.9] active:bg-[hsl(210,20%,98%)/0.8] sm:w-auto"
-                            >
+                            <Button size="xl" className="group w-full sm:w-auto">
                                 Start Swapping
                             </Button>
                         </Link>
                     </div>
                 </div>
+            </div>
+
+            {/* Subtle scroll cue */}
+            <div
+                className="pointer-events-none absolute inset-x-0 bottom-8 z-10 flex justify-center motion-safe:animate-reveal-up"
+                style={{ animationDelay: '1.6s', animationDuration: '1.1s' }}
+            >
+                <ChevronDown
+                    className="h-6 w-6 text-[hsl(220,12%,68%)] motion-safe:animate-hero-bob"
+                    aria-hidden="true"
+                />
             </div>
         </section>
     )

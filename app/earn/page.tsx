@@ -1,11 +1,10 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useAccount, useChainId } from 'wagmi'
-import { Plus, Unplug } from 'lucide-react'
+import { useAccount } from 'wagmi'
+import { Plus } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/empty-state'
 import { PoolsList } from '@/components/positions/pools'
 import { PositionsList } from '@/components/positions/positions-list'
 import { AddLiquidityDialog } from '@/components/positions/add-liquidity-dialog'
@@ -13,50 +12,27 @@ import { RemoveLiquidityDialog } from '@/components/positions/remove-liquidity-d
 import { CollectFeesDialog } from '@/components/positions/collect-fees-dialog'
 import { PositionDetailsModal } from '@/components/positions/position-details-modal'
 import { IncreaseLiquidityDialog } from '@/components/positions/increase-liquidity-dialog'
-import {
-    MiningPools,
-    MiningSummary,
-    StakedPositions,
-    StakeDialog,
-    UnstakeDialog,
-} from '@/components/mining'
+import { MiningFarms, StakedPositions, StakeDialog, UnstakeDialog } from '@/components/mining'
 import { useEarnStore, useActiveTab } from '@/store/earn-store'
-import { getV3Config } from '@/lib/dex-config'
 import { ConnectModal } from '@/components/web3/connect-modal'
 
 function EarnContent() {
     const { isConnected } = useAccount()
-    const chainId = useChainId()
     const activeTab = useActiveTab()
     const { setActiveTab, openAddLiquidity } = useEarnStore()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
-    const dexConfig = getV3Config(chainId)
-    if (!dexConfig?.positionManager) {
-        return (
-            <div className="flex min-h-screen items-start justify-center p-4">
-                <div className="w-full max-w-md space-y-4">
-                    <EmptyState
-                        icon={Unplug}
-                        title="Chain Not Supported"
-                        description="Liquidity management is not available on this chain. Please switch to a supported chain like KUB Chain or JBC."
-                    />
-                </div>
-            </div>
-        )
-    }
     return (
         <div className="flex min-h-screen items-start justify-center p-4 pt-8">
             <div className="w-full max-w-5xl space-y-4">
                 <Tabs
                     value={activeTab}
-                    onValueChange={(v) => setActiveTab(v as 'pools' | 'positions' | 'mining')}
+                    onValueChange={(v) => setActiveTab(v as 'pools' | 'positions')}
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6">
                             <TabsList>
                                 <TabsTrigger value="pools">Pools</TabsTrigger>
                                 <TabsTrigger value="positions">My Positions</TabsTrigger>
-                                <TabsTrigger value="mining">Mining</TabsTrigger>
                             </TabsList>
                         </div>
                         <Button
@@ -73,15 +49,12 @@ function EarnContent() {
                             New Position
                         </Button>
                     </div>
-                    <TabsContent value="pools">
+                    <TabsContent value="pools" className="space-y-6">
+                        <MiningFarms />
                         <PoolsList />
                     </TabsContent>
-                    <TabsContent value="positions">
+                    <TabsContent value="positions" className="space-y-6">
                         <PositionsList />
-                    </TabsContent>
-                    <TabsContent value="mining" className="space-y-6">
-                        <MiningSummary />
-                        <MiningPools />
                         <StakedPositions />
                     </TabsContent>
                 </Tabs>

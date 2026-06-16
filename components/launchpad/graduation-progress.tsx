@@ -1,11 +1,17 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { calculateGraduationProgress, isReadyToGraduate } from '@/services/launchpad'
+import {
+    calculateGraduationProgress,
+    calculateGraduationTarget,
+    isReadyToGraduate,
+    formatKub,
+} from '@/services/launchpad'
 import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
     nativeReserve: bigint
+    tokenReserve: bigint
     graduationAmount: bigint
     isGraduated: boolean
     isGraduating?: boolean
@@ -15,12 +21,16 @@ interface GraduationProgressProps {
 
 export function GraduationProgress({
     nativeReserve,
+    tokenReserve,
     graduationAmount,
     isGraduated,
     isGraduating = false,
     onGraduate,
     className,
 }: GraduationProgressProps) {
+    const progress = calculateGraduationProgress(nativeReserve, tokenReserve, graduationAmount)
+    const targetKub = calculateGraduationTarget(tokenReserve, graduationAmount)
+
     if (isGraduated) {
         return (
             <div className={cn('space-y-1', className)}>
@@ -30,20 +40,19 @@ export function GraduationProgress({
                         style={{
                             width: '100%',
                             background:
-                                'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                                'linear-gradient(90deg, rgb(30 215 96 / 0.3), rgb(30 215 96))',
                         }}
                     />
                 </div>
                 <div className="flex justify-between text-xs">
-                    <span className="text-green-500 font-medium">Graduated</span>
-                    <span className="text-muted-foreground">100%</span>
+                    <span className="text-positive font-medium">Graduated</span>
+                    <span className="text-muted-foreground">{formatKub(targetKub)} KUB</span>
                 </div>
             </div>
         )
     }
 
-    const ready = isReadyToGraduate(nativeReserve, graduationAmount, isGraduated)
-    const progress = calculateGraduationProgress(nativeReserve, graduationAmount)
+    const ready = isReadyToGraduate(nativeReserve, tokenReserve, graduationAmount, isGraduated)
 
     if (ready) {
         return (
@@ -60,7 +69,7 @@ export function GraduationProgress({
                 </div>
                 <div className="flex justify-between text-xs">
                     <span className="text-amber-500 font-medium">Ready to Graduate</span>
-                    <span className="text-muted-foreground">100%</span>
+                    <span className="text-muted-foreground">{formatKub(nativeReserve)} KUB</span>
                 </div>
                 {onGraduate && (
                     <Button
@@ -88,7 +97,10 @@ export function GraduationProgress({
                     }}
                 />
             </div>
-            <div className="flex justify-end text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                    {formatKub(nativeReserve)} / {formatKub(targetKub)} KUB
+                </span>
                 <span>{progress.toFixed(1)}%</span>
             </div>
         </div>

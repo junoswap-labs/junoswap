@@ -1,3 +1,5 @@
+import { TokenIconSkeleton } from '@/components/ui/token-icon'
+
 export function TokenDetailSkeleton() {
     return (
         <div className="space-y-3 md:space-y-4">
@@ -7,7 +9,7 @@ export function TokenDetailSkeleton() {
             {/* Price header */}
             <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-muted md:h-14 md:w-14" />
+                    <TokenIconSkeleton size="lg" variant="square" className="md:h-14 md:w-14" />
                     <div className="space-y-2">
                         <div className="h-5 w-32 animate-pulse rounded bg-muted" />
                         <div className="h-3 w-24 animate-pulse rounded bg-muted" />

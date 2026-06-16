@@ -54,7 +54,7 @@ export function encodeIncentiveKeyData(key: IncentiveKey): Hex {
 /**
  * Encode unstakeToken call
  */
-export function encodeUnstakeToken(params: UnstakeParams): Hex {
+function encodeUnstakeToken(params: UnstakeParams): Hex {
     return encodeFunctionData({
         abi: UNISWAP_V3_STAKER_ABI,
         functionName: 'unstakeToken',
@@ -74,7 +74,7 @@ export function encodeUnstakeToken(params: UnstakeParams): Hex {
 /**
  * Encode withdrawToken call to return NFT to owner
  */
-export function encodeWithdrawToken(tokenId: bigint, to: Address): Hex {
+function encodeWithdrawToken(tokenId: bigint, to: Address): Hex {
     return encodeFunctionData({
         abi: UNISWAP_V3_STAKER_ABI,
         functionName: 'withdrawToken',
@@ -85,7 +85,7 @@ export function encodeWithdrawToken(tokenId: bigint, to: Address): Hex {
 /**
  * Encode claimReward call
  */
-export function encodeClaimReward(rewardToken: Address, to: Address, amountRequested: bigint): Hex {
+function encodeClaimReward(rewardToken: Address, to: Address, amountRequested: bigint): Hex {
     return encodeFunctionData({
         abi: UNISWAP_V3_STAKER_ABI,
         functionName: 'claimReward',

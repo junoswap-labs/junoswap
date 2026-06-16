@@ -1,7 +1,6 @@
 import { encodeFunctionData, type Address, type Hex } from 'viem'
 import type {
     RemoveLiquidityParams,
-    CollectFeesParams,
     DecreaseLiquidityCallParams,
     CollectCallParams,
 } from '@/types/earn'
@@ -14,9 +13,7 @@ import { shouldSkipUnwrap } from '@/lib/wagmi'
 /**
  * Build decrease liquidity parameters
  */
-export function buildDecreaseLiquidityParams(
-    params: RemoveLiquidityParams
-): DecreaseLiquidityCallParams {
+function buildDecreaseLiquidityParams(params: RemoveLiquidityParams): DecreaseLiquidityCallParams {
     return {
         tokenId: params.tokenId,
         liquidity: params.liquidity,
@@ -27,21 +24,9 @@ export function buildDecreaseLiquidityParams(
 }
 
 /**
- * Build collect parameters
- */
-export function buildCollectParams(params: CollectFeesParams): CollectCallParams {
-    return {
-        tokenId: params.tokenId,
-        recipient: params.recipient,
-        amount0Max: params.amount0Max,
-        amount1Max: params.amount1Max,
-    }
-}
-
-/**
  * Encode decreaseLiquidity function call
  */
-export function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): Hex {
+function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'decreaseLiquidity',
@@ -52,7 +37,7 @@ export function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): He
 /**
  * Encode collect function call
  */
-export function encodeCollect(params: CollectCallParams): Hex {
+function encodeCollect(params: CollectCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'collect',
@@ -74,7 +59,7 @@ export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): He
 /**
  * Encode sweepToken function call (for leftover tokens)
  */
-export function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
+function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
         functionName: 'sweepToken',

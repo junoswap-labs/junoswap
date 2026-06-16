@@ -2,7 +2,6 @@
 
 import { cn, formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
-import { Users, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import type { TraderAgg } from '@/hooks/useLeaderboardTraders'
 import type { TraderSortKey, SortDirection } from '@/types/leaderboard'
 
@@ -28,6 +27,7 @@ interface TraderLeaderboardTableProps {
     sortKey: TraderSortKey
     sortDirection: SortDirection
     onSort: (key: TraderSortKey) => void
+    chainId: number
 }
 
 function formatUsd(value: number, nativeUsdPrice: number | null): string {
@@ -39,23 +39,13 @@ function RankCell({ rank }: { rank: number }) {
     return <span className="font-mono text-muted-foreground">{rank}</span>
 }
 
-function PnlCell({
-    pnlNative,
-    nativeUsdPrice,
-}: {
-    pnlNative: number
-    nativeUsdPrice: number | null
-}) {
-    const isPositive = pnlNative >= 0
-    const colorClass = isPositive ? 'text-emerald-400' : 'text-red-400'
-    const usd = nativeUsdPrice !== null ? Math.abs(pnlNative * nativeUsdPrice) : Math.abs(pnlNative)
-    const prefix = nativeUsdPrice !== null ? '$' : ''
+function PnlCell({ pnlUsd }: { pnlUsd: number }) {
+    const isPositive = pnlUsd >= 0
+    const colorClass = isPositive ? 'text-positive' : 'text-negative'
 
     return (
         <span className={cn('font-mono tracking-tight text-sm', colorClass)}>
-            {isPositive ? '+' : '-'}
-            {prefix}
-            {formatCompact(usd)}
+            {isPositive ? '+' : '-'}${formatCompact(Math.abs(pnlUsd))}
         </span>
     )
 }
@@ -138,11 +128,12 @@ export function TraderLeaderboardTable({
     sortKey,
     sortDirection,
     onSort,
+    chainId,
 }: TraderLeaderboardTableProps) {
     const tableHeader = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                <TableHead className="w-12 whitespace-nowrap">Rank</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Wallet</TableHead>
                 <SortableHead
                     label="Net Worth"
@@ -188,9 +179,6 @@ export function TraderLeaderboardTable({
     if (traders.length === 0) {
         return (
             <EmptyState
-                compact
-                icon={Users}
-                variant="subtle"
                 title="No traders found"
                 description="No trading activity found for this time period"
             />
@@ -211,10 +199,7 @@ export function TraderLeaderboardTable({
                             )}
                             onClick={() =>
                                 window.open(
-                                    getExplorerAddressUrl(
-                                        PUMP_CORE_NATIVE_CHAIN_ID,
-                                        trader.address
-                                    ),
+                                    getExplorerAddressUrl(chainId, trader.address),
                                     '_blank'
                                 )
                             }
@@ -232,10 +217,7 @@ export function TraderLeaderboardTable({
                             </TableCell>
 
                             <TableCell className="py-2.5" onClick={(e) => e.stopPropagation()}>
-                                <PnlCell
-                                    pnlNative={trader.pnlNative}
-                                    nativeUsdPrice={nativeUsdPrice}
-                                />
+                                <PnlCell pnlUsd={trader.pnlUsd} />
                             </TableCell>
 
                             <TableCell className="py-2.5 font-mono tracking-tight text-sm text-muted-foreground">

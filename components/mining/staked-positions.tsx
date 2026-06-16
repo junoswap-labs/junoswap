@@ -5,7 +5,7 @@ import { useAccount, useChainId } from 'wagmi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { TokenIconPair, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import type { StakedPosition } from '@/types/earn'
@@ -30,8 +30,8 @@ function LoadingState() {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="flex -space-x-2">
-                                        <div className="h-9 w-9 rounded-full bg-muted" />
-                                        <div className="h-9 w-9 rounded-full bg-muted" />
+                                        <TokenIconSkeleton size="md" />
+                                        <TokenIconSkeleton size="md" />
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="h-4 w-28 bg-muted rounded" />
@@ -94,14 +94,21 @@ export function StakedPositions() {
         openUnstakeDialog(stakedPosition)
     }
     if (!stakerAddress) {
-        return null
+        return (
+            <div className="space-y-4">
+                <h2 className="text-lg font-semibold">My Staked Positions</h2>
+                <EmptyState
+                    title="Not available"
+                    description="LP Mining is not available on this chain."
+                />
+            </div>
+        )
     }
     if (!address) {
         return (
             <EmptyState
                 title="Connect wallet"
                 description="Connect your wallet to view staked positions."
-                compact
             />
         )
     }
@@ -126,7 +133,6 @@ export function StakedPositions() {
                 <EmptyState
                     title="No staked positions"
                     description="Stake your LP positions in a mining pool to earn rewards."
-                    compact
                 />
             </div>
         )
@@ -169,26 +175,13 @@ function StakedPositionCard({ stakedPosition, onUnstake }: StakedPositionCardPro
                 {/* Header: Identity + Status */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="flex -space-x-2">
-                            <Avatar className="h-9 w-9 shrink-0 border-2 border-background">
-                                <AvatarImage
-                                    src={position.token0Info.logo}
-                                    alt={position.token0Info.symbol}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {position.token0Info.symbol.slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <Avatar className="h-9 w-9 shrink-0 border-2 border-background">
-                                <AvatarImage
-                                    src={position.token1Info.logo}
-                                    alt={position.token1Info.symbol}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {position.token1Info.symbol.slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
+                        <TokenIconPair
+                            src0={position.token0Info.logo}
+                            symbol0={position.token0Info.symbol}
+                            src1={position.token1Info.logo}
+                            symbol1={position.token1Info.symbol}
+                            size="md"
+                        />
                         <div>
                             <div className="flex items-center gap-2">
                                 <span className="font-semibold">
@@ -206,9 +199,9 @@ function StakedPositionCard({ stakedPosition, onUnstake }: StakedPositionCardPro
                     {incentive.isActive ? (
                         <Badge
                             variant="outline"
-                            className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                            className="bg-positive/15 text-positive border-positive/25"
                         >
-                            <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-positive" />
                             Active
                         </Badge>
                     ) : (

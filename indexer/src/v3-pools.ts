@@ -110,7 +110,9 @@ async function updateNativeUsdPrice(
     poolAddress: string,
     poolRecord: { token0: string; token1: string },
     sqrtPriceX96: bigint,
-    timestamp: number
+    timestamp: number,
+    blockNumber: number,
+    logIndex: number
 ) {
     const wn = WRAPPED_NATIVE_ADDRESSES[chainId]
     const stables = STABLECOIN_ADDRESSES[chainId]
@@ -145,6 +147,18 @@ async function updateNativeUsdPrice(
             poolAddress,
             updatedAt: timestamp,
         })
+
+    // Append a historical point so past trades can be valued at their own rate.
+    await context.db
+        .insert(schema.nativeUsdPriceSnapshot)
+        .values({
+            id: `${chainId}-${blockNumber}-${logIndex}`,
+            chainId,
+            price: price.toString(),
+            timestamp,
+            blockNumber,
+        })
+        .onConflictDoNothing()
 }
 
 async function updateV3TokenSnapshot(
@@ -199,6 +213,64 @@ async function updateV3TokenSnapshot(
         })
 }
 
+// Inserts a v3_swap_event row for a swap on any chain. The token side is
+// resolved against the per-chain wrapped native; the row id is namespaced by
+// chainId so block numbers (which are per-chain) can't collide across chains.
+async function recordV3SwapEvent(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    context: any,
+    chainId: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    event: any,
+    poolRecord: { token0: string; token1: string },
+    poolAddress: string,
+    timestamp: number
+) {
+    const { sender, recipient, amount0, amount1, sqrtPriceX96, liquidity, tick } = event.args
+    const wn = WRAPPED_NATIVE_ADDRESSES[chainId]
+    const { token0, token1 } = poolRecord
+
+    let tokenAddr: string
+    let tokenIsToken0: boolean
+    if (token1 === wn) {
+        tokenAddr = token0
+        tokenIsToken0 = true
+    } else if (token0 === wn) {
+        tokenAddr = token1
+        tokenIsToken0 = false
+    } else {
+        // Token/token pool: neither side is wrapped native, so there is no native
+        // side to value the swap against. Recording it would mis-read the paired
+        // token's amount as KUB and blow up PnL (a 0.001-token swap for 129M of a
+        // worthless pair shows as ~$99M realized). The native-denominated PnL model
+        // can't price these legs, so skip them.
+        return
+    }
+
+    const id = `${chainId}-${event.block.number}-${event.log.logIndex}`
+    await context.db
+        .insert(schema.v3SwapEvent)
+        .values({
+            id,
+            chainId,
+            poolAddress,
+            tokenAddr,
+            tokenIsToken0: tokenIsToken0 ? 1 : 0,
+            sender: sender.toLowerCase(),
+            recipient: recipient.toLowerCase(),
+            txFrom: event.transaction.from.toLowerCase(),
+            amount0: amount0.toString(),
+            amount1: amount1.toString(),
+            sqrtPriceX96: sqrtPriceX96.toString(),
+            liquidity: liquidity.toString(),
+            tick: Number(tick),
+            blockNumber: Number(event.block.number),
+            timestamp,
+            transactionHash: event.transaction.hash,
+        })
+        .onConflictDoNothing()
+}
+
 // kubTestnet (25925)
 ponder.on('V3Factory:PoolCreated', async ({ event, context }) => {
     const { token0, token1, fee, tickSpacing, pool } = event.args
@@ -229,7 +301,7 @@ ponder.on('V3Factory:PoolCreated', async ({ event, context }) => {
 })
 
 ponder.on('V3Pool:Swap', async ({ event, context }) => {
-    const { sender, recipient, amount0, amount1, sqrtPriceX96, liquidity, tick } = event.args
+    const { amount0, amount1, sqrtPriceX96 } = event.args
     const poolAddress = event.log.address.toLowerCase()
     const timestamp = Number(event.block.timestamp)
     const absAmount0 = amount0 < 0n ? -amount0 : amount0
@@ -243,44 +315,24 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
     if (!poolRecord) return
 
     // 3. Update native USD price if this is a native/stablecoin pool
-    await updateNativeUsdPrice(context, 25925, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await updateNativeUsdPrice(
+        context,
+        25925,
+        poolAddress,
+        poolRecord,
+        sqrtPriceX96,
+        timestamp,
+        Number(event.block.number),
+        event.log.logIndex
+    )
 
     // 4. Update v3_token_snapshot for pools containing wrapped native
     await updateV3TokenSnapshot(context, 25925, poolAddress, poolRecord, sqrtPriceX96, timestamp)
 
-    // 5. Determine tokenAddr for the swap event
+    // 5. Insert v3_swap_event for all swaps
+    await recordV3SwapEvent(context, 25925, event, poolRecord, poolAddress, timestamp)
+
     const { token0, token1 } = poolRecord
-    let tokenAddr: string
-
-    if (token1 === WRAPPED_NATIVE) {
-        tokenAddr = token0
-    } else if (token0 === WRAPPED_NATIVE) {
-        tokenAddr = token1
-    } else {
-        tokenAddr = token0
-    }
-
-    // 6. Insert v3_swap_event for ALL swaps
-    const id = `v3-${event.block.number}-${event.log.logIndex}`
-    await context.db
-        .insert(schema.v3SwapEvent)
-        .values({
-            id,
-            poolAddress,
-            tokenAddr,
-            sender: sender.toLowerCase(),
-            recipient: recipient.toLowerCase(),
-            txFrom: event.transaction.from.toLowerCase(),
-            amount0: amount0.toString(),
-            amount1: amount1.toString(),
-            sqrtPriceX96: sqrtPriceX96.toString(),
-            liquidity: liquidity.toString(),
-            tick: Number(tick),
-            blockNumber: Number(event.block.number),
-            timestamp,
-            transactionHash: event.transaction.hash,
-        })
-        .onConflictDoNothing()
 
     // 7. Graduated launch token tracking (token_snapshot updates only for fee=10000 graduated tokens)
     if (poolRecord.fee !== GRADUATED_FEE_TIER) return
@@ -326,6 +378,31 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
         parseFloat(existingSnapshot.athMarketCapNative ?? '0')
     ).toString()
 
+    // Compute 24h price change
+    let price1dAgo: string | null = existingSnapshot.price1dAgo ?? null
+    let price1dAgoTimestamp: number | null = existingSnapshot.price1dAgoTimestamp ?? null
+    let priceChange1dPct: string | null = existingSnapshot.priceChange1dPct ?? null
+
+    // At the first swap of each new UTC day, capture the reference price
+    const currentDayStart = Math.floor(timestamp / 86400) * 86400
+    const refDayStart = existingSnapshot.price1dAgoTimestamp
+        ? Math.floor(existingSnapshot.price1dAgoTimestamp / 86400) * 86400
+        : null
+
+    if (refDayStart === null || currentDayStart > refDayStart) {
+        if ((existingSnapshot.lastSwapAt ?? 0) > 0) {
+            price1dAgo = existingSnapshot.lastPrice ?? '0'
+            price1dAgoTimestamp = existingSnapshot.lastSwapAt ?? null
+        }
+    }
+
+    if (price1dAgo !== null && price1dAgo !== '0') {
+        const pastPrice = parseFloat(price1dAgo)
+        if (pastPrice > 0 && priceNative > 0) {
+            priceChange1dPct = (((priceNative - pastPrice) / pastPrice) * 100).toString()
+        }
+    }
+
     await context.db.update(schema.tokenSnapshot, { tokenAddr: launchTokenAddr }).set({
         lastPrice: priceNative > 0 ? priceNative.toString() : existingSnapshot.lastPrice,
         lastPriceUsd: priceUsd > 0 ? priceUsd.toString() : (existingSnapshot.lastPriceUsd ?? '0'),
@@ -337,6 +414,9 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
             BigInt(existingSnapshot.totalVolumeNative ?? '0') + nativeVolume
         ).toString(),
         lastSwapAt: timestamp,
+        price1dAgo,
+        price1dAgoTimestamp,
+        priceChange1dPct,
         updatedAt: timestamp,
     })
 })
@@ -383,8 +463,18 @@ ponder.on('V3PoolBitkub:Swap', async ({ event, context }) => {
     const poolRecord = await context.db.find(schema.v3Pool, { id: `96-${poolAddress}` })
     if (!poolRecord) return
 
-    await updateNativeUsdPrice(context, 96, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await updateNativeUsdPrice(
+        context,
+        96,
+        poolAddress,
+        poolRecord,
+        sqrtPriceX96,
+        timestamp,
+        Number(event.block.number),
+        event.log.logIndex
+    )
     await updateV3TokenSnapshot(context, 96, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await recordV3SwapEvent(context, 96, event, poolRecord, poolAddress, timestamp)
 })
 
 // JBC (8899)
@@ -429,6 +519,16 @@ ponder.on('V3PoolJbc:Swap', async ({ event, context }) => {
     const poolRecord = await context.db.find(schema.v3Pool, { id: `8899-${poolAddress}` })
     if (!poolRecord) return
 
-    await updateNativeUsdPrice(context, 8899, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await updateNativeUsdPrice(
+        context,
+        8899,
+        poolAddress,
+        poolRecord,
+        sqrtPriceX96,
+        timestamp,
+        Number(event.block.number),
+        event.log.logIndex
+    )
     await updateV3TokenSnapshot(context, 8899, poolAddress, poolRecord, sqrtPriceX96, timestamp)
+    await recordV3SwapEvent(context, 8899, event, poolRecord, poolAddress, timestamp)
 })

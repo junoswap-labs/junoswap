@@ -2,7 +2,6 @@
 
 import { cn, formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
@@ -16,7 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
 import { PointsTierBadge } from './points-tier-badge'
 import { getTierForPoints } from '@/types/points'
-import { Users, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import type { PointsTrader } from '@/types/points'
 import type { PointsSortKey, SortDirection } from '@/types/points'
 
@@ -30,6 +29,7 @@ interface PointsLeaderboardTableProps {
     sortDirection: SortDirection
     onSort: (key: PointsSortKey) => void
     userAddress?: string
+    chainId: number
 }
 
 function SortableHead({
@@ -109,11 +109,12 @@ export function PointsLeaderboardTable({
     sortDirection,
     onSort,
     userAddress,
+    chainId,
 }: PointsLeaderboardTableProps) {
     const header = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                <TableHead className="w-12 whitespace-nowrap">Rank</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Wallet</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Tier</TableHead>
                 <SortableHead
@@ -153,9 +154,6 @@ export function PointsLeaderboardTable({
     if (traders.length === 0) {
         return (
             <EmptyState
-                compact
-                icon={Users}
-                variant="subtle"
                 title="No traders found"
                 description="No trading activity found for this time period"
             />
@@ -179,14 +177,11 @@ export function PointsLeaderboardTable({
                                 className={cn(
                                     'cursor-pointer transition-colors hover:bg-muted/30',
                                     i % 2 === 1 && 'bg-muted/10',
-                                    isUser && 'bg-primary/5 border-l-2 border-l-primary'
+                                    isUser && 'bg-primary/5'
                                 )}
                                 onClick={() =>
                                     window.open(
-                                        getExplorerAddressUrl(
-                                            PUMP_CORE_NATIVE_CHAIN_ID,
-                                            trader.address
-                                        ),
+                                        getExplorerAddressUrl(chainId, trader.address),
                                         '_blank'
                                     )
                                 }

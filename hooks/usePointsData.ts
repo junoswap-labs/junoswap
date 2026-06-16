@@ -2,8 +2,15 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAccount } from 'wagmi'
-import { getTimeThreshold, fetchSwapEvents, safeFormatEther } from '@/lib/leaderboard-utils'
+import { useAccount, useChainId } from 'wagmi'
+import {
+    getTimeThreshold,
+    fetchSwapEvents,
+    fetchV3SwapEvents,
+    safeFormatEther,
+    isLeaderboardSupportedChain,
+} from '@/lib/leaderboard-utils'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import type { PointsTrader, PointsTimePeriod, PointsSortKey, SortDirection } from '@/types/points'
 
 export interface UserPointsSummary {
@@ -43,16 +50,41 @@ export function usePointsData(
     nativeUsdPrice: number | null
 ) {
     const { address: userAddress } = useAccount()
+    const chainId = useChainId()
+    const isSupportedChain = isLeaderboardSupportedChain(chainId)
 
     const { data: rawSwapEvents } = useQuery({
-        queryKey: ['points-data', timePeriod],
-        queryFn: () => fetchSwapEvents(getTimeThreshold(timePeriod)),
+        queryKey: ['points-data', timePeriod, chainId],
+        queryFn: async () => {
+            const since = getTimeThreshold(timePeriod)
+            // Bonding-curve volume only exists on the launchpad chain; V3 volume
+            // is indexed for all supported chains. Count both where available.
+            const [bondingCurve, v3] = await Promise.all([
+                isLaunchpadChain(chainId) ? fetchSwapEvents(since) : Promise.resolve([]),
+                fetchV3SwapEvents(chainId, since),
+            ])
+            return [...bondingCurve, ...v3]
+        },
+        enabled: isSupportedChain,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })
 
     return useMemo(() => {
-        if (!rawSwapEvents || nativeUsdPrice === null) {
+        if (!isSupportedChain) {
+            return {
+                traders: [],
+                totalCount: 0,
+                totalPages: 0,
+                totalPointsAll: 0,
+                totalVolumeUsd: 0,
+                userSummary: null,
+                isLoading: false,
+                isSupportedChain,
+            }
+        }
+
+        if (!rawSwapEvents) {
             return {
                 traders: [],
                 totalCount: 0,
@@ -61,8 +93,13 @@ export function usePointsData(
                 totalVolumeUsd: 0,
                 userSummary: null,
                 isLoading: true,
+                isSupportedChain,
             }
         }
+
+        // A chain may have no indexed native/USD stable-pool price yet. Fall back
+        // to 0 (points/volume render as 0) rather than hanging on "loading".
+        const effectiveNativeUsdPrice = nativeUsdPrice ?? 0
 
         interface SwapAgg {
             volumeNative: number
@@ -91,13 +128,13 @@ export function usePointsData(
 
         const allTraders: PointsTrader[] = []
         for (const [addr, agg] of bySender) {
-            const volumeUsd = agg.volumeNative * nativeUsdPrice
+            const volumeUsd = agg.volumeNative * effectiveNativeUsdPrice
             allTraders.push({
                 rank: 0,
                 address: addr,
                 volumeNative: agg.volumeNative,
                 volumeUsd,
-                points: Math.floor(volumeUsd / 100),
+                points: Math.floor(agg.volumeNative / 50),
                 tradeCount: agg.tradeCount,
                 buyCount: agg.buyCount,
                 sellCount: agg.sellCount,
@@ -171,6 +208,16 @@ export function usePointsData(
             totalVolumeUsd,
             userSummary,
             isLoading: false,
+            isSupportedChain,
         }
-    }, [rawSwapEvents, nativeUsdPrice, sortKey, sortDirection, searchQuery, page, userAddress])
+    }, [
+        rawSwapEvents,
+        nativeUsdPrice,
+        sortKey,
+        sortDirection,
+        searchQuery,
+        page,
+        userAddress,
+        isSupportedChain,
+    ])
 }

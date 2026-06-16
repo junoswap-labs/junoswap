@@ -1,8 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useChainId } from 'wagmi'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import { ponderRequest } from '@/lib/ponder-client'
 import type { LaunchToken } from '@/types/launchpad'
 
@@ -30,10 +31,15 @@ const TOKEN_LIST_QUERY = `
         lastSwapAt
         marketCapNative
         athMarketCapNative
+        lastPrice
+        price1dAgoTimestamp
+        priceChange1dPct
       }
     }
   }
 `
+
+const STALENESS_TOLERANCE = 3600 // 1 hour — hide badge if reference price is >1h before the 24h mark
 
 interface TokenListResponse {
     launchTokens: {
@@ -58,6 +64,9 @@ interface TokenListResponse {
             lastSwapAt: number
             marketCapNative: string
             athMarketCapNative: string
+            lastPrice: string
+            price1dAgoTimestamp: number | null
+            priceChange1dPct: string | null
         }>
     }
 }
@@ -66,6 +75,8 @@ interface SnapshotData {
     lastSwapAt: number
     marketCapNative: string
     athMarketCapNative: string
+    lastPrice: string
+    priceChange1dPct: number | null
 }
 
 interface UseTokenListResult {
@@ -76,12 +87,15 @@ interface UseTokenListResult {
 }
 
 export function useTokenList(): UseTokenListResult {
+    const chainId = useChainId()
+    const supported = isLaunchpadChain(chainId)
+
     const {
         data: result,
         isLoading,
         refetch,
     } = useQuery({
-        queryKey: ['launchpad-token-list'],
+        queryKey: ['launchpad-token-list', chainId],
         queryFn: async () => {
             const data = await ponderRequest<TokenListResponse>(TOKEN_LIST_QUERY)
             const tokens = data.launchTokens.items.map(
@@ -96,23 +110,42 @@ export function useTokenList(): UseTokenListResult {
                     link3: t.link3 ?? '',
                     creator: t.creator as Address,
                     createdTime: t.createdTime,
-                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    chainId,
                     graduatedAt: t.graduatedAt ?? null,
                     isGraduated: t.isGraduated === 1,
                 })
             )
+            const now = Math.floor(Date.now() / 1000)
+            const cutoff = now - 86400
             const snapshotMap = new Map<string, SnapshotData>()
             for (const s of data.tokenSnapshots.items) {
+                const changePct = s.priceChange1dPct ? parseFloat(s.priceChange1dPct) : null
+                // Hide badge if the reference price timestamp is too far from the 24h mark
+                const isStale =
+                    s.price1dAgoTimestamp == null ||
+                    s.price1dAgoTimestamp < cutoff - STALENESS_TOLERANCE
                 snapshotMap.set(s.tokenAddr.toLowerCase(), {
                     lastSwapAt: s.lastSwapAt,
                     marketCapNative: s.marketCapNative,
                     athMarketCapNative: s.athMarketCapNative,
+                    lastPrice: s.lastPrice,
+                    priceChange1dPct: isStale ? null : changePct,
                 })
             }
             return { tokens, snapshotMap }
         },
         staleTime: 30_000,
+        enabled: supported,
     })
+
+    if (!supported) {
+        return {
+            tokens: [],
+            snapshotMap: new Map<string, SnapshotData>(),
+            isLoading: false,
+            refetch: () => {},
+        }
+    }
 
     return {
         tokens: result?.tokens ?? [],

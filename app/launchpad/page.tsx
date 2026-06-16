@@ -1,17 +1,14 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useChainId } from 'wagmi'
-import { kubTestnet } from '@/lib/wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { EmptyState } from '@/components/ui/empty-state'
 import { Card, CardContent } from '@/components/ui/card'
 import { TokenList } from '@/components/launchpad/token-list'
 import { CreateTokenDialog } from '@/components/launchpad/create-token-dialog'
 import { ActivityTicker } from '@/components/launchpad/activity-feed'
 import { useLaunchpadStore } from '@/store/launchpad-store'
-import { Plus, Search, Unplug } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 
 export default function LaunchpadPage() {
     return (
@@ -62,24 +59,8 @@ export default function LaunchpadPage() {
 }
 
 function LaunchpadContent() {
-    const chainId = useChainId()
     const { setIsCreateDialogOpen } = useLaunchpadStore()
     const [searchQuery, setSearchQuery] = useState('')
-
-    if (chainId !== kubTestnet.id) {
-        return (
-            <div className="flex min-h-screen items-start justify-center p-4">
-                <div className="w-full max-w-lg space-y-4">
-                    <EmptyState
-                        icon={Unplug}
-                        variant="error"
-                        title="Chain Not Supported"
-                        description="Launchpad is currently available on KUB Testnet only. Please switch your network."
-                    />
-                </div>
-            </div>
-        )
-    }
 
     return (
         <div className="mx-auto px-4 max-w-[1700px] py-6 sm:px-6 lg:px-8">
@@ -97,7 +78,7 @@ function LaunchpadContent() {
                             placeholder="Search tokens, CA"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 rounded-lg border border-input bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/30"
                         />
                     </div>
                 </div>

@@ -364,7 +364,7 @@ User selects logo file
 - Token detail page with trading terminal, chart, stats, and recent trades
 - Currently KUB Testnet only, with chain-not-supported EmptyState for other networks
 
-**Hooks**: `useCreateToken`, `useBondingCurveBuy`, `useBondingCurveSell`, `useTokenPrice`, `useTokenPriceHistory`, `useTokenReserves`, `useTokenSwapEvents`, `useTokenList`
+**Hooks**: `useCreateToken`, `useBondingCurveBuy`, `useBondingCurveSell`, `useTokenPriceHistory`, `useTokenReserves`, `useTokenSwapEvents`, `useTokenList`
 **Services**: `services/launchpad.ts`, `services/chart.ts`
 **Store**: `store/launchpad-store.ts`
 **Types**: `types/launchpad.ts`, `types/chart.ts`

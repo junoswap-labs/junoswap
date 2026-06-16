@@ -7,6 +7,11 @@ import type { Route } from '@lifi/types'
 export const BRIDGE_SUPPORTED_CHAIN_IDS = [56, 8453, 480] as const // BSC, Base, Worldchain
 
 /**
+ * Default chain to switch to when wallet is on an unsupported chain
+ */
+export const DEFAULT_BRIDGE_CHAIN_ID = 8453 // Base
+
+/**
  * Bridge settings
  */
 export interface BridgeSettings {

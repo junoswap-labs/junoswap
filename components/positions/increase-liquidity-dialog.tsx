@@ -241,7 +241,7 @@ export function IncreaseLiquidityDialog() {
                         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                             <span>Position #{selectedPosition.tokenId.toString()}</span>
                             {inRange ? (
-                                <span className="text-green-600">• In Range</span>
+                                <span className="text-positive">• In Range</span>
                             ) : (
                                 <span>• Out of Range</span>
                             )}
@@ -302,7 +302,7 @@ export function IncreaseLiquidityDialog() {
                                             <div
                                                 className={`absolute h-full rounded-full transition-colors ${
                                                     inRange
-                                                        ? 'bg-green-600'
+                                                        ? 'bg-positive'
                                                         : 'bg-muted-foreground/30'
                                                 }`}
                                                 style={{

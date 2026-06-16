@@ -79,7 +79,7 @@ export function UnstakeDialog() {
                                 {incentive.isActive ? (
                                     <Badge
                                         variant="outline"
-                                        className="bg-green-500/10 text-green-500 border-green-500/20"
+                                        className="bg-positive/10 text-positive border-positive/20"
                                     >
                                         Active
                                     </Badge>

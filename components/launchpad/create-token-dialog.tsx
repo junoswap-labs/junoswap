@@ -1,10 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAccount } from 'wagmi'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import type { Address } from 'viem'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useLaunchpadStore } from '@/store/launchpad-store'
 import { useCreateToken } from '@/hooks/useCreateToken'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
@@ -12,12 +16,14 @@ import { toastError, toastSuccess, toastWarning } from '@/lib/toast'
 import { uploadToPinata } from '@/app/actions/upload-to-pinata'
 import { getChainMetadata } from '@/lib/wagmi'
 import { formatKub, formatTokenAmount } from '@/services/launchpad'
-import type { CreateTokenForm } from '@/types/launchpad'
+import type { CreateTokenForm, LaunchToken } from '@/types/launchpad'
 import { Globe, Twitter, MessageCircle, Coins } from 'lucide-react'
 import { LogoUpload } from './logo-upload'
 
 export function CreateTokenDialog() {
-    const { isConnected } = useAccount()
+    const { isConnected, address } = useAccount()
+    const queryClient = useQueryClient()
+    const router = useRouter()
     const { isCreateDialogOpen, setIsCreateDialogOpen } = useLaunchpadStore()
 
     const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
@@ -43,6 +49,7 @@ export function CreateTokenDialog() {
         isError,
         error,
         hash,
+        createdTokenAddress,
         expectedTokens,
         totalCost,
     } = useCreateToken({
@@ -82,6 +89,12 @@ export function CreateTokenDialog() {
         if (isSuccess) handleSuccess()
     }, [isSuccess, handleSuccess])
 
+    // Redirect to the new token's detail page after creation settles
+    useEffect(() => {
+        if (!createdTokenAddress || !isSuccess) return
+        router.push(`/launchpad/token/${createdTokenAddress}`)
+    }, [createdTokenAddress, isSuccess, router])
+
     // Handle error — partial success (token created but buy failed)
     useEffect(() => {
         if (isError && error && phase === 'error') {
@@ -98,6 +111,50 @@ export function CreateTokenDialog() {
             toastError(error, 'Token creation failed')
         }
     }, [isError, error, phase, hash])
+
+    // Optimistically show the new token in the home list, then reconcile
+    // with indexed data once Ponder catches up.
+    type TokenListCache = { tokens: LaunchToken[]; snapshotMap: Map<string, unknown> }
+    const didPrependRef = useRef(false)
+
+    useEffect(() => {
+        // Address cleared by useCreateToken.create() on a new cycle → re-arm.
+        if (!createdTokenAddress) {
+            didPrependRef.current = false
+            return
+        }
+        if (didPrependRef.current) return
+        didPrependRef.current = true
+
+        queryClient.setQueryData<TokenListCache>(['launchpad-token-list'], (old) => {
+            if (!old) return old
+            const lower = createdTokenAddress.toLowerCase()
+            if (old.tokens.some((t) => t.address.toLowerCase() === lower)) return old
+            const optimistic: LaunchToken = {
+                address: createdTokenAddress,
+                name: form.name,
+                symbol: form.symbol,
+                logo: form.logo,
+                description: form.description,
+                link1: form.link1,
+                link2: form.link2,
+                link3: form.link3,
+                creator: (address ?? '0x0') as Address,
+                createdTime: Math.floor(Date.now() / 1000),
+                chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                graduatedAt: null,
+                isGraduated: false,
+            }
+            return { ...old, tokens: [optimistic, ...old.tokens] }
+        })
+
+        // Reconcile with indexed data now, and again once Ponder has caught up.
+        queryClient.invalidateQueries({ queryKey: ['launchpad-token-list'] })
+        const timeout = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['launchpad-token-list'] })
+        }, 4000)
+        return () => clearTimeout(timeout)
+    }, [createdTokenAddress, form, address, queryClient])
 
     const updateField = (field: keyof CreateTokenForm, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }))
@@ -175,7 +232,7 @@ export function CreateTokenDialog() {
                     </div>
 
                     {/* Description */}
-                    <Input
+                    <Textarea
                         placeholder="Description (optional)"
                         value={form.description}
                         onChange={(e) => updateField('description', e.target.value)}

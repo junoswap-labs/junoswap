@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { EmptyState } from '@/components/ui/empty-state'
-import { ChevronDown, Search, Copy, SearchX, Check } from 'lucide-react'
+import { ChevronDown, Search, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatBalance } from '@/services/tokens'
 import { toastSuccess } from '@/lib/toast'
@@ -76,7 +76,7 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
             <ScrollArea className="h-96">
                 <div className="py-2 pr-4">
                     {filteredTokens.length === 0 ? (
-                        <EmptyState icon={SearchX} title="No tokens found" compact />
+                        <EmptyState title="No tokens found" />
                     ) : (
                         <div className="space-y-1">
                             {filteredTokens.map((token) => {
@@ -100,16 +100,15 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
                                     >
                                         <div
                                             className={cn(
-                                                'relative h-8 w-8 flex-shrink-0 rounded-full',
-                                                isSelected && 'ring-2 ring-border'
+                                                'relative flex-shrink-0',
+                                                isSelected && 'ring-2 ring-border rounded-full'
                                             )}
                                         >
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarImage src={token.logo} alt={token.symbol} />
-                                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                                    {token.symbol.charAt(0)}
-                                                </AvatarFallback>
-                                            </Avatar>
+                                            <TokenIcon
+                                                src={token.logo}
+                                                symbol={token.symbol}
+                                                size="sm"
+                                            />
                                         </div>
                                         <div className="flex-1 text-left">
                                             <div
@@ -181,14 +180,7 @@ export function TokenSelect({ token, tokens, onSelect, className }: TokenSelectP
                 >
                     {token ? (
                         <div className="flex items-center gap-2">
-                            {token.logo && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={token.logo}
-                                    alt={token.symbol}
-                                    className="h-6 w-6 rounded-full object-cover"
-                                />
-                            )}
+                            <TokenIcon src={token.logo} symbol={token.symbol} size="xs" />
                             <span className="font-medium">{token.symbol}</span>
                         </div>
                     ) : (

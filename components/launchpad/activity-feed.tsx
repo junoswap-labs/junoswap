@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { formatEther } from 'viem'
-import { Activity } from 'lucide-react'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useAllSwapEvents } from '@/hooks/useAllSwapEvents'
 import { formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { formatAddress, cn, formatTimeAgo } from '@/lib/utils'
@@ -31,13 +31,13 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
             <span
                 className={cn(
                     'h-1.5 w-1.5 shrink-0 rounded-full',
-                    event.isBuy ? 'bg-emerald-400' : 'bg-red-400'
+                    event.isBuy ? 'bg-positive' : 'bg-negative'
                 )}
             />
             {/* Symbol */}
             <span className="font-semibold">{symbol}</span>
             {/* Action */}
-            <span className={cn('font-medium', event.isBuy ? 'text-emerald-400' : 'text-red-400')}>
+            <span className={cn('font-medium', event.isBuy ? 'text-positive' : 'text-negative')}>
                 {event.isBuy ? 'bought' : 'sold'}
             </span>
             {/* Amount */}
@@ -97,14 +97,7 @@ export function ActivityTicker() {
     }
 
     if (events.length === 0) {
-        return (
-            <div className="mb-4 overflow-hidden px-3 py-2">
-                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/50">
-                    <Activity className="h-3.5 w-3.5" />
-                    <span>No recent activity</span>
-                </div>
-            </div>
-        )
+        return <EmptyState title="No recent activity" className="mb-4 px-3 py-2" />
     }
 
     // Duplicate events for seamless loop

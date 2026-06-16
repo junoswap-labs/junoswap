@@ -2,11 +2,11 @@
 
 import { useMemo } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { Droplets, Minus, Plus, Wallet, Zap } from 'lucide-react'
+import { Minus, Plus, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { TokenIconPair, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectButton } from '@/components/web3/connect-button'
@@ -24,13 +24,8 @@ function PositionCard({
     position: PositionWithTokens
     isStaked?: boolean
 }) {
-    const {
-        openPositionDetails,
-        openCollectFees,
-        openRemoveLiquidity,
-        openIncreaseLiquidity,
-        setActiveTab,
-    } = useEarnStore()
+    const { openPositionDetails, openCollectFees, openRemoveLiquidity, openIncreaseLiquidity } =
+        useEarnStore()
     const hasFees = position.tokensOwed0 > 0n || position.tokensOwed1 > 0n
     const isClosed = position.liquidity === 0n
     return (
@@ -42,26 +37,13 @@ function PositionCard({
                 {/* Header: Pair identity + status */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="flex -space-x-2">
-                            <Avatar className="h-9 w-9 shrink-0 border-2 border-background">
-                                <AvatarImage
-                                    src={position.token0Info.logo}
-                                    alt={position.token0Info.symbol}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {position.token0Info.symbol.slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <Avatar className="h-9 w-9 shrink-0 border-2 border-background">
-                                <AvatarImage
-                                    src={position.token1Info.logo}
-                                    alt={position.token1Info.symbol}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {position.token1Info.symbol.slice(0, 2)}
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
+                        <TokenIconPair
+                            src0={position.token0Info.logo}
+                            symbol0={position.token0Info.symbol}
+                            src1={position.token1Info.logo}
+                            symbol1={position.token1Info.symbol}
+                            size="md"
+                        />
                         <div className="flex items-center gap-2">
                             <span className="text-base font-semibold">
                                 {position.token0Info.symbol} / {position.token1Info.symbol}
@@ -87,9 +69,9 @@ function PositionCard({
                             ) : position.inRange ? (
                                 <Badge
                                     variant="outline"
-                                    className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                                    className="bg-positive/15 text-positive border-positive/25"
                                 >
-                                    <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                    <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-positive" />
                                     In Range
                                 </Badge>
                             ) : (
@@ -144,7 +126,7 @@ function PositionCard({
                             {hasFees ? (
                                 <div className="space-y-1">
                                     <div className="flex items-baseline gap-1 min-w-0">
-                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400 truncate">
+                                        <span className="text-sm font-medium font-mono tracking-tight text-positive truncate">
                                             {formatTokenAmount(
                                                 position.tokensOwed0,
                                                 position.token0Info.decimals
@@ -155,7 +137,7 @@ function PositionCard({
                                         </span>
                                     </div>
                                     <div className="flex items-baseline gap-1 min-w-0">
-                                        <span className="text-sm font-medium font-mono tracking-tight text-emerald-400 truncate">
+                                        <span className="text-sm font-medium font-mono tracking-tight text-positive truncate">
                                             {formatTokenAmount(
                                                 position.tokensOwed1,
                                                 position.token1Info.decimals
@@ -185,17 +167,9 @@ function PositionCard({
                 <Separator className="my-4" />
                 <div className="flex gap-2">
                     {isStaked ? (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setActiveTab('mining')
-                            }}
-                        >
+                        <Button size="sm" variant="outline" className="flex-1" disabled>
                             <Zap className="h-3.5 w-3.5" />
-                            Manage Staking
+                            Staked
                         </Button>
                     ) : (
                         <>
@@ -258,8 +232,8 @@ function LoadingState() {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="flex -space-x-2">
-                                        <div className="h-9 w-9 rounded-full bg-muted" />
-                                        <div className="h-9 w-9 rounded-full bg-muted" />
+                                        <TokenIconSkeleton size="md" />
+                                        <TokenIconSkeleton size="md" />
                                     </div>
                                     <div className="space-y-2">
                                         <div className="h-4 w-28 bg-muted rounded" />
@@ -345,7 +319,6 @@ export function PositionsList() {
     if (!address) {
         return (
             <EmptyState
-                icon={Wallet}
                 title="Connect Wallet"
                 description="Connect your wallet to view your liquidity positions."
                 action={<ConnectButton />}
@@ -358,7 +331,6 @@ export function PositionsList() {
     if (allPositions.length === 0) {
         return (
             <EmptyState
-                icon={Droplets}
                 title="No liquidity positions"
                 description="You don't have any liquidity positions yet."
                 action={

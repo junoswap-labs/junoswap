@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 
 export interface UserSwapEvent {
     tokenAddr: string
@@ -31,6 +32,7 @@ interface V3SwapEventsPage {
         items: Array<{
             id: string
             tokenAddr: string
+            tokenIsToken0: number
             amount0: string
             amount1: string
             timestamp: number
@@ -41,9 +43,9 @@ interface V3SwapEventsPage {
 const PAGE_SIZE = 500
 
 const V3_SWAP_EVENTS_QUERY = `
-  query V3SwapEventsPage($sender: String!, $after: String) {
+  query V3SwapEventsPage($sender: String!, $chainId: Int!, $after: String) {
     v3SwapEvents(
-      where: { txFrom: $sender },
+      where: { txFrom: $sender, chainId: $chainId },
       orderBy: "timestamp",
       orderDirection: "asc",
       limit: ${PAGE_SIZE},
@@ -52,6 +54,7 @@ const V3_SWAP_EVENTS_QUERY = `
       items {
         id
         tokenAddr
+        tokenIsToken0
         amount0
         amount1
         timestamp
@@ -105,32 +108,32 @@ async function fetchAllSwapEvents(sender: string): Promise<UserSwapEvent[]> {
     return events
 }
 
-async function fetchAllV3SwapEvents(sender: string): Promise<UserSwapEvent[]> {
+async function fetchAllV3SwapEvents(sender: string, chainId: number): Promise<UserSwapEvent[]> {
     const events: UserSwapEvent[] = []
     let after: string | undefined
 
     for (;;) {
-        const data = await ponderRequest<V3SwapEventsPage>(V3_SWAP_EVENTS_QUERY, { sender, after })
+        const data = await ponderRequest<V3SwapEventsPage>(V3_SWAP_EVENTS_QUERY, {
+            sender,
+            chainId,
+            after,
+        })
         const items = data.v3SwapEvents.items
         for (const e of items) {
-            const amount0 = BigInt(e.amount0)
-            const amount1 = BigInt(e.amount1)
-            const isBuy = amount0 < 0n
+            // amount0/amount1 are pool-perspective deltas: positive = token into the
+            // pool (user pays), negative = out of the pool (user receives). Use
+            // tokenIsToken0 to pick which side is the token vs native — the launch
+            // token can sort to either side of WKUB.
+            const tokenIsToken0 = e.tokenIsToken0 === 1
+            const tokenAmt = BigInt(tokenIsToken0 ? e.amount0 : e.amount1)
+            const nativeAmt = BigInt(tokenIsToken0 ? e.amount1 : e.amount0)
+            const abs = (x: bigint) => (x < 0n ? -x : x)
+            const isBuy = tokenAmt < 0n // token leaves the pool => user receives it
             events.push({
                 tokenAddr: e.tokenAddr.toLowerCase(),
                 isBuy,
-                amountIn: isBuy
-                    ? amount1 < 0n
-                        ? (-amount1).toString()
-                        : '0'
-                    : (-amount0).toString(),
-                amountOut: isBuy
-                    ? amount0 < 0n
-                        ? '0'
-                        : amount0.toString()
-                    : amount1 < 0n
-                      ? '0'
-                      : amount1.toString(),
+                amountIn: (isBuy ? abs(nativeAmt) : abs(tokenAmt)).toString(),
+                amountOut: (isBuy ? abs(tokenAmt) : abs(nativeAmt)).toString(),
                 timestamp: e.timestamp,
             })
         }
@@ -144,16 +147,17 @@ async function fetchAllV3SwapEvents(sender: string): Promise<UserSwapEvent[]> {
 }
 
 export function useUserSwapEvents(address: Address | undefined, chainId: number) {
-    const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
+    const isSupportedChain = isLeaderboardSupportedChain(chainId)
+    const hasLaunchpad = isLaunchpadChain(chainId)
 
     return useQuery({
         queryKey: ['user-swap-events', address, chainId],
         queryFn: async (): Promise<UserSwapEvent[]> => {
-            if (!address || !isLaunchpadChain) return []
+            if (!address || !isSupportedChain) return []
             try {
                 const [bondingCurveEvents, v3Events] = await Promise.all([
-                    fetchAllSwapEvents(address.toLowerCase()),
-                    fetchAllV3SwapEvents(address.toLowerCase()),
+                    hasLaunchpad ? fetchAllSwapEvents(address.toLowerCase()) : Promise.resolve([]),
+                    fetchAllV3SwapEvents(address.toLowerCase(), chainId),
                 ])
                 return [...bondingCurveEvents, ...v3Events].sort(
                     (a, b) => a.timestamp - b.timestamp
@@ -163,7 +167,7 @@ export function useUserSwapEvents(address: Address | undefined, chainId: number)
                 throw e
             }
         },
-        enabled: !!address && isLaunchpadChain,
+        enabled: !!address && isSupportedChain,
         staleTime: 60_000,
     })
 }

@@ -32,8 +32,8 @@ const TOKEN_PRICE_HISTORY_QUERY = `
 `
 
 const V3_SWAP_EVENTS_QUERY = `
-  query V3SwapEvents($tokenAddr: String!) {
-    v3SwapEvents(where: { tokenAddr: $tokenAddr }, orderBy: "timestamp", orderDirection: "asc") {
+  query V3SwapEvents($tokenAddr: String!, $chainId: Int!) {
+    v3SwapEvents(where: { tokenAddr: $tokenAddr, chainId: $chainId }, orderBy: "timestamp", orderDirection: "asc") {
       items {
         timestamp
         amount0
@@ -121,6 +121,7 @@ export function useTokenPriceHistory(
             try {
                 const result = await ponderRequest<V3PriceHistoryResponse>(V3_SWAP_EVENTS_QUERY, {
                     tokenAddr: tokenAddr.toLowerCase(),
+                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
                 })
 
                 return result.v3SwapEvents.items.map((e) => ({

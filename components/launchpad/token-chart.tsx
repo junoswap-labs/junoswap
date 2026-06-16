@@ -24,7 +24,7 @@ import { useTokenPriceHistory, TIMEFRAMES } from '@/hooks/useTokenPriceHistory'
 import type { ChartMode } from '@/types/chart'
 import { TIMEFRAME_DURATIONS } from '@/types/chart'
 import { cn } from '@/lib/utils'
-import { BarChart3 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { calculatePriceFromSqrtPrice, computeDailyMetrics } from '@/services/chart'
 import type { DailyMetrics } from '@/services/chart'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
@@ -79,10 +79,10 @@ function useChartColors() {
             crosshairColor: isDark ? 'hsl(228, 12%, 25%)' : 'hsl(220, 12%, 70%)',
             crosshairLabelBg: isDark ? 'hsl(232, 14%, 14%)' : 'hsl(220, 12%, 92%)',
             borderColor: isDark ? 'hsl(228, 12%, 10%)' : 'hsl(220, 12%, 88%)',
-            volumeUp: isDark ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.3)',
-            volumeDown: isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.3)',
-            ohlcvUp: isDark ? 'text-emerald-400' : 'text-emerald-600',
-            ohlcvDown: isDark ? 'text-red-400' : 'text-red-600',
+            volumeUp: isDark ? 'rgba(30, 215, 96, 0.25)' : 'rgba(30, 215, 96, 0.3)',
+            volumeDown: isDark ? 'rgba(233, 20, 41, 0.25)' : 'rgba(233, 20, 41, 0.3)',
+            ohlcvUp: 'text-positive',
+            ohlcvDown: 'text-negative',
         }),
         [isDark]
     )
@@ -327,12 +327,12 @@ export function TokenChart({
         })
 
         const candleSeries = chart.addSeries(CandlestickSeries, {
-            upColor: 'rgb(34, 197, 94)',
-            downColor: 'rgb(239, 68, 68)',
-            borderUpColor: 'rgb(34, 197, 94)',
-            borderDownColor: 'rgb(239, 68, 68)',
-            wickUpColor: 'rgb(34, 197, 94)',
-            wickDownColor: 'rgb(239, 68, 68)',
+            upColor: 'rgb(30, 215, 96)',
+            downColor: 'rgb(233, 20, 41)',
+            borderUpColor: 'rgb(30, 215, 96)',
+            borderDownColor: 'rgb(233, 20, 41)',
+            wickUpColor: 'rgb(30, 215, 96)',
+            wickDownColor: 'rgb(233, 20, 41)',
             lastValueVisible: false,
             priceLineVisible: false,
         })
@@ -443,7 +443,7 @@ export function TokenChart({
             const isUp = lastCandle.close >= lastCandle.open
             priceLineRef.current = candleSeriesRef.current.createPriceLine({
                 price: lastCandle.close,
-                color: isUp ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)',
+                color: isUp ? 'rgb(30, 215, 96)' : 'rgb(233, 20, 41)',
                 lineWidth: 1,
                 lineStyle: 2, // dashed
                 axisLabelVisible: true,
@@ -559,13 +559,10 @@ export function TokenChart({
 
             {/* Empty state overlay */}
             {!isLoading && displayData.length === 0 && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 top-11 flex flex-col items-center justify-center gap-3">
-                    <div className="relative flex h-16 w-16 items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-muted/40" />
-                        <BarChart3 className="relative h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                    <span className="text-sm text-muted-foreground/70">No trading data yet</span>
-                </div>
+                <EmptyState
+                    title="No trading data yet"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 top-11"
+                />
             )}
         </div>
     )

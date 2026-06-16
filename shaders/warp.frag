@@ -6,12 +6,14 @@ uniform float uTime;
 uniform vec2 uResolution;
 uniform vec2 uMouse;
 uniform float uIntensity;
-uniform vec3 uAccentColor1;
-uniform vec3 uAccentColor2;
-uniform vec3 uAccentColor3;
-uniform vec3 uBgColor;
+uniform vec3 uAccentColor1; // unused — kept for JS uniform-plumbing compatibility
+uniform vec3 uAccentColor2; // orange #FF914D — warm halo
+uniform vec3 uAccentColor3; // gold   #FFD700 — warm core
+uniform vec3 uBgColor;      // void   #04050B
 
-// ── Hash & Noise ──────────────────────────────────────────────────────
+// ── Hash ──────────────────────────────────────────────────────────────
+// NOTE: every smoothstep below keeps edge0 < edge1 (reversed edges are
+// undefined per the GLSL spec). Falloffs use 1.0 - smoothstep(...).
 
 float hash21(vec2 p) {
     p = fract(p * vec2(234.34, 435.345));
@@ -19,95 +21,83 @@ float hash21(vec2 p) {
     return fract(p.x * p.y);
 }
 
-float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
+// ── Starfield ─────────────────────────────────────────────────────────
+// Drawn in aspect-corrected p-space so stars stay round on any aspect.
+// `scale` sets density, `bright` the layer weight, `glint` enables
+// plus-shaped diffraction spikes on the brightest stars.
 
-    float a = hash21(i);
-    float b = hash21(i + vec2(1.0, 0.0));
-    float c = hash21(i + vec2(0.0, 1.0));
-    float d = hash21(i + vec2(1.0, 1.0));
+vec3 starLayer(vec2 p, float scale, float bright, float glint) {
+    vec2 gp = p * scale;
+    vec2 id = floor(gp);
+    vec2 gv = fract(gp) - 0.5;
 
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-}
+    float n = hash21(id);
+    // Only the top ~10% of cells hold a star.
+    if (n < 0.90) return vec3(0.0);
 
-float fbm(vec2 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    for (int i = 0; i < 4; i++) {
-        value += amplitude * noise(p);
-        p *= 2.0;
-        amplitude *= 0.5;
+    // Jitter the star within its cell.
+    vec2 offset = (vec2(hash21(id + 1.7), hash21(id + 4.3)) - 0.5) * 0.7;
+    vec2 d = gv - offset;
+    float dist = length(d);
+
+    // Soft round core.
+    float core = 1.0 - smoothstep(0.0, 0.07, dist);
+    core *= core;
+
+    // Gentle per-star twinkle.
+    float tw = 0.65 + 0.35 * sin(uTime * (0.7 + n * 2.0) + n * 30.0);
+
+    vec3 col = vec3(core * tw) * vec3(0.9, 0.95, 1.0); // cool-white
+
+    // Diffraction glints on the very brightest stars only.
+    if (glint > 0.5 && n > 0.972) {
+        float gx = (1.0 - smoothstep(0.0, 0.45, abs(d.x))) * (1.0 - smoothstep(0.0, 0.02, abs(d.y)));
+        float gy = (1.0 - smoothstep(0.0, 0.45, abs(d.y))) * (1.0 - smoothstep(0.0, 0.02, abs(d.x)));
+        float spike = (gx + gy) * 0.5 * tw;
+        col += spike * vec3(1.0, 0.96, 0.9); // warm-white flare
     }
-    return value;
+
+    return col * bright;
 }
-
-// ── Nebula ────────────────────────────────────────────────────────────
-
-vec3 nebula(vec2 uv, float time) {
-    vec2 q = vec2(
-        fbm(uv * 3.0 + vec2(0.0, 0.0) + time * 0.025),
-        fbm(uv * 3.0 + vec2(5.2, 1.3) + time * 0.02)
-    );
-
-    vec2 r2 = vec2(
-        fbm(uv * 3.0 + 4.0 * q + vec2(1.7, 9.2) + time * 0.012),
-        fbm(uv * 3.0 + 4.0 * q + vec2(8.3, 2.8) + time * 0.015)
-    );
-
-    float f = fbm(uv * 3.0 + 4.0 * r2);
-
-    // Color ramp — fire palette: amber-red → orange → gold
-    vec3 color = uBgColor;
-    color = mix(color, uAccentColor1 * 0.9, smoothstep(0.1, 0.35, f));
-    color = mix(color, uAccentColor2 * 0.85, smoothstep(0.35, 0.6, f));
-    color = mix(color, uAccentColor3 * 0.8, smoothstep(0.6, 0.85, f));
-
-    color *= 0.5 + 0.9 * f;
-
-    // Radial mask — nebula at mid-periphery
-    float dist = length(uv - 0.5);
-    float mask = smoothstep(0.05, 0.3, dist) * smoothstep(0.85, 0.35, dist);
-    color *= mask;
-
-    return color;
-}
-
-// ── Vignette ──────────────────────────────────────────────────────────
-
-float vignette(vec2 uv) {
-    float dist = length(uv - 0.5);
-    return 1.0 - smoothstep(0.2, 0.8, dist);
-}
-
-// ── Main ──────────────────────────────────────────────────────────────
 
 void main() {
     float aspect = uResolution.x / uResolution.y;
-    vec2 uv = vUv;
-    vec2 centeredUv = (uv - 0.5) * vec2(aspect, 1.0) + 0.5;
 
-    // Vanishing point shifted by mouse
-    vec2 center = 0.5 + (uMouse - 0.5) * 0.1;
+    // Aspect-corrected, centered space for the stars + vignette.
+    vec2 p = (vUv - 0.5) * vec2(aspect, 1.0);
 
-    // ── Background base
+    // Very subtle mouse parallax + slow drift give a sense of travel.
+    vec2 par = (uMouse - 0.5);
+
     vec3 color = uBgColor;
 
-    // ── Nebula layer
-    vec3 neb = nebula(uv, uTime);
-    color += neb;
+    // Three depth layers: near (bright, glinted) → far (faint dust).
+    color += starLayer(p + par * 0.060 + vec2(uTime * 0.0030, 0.0), 14.0, 0.65, 1.0);
+    color += starLayer(p + par * 0.030 + vec2(uTime * 0.0018, 0.0), 28.0, 0.42, 1.0);
+    color += starLayer(p + par * 0.015 + vec2(uTime * 0.0010, 0.0), 52.0, 0.26, 0.0);
 
-    // ── Central glow — golden warp core
-    float glowDist = length(centeredUv - center * vec2(aspect, 1.0));
-    float glow = exp(-glowDist * 3.5) * 0.25;
-    vec3 glowColor = mix(uAccentColor2, uAccentColor3, 0.6);
-    color += glow * glowColor;
+    // ── Single warm focal glow ──────────────────────────────────────────
+    // Distance in canvas-pixel space normalized by HEIGHT so the glow stays
+    // a round focal point (a p-space circle ellipses + washes on portrait).
+    vec2 fragPx = vUv * uResolution;
+    vec2 glowCenterPx = (vec2(0.5, 0.52) + par * 0.04) * uResolution;
+    float gd = length(fragPx - glowCenterPx) / uResolution.y;
 
-    // ── Vignette
-    color *= mix(1.0, vignette(uv), 0.6);
+    float halo = exp(-gd * 3.8) * 0.17;  // soft orange wash, kept tight to stay clean
+    float coreGlow = exp(-gd * 8.5) * 0.22; // bright gold-orange focal core
+    color += uAccentColor2 * halo + mix(uAccentColor2, uAccentColor3, 0.7) * coreGlow;
 
-    // ── Entrance animation
+    // ── Film grain ──────────────────────────────────────────────────────
+    // Bounded coordinate (mod) keeps the hash well within mediump precision.
+    vec2 grainP = mod(fragPx, 256.0) + fract(uTime) * 71.0;
+    float grain = (hash21(grainP) - 0.5) * 0.022;
+    color += grain;
+
+    // ── Vignette (round, aspect-corrected) ──────────────────────────────
+    float vig = 1.0 - smoothstep(0.45, 1.15, length(p));
+    color *= mix(1.0, vig, 0.7);
+
+    // ── Entrance ────────────────────────────────────────────────────────
     color = mix(uBgColor, color, uIntensity);
 
     gl_FragColor = vec4(color, 1.0);

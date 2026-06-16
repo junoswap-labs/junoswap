@@ -2,15 +2,20 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { usePublicClient } from 'wagmi'
+import { usePublicClient, useChainId } from 'wagmi'
 import { formatEther, type Address } from 'viem'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import { useTokenDiscovery } from '@/hooks/use-token-discovery'
 import { useMultiBalances } from '@/hooks/use-multi-balances'
 import { useTokenPrices } from '@/hooks/use-token-prices'
-import { useSwapAggregation } from '@/hooks/use-swap-aggregation'
+import { useNativeUsdPriceHistory } from '@/hooks/useNativeUsdPriceHistory'
+import {
+    computeTraderStatsByAddress,
+    type LeaderboardSwapEvent,
+} from '@/services/dex/portfolio-pnl'
 import { getTimeThreshold, fetchSwapEvents, fetchV3SwapEvents } from '@/lib/leaderboard-utils'
 import type { LeaderboardTimePeriod, TraderSortKey, SortDirection } from '@/types/leaderboard'
 
@@ -18,7 +23,7 @@ export interface TraderAgg {
     rank: number
     address: string
     netWorthNative: number
-    pnlNative: number
+    pnlUsd: number
     pnlPercent: number
     volumeNative: number
     tradeCount: number
@@ -61,7 +66,8 @@ export function useLeaderboardTraders(
     page: number,
     nativeUsdPrice: number | null
 ) {
-    const chainId = PUMP_CORE_NATIVE_CHAIN_ID
+    const chainId = useChainId()
+    const isSupportedChain = isLeaderboardSupportedChain(chainId)
     const { allTokens, getTokenType } = useTokenDiscovery(chainId)
 
     const erc20Tokens = useMemo(
@@ -71,16 +77,20 @@ export function useLeaderboardTraders(
 
     // Step 1: Fetch Ponder data (swap events + token holders)
     const { data: raw, isLoading: isPonderLoading } = useQuery({
-        queryKey: ['leaderboard-traders', timePeriod],
+        queryKey: ['leaderboard-traders', timePeriod, chainId],
         queryFn: async () => {
             const since = getTimeThreshold(timePeriod)
+            // Bonding-curve swaps and launch-token holders only exist on the
+            // launchpad chain; V3 swaps are indexed for all supported chains.
+            const includeLaunchpad = isLaunchpadChain(chainId)
             const [swapEvents, v3SwapEvents, tokenHolders] = await Promise.all([
-                fetchSwapEvents(since),
-                fetchV3SwapEvents(since),
-                fetchTokenHolders(),
+                includeLaunchpad ? fetchSwapEvents(since) : Promise.resolve([]),
+                fetchV3SwapEvents(chainId, since),
+                includeLaunchpad ? fetchTokenHolders() : Promise.resolve([]),
             ])
             return { swapEvents: [...swapEvents, ...v3SwapEvents], tokenHolders }
         },
+        enabled: isSupportedChain,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })
@@ -98,7 +108,7 @@ export function useLeaderboardTraders(
     const publicClient = usePublicClient({ chainId })
 
     const { data: nativeBalanceMap, isLoading: isNativeLoading } = useQuery({
-        queryKey: ['leaderboard-native-balances', uniqueAddresses],
+        queryKey: ['leaderboard-native-balances', uniqueAddresses, chainId],
         queryFn: async () => {
             const map = new Map<string, number>()
             const results = await Promise.all(
@@ -126,6 +136,7 @@ export function useLeaderboardTraders(
 
     // Step 4: Fetch prices
     const priceMap = useTokenPrices(allTokens, chainId, nativeUsdPrice, getTokenType)
+    const { priceAt } = useNativeUsdPriceHistory(chainId, nativeUsdPrice)
 
     // Step 5: Build numeric holder map for swap aggregation
     const numericHolderMap = useMemo(() => {
@@ -140,25 +151,19 @@ export function useLeaderboardTraders(
         return map
     }, [holdings])
 
-    // Step 6: Swap aggregation (volume, PNL, trade counts)
-    const swapInputs = useMemo(
-        () =>
+    // Step 6: Per-trader PNL (same engine as the portfolio), volume & trade counts
+    const perAddressStats = useMemo(() => {
+        const events: LeaderboardSwapEvent[] =
             raw?.swapEvents.map((e) => ({
                 tokenAddr: e.tokenAddr,
                 sender: e.sender,
-                isBuy: e.isBuy,
+                isBuy: e.isBuy === 1,
                 amountIn: e.amountIn,
                 amountOut: e.amountOut,
-            })),
-        [raw]
-    )
-
-    const { perAddressStats } = useSwapAggregation(
-        swapInputs,
-        numericHolderMap,
-        priceMap,
-        nativeUsdPrice
-    )
+                timestamp: e.timestamp,
+            })) ?? []
+        return computeTraderStatsByAddress(events, numericHolderMap, priceMap, priceAt)
+    }, [raw, numericHolderMap, priceMap, priceAt])
 
     // Step 7: Compute net worth per address, merge with swap stats, sort & paginate
     const result = useMemo(() => {
@@ -199,7 +204,7 @@ export function useLeaderboardTraders(
                 rank: 0,
                 address: addr,
                 netWorthNative: netWorth,
-                pnlNative: stats?.pnlNative ?? 0,
+                pnlUsd: stats?.pnlUsd ?? 0,
                 pnlPercent: stats?.pnlPercent ?? 0,
                 volumeNative: stats?.volumeNative ?? 0,
                 tradeCount: stats?.tradeCount ?? 0,
@@ -217,8 +222,8 @@ export function useLeaderboardTraders(
                     bVal = b.netWorthNative
                     break
                 case 'pnl':
-                    aVal = a.pnlNative
-                    bVal = b.pnlNative
+                    aVal = a.pnlUsd
+                    bVal = b.pnlUsd
                     break
                 case 'volume':
                     aVal = a.volumeNative
@@ -260,10 +265,21 @@ export function useLeaderboardTraders(
         perAddressStats,
     ])
 
+    if (!isSupportedChain) {
+        return {
+            traders: [],
+            totalCount: 0,
+            totalPages: 0,
+            isLoading: false,
+            isSupportedChain,
+        }
+    }
+
     return {
         traders: result.traders,
         totalCount: result.totalCount,
         totalPages: result.totalPages,
         isLoading: isPonderLoading || isNativeLoading || isErc20Loading,
+        isSupportedChain,
     }
 }

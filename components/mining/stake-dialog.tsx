@@ -134,7 +134,7 @@ export function StakeDialog() {
                             </span>
                             <Badge
                                 variant="outline"
-                                className="bg-green-500/10 text-green-500 border-green-500/20"
+                                className="bg-positive/10 text-positive border-positive/20"
                             >
                                 {selectedIncentive.isActive ? 'Active' : 'Inactive'}
                             </Badge>
@@ -147,37 +147,36 @@ export function StakeDialog() {
                     <div className="space-y-3">
                         <Label>Select Position to Stake</Label>
                         {isLoadingPositions ? (
-                            <EmptyState title="Loading positions..." compact />
+                            <EmptyState title="Loading positions..." />
                         ) : eligiblePositions.length === 0 ? (
-                            <div className="border rounded-lg p-4 flex flex-col items-center gap-3 text-center">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium">No eligible positions</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Create an LP position for this pool first.
-                                    </p>
-                                </div>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                        closeStakeDialog()
-                                        openAddLiquidity({
-                                            address: selectedIncentive.pool,
-                                            token0: selectedIncentive.poolToken0,
-                                            token1: selectedIncentive.poolToken1,
-                                            fee: selectedIncentive.poolFee,
-                                            liquidity: 0n,
-                                            sqrtPriceX96: 0n,
-                                            tick: 0,
-                                            tickSpacing:
-                                                TICK_SPACING[selectedIncentive.poolFee] ?? 60,
-                                        })
-                                    }}
-                                >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    Add Liquidity
-                                </Button>
-                            </div>
+                            <EmptyState
+                                title="No eligible positions"
+                                description="Create an LP position for this pool first."
+                                action={
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            closeStakeDialog()
+                                            openAddLiquidity({
+                                                address: selectedIncentive.pool,
+                                                token0: selectedIncentive.poolToken0,
+                                                token1: selectedIncentive.poolToken1,
+                                                fee: selectedIncentive.poolFee,
+                                                liquidity: 0n,
+                                                sqrtPriceX96: 0n,
+                                                tick: 0,
+                                                tickSpacing:
+                                                    TICK_SPACING[selectedIncentive.poolFee] ?? 60,
+                                            })
+                                        }}
+                                    >
+                                        <Plus className="h-3.5 w-3.5" />
+                                        Add Liquidity
+                                    </Button>
+                                }
+                                className="border rounded-lg p-4"
+                            />
                         ) : (
                             <RadioGroup
                                 value={selectedPositionId ?? ''}
@@ -227,7 +226,7 @@ function PositionOption({ position, isSelected }: PositionOptionProps) {
                     {position.inRange ? (
                         <Badge
                             variant="outline"
-                            className="bg-green-500/10 text-green-500 border-green-500/20"
+                            className="bg-positive/10 text-positive border-positive/20"
                         >
                             In Range
                         </Badge>

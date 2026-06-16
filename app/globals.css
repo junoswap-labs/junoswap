@@ -18,8 +18,12 @@
         --muted-foreground: 0 0% 45.1%;
         --accent: 0 0% 96.1%;
         --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
+        --destructive: 354 84% 50%;
+        --destructive-foreground: 0 0% 100%;
+        --positive: 141 72% 42%;
+        --positive-foreground: 0 0% 5%;
+        --negative: 354 84% 50%;
+        --negative-foreground: 0 0% 100%;
         --border: 0 0% 94%;
         --input: 0 0% 94%;
         --ring: 0 0% 3.9%;
@@ -42,8 +46,12 @@
         --muted-foreground: 220 8% 55%;
         --accent: 232 14% 12%;
         --accent-foreground: 210 15% 95%;
-        --destructive: 0 72% 42%;
-        --destructive-foreground: 210 20% 98%;
+        --destructive: 354 84% 50%;
+        --destructive-foreground: 0 0% 100%;
+        --positive: 141 76% 48%;
+        --positive-foreground: 0 0% 5%;
+        --negative: 354 84% 50%;
+        --negative-foreground: 0 0% 100%;
         --border: 228 10% 10%;
         --input: 228 10% 10%;
         --ring: 0 100% 60%;
@@ -178,6 +186,22 @@
 
     .animate-reveal-blur {
         animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* Gentle bob for the hero scroll cue */
+    @keyframes hero-bob {
+        0%, 100% {
+            transform: translateY(0);
+            opacity: 0.6;
+        }
+        50% {
+            transform: translateY(6px);
+            opacity: 1;
+        }
+    }
+
+    .animate-hero-bob {
+        animation: hero-bob 2.4s ease-in-out infinite;
     }
 
     /* Stagger system — elements hidden until is-visible triggers the animation */

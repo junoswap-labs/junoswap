@@ -1,16 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
+import { useAccount } from 'wagmi'
 
 import { useTokenSwapEvents } from '@/hooks/useTokenSwapEvents'
+import { useDebounce } from '@/hooks/useDebounce'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { cn, formatTimeAgo } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu'
 import {
     Table,
     TableBody,
@@ -21,17 +32,40 @@ import {
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
-import { Activity } from 'lucide-react'
+import { Search, ArrowUpDown, User, SlidersHorizontal } from 'lucide-react'
 import type { SwapEventData } from '@/hooks/useTokenSwapEvents'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
 
 const PAGE_SIZE = 10
+
+const SIZE_OPTIONS = [
+    { value: 'all', label: 'All Sizes' },
+    { value: 'small', label: '< 1 KUB' },
+    { value: 'medium', label: '1–10 KUB' },
+    { value: 'large', label: '10–100 KUB' },
+    { value: 'whale', label: '> 100 KUB' },
+] as const
+
+const SIZE_THRESHOLDS: Record<string, { min: number; max: number }> = {
+    all: { min: 0, max: Infinity },
+    small: { min: 0, max: 1 },
+    medium: { min: 1, max: 10 },
+    large: { min: 10, max: 100 },
+    whale: { min: 100, max: Infinity },
+}
+
+const TYPE_OPTIONS = [
+    { value: 'all', label: 'All Trades' },
+    { value: 'buy', label: 'Buys Only' },
+    { value: 'sell', label: 'Sells Only' },
+]
 
 interface RecentTradesProps {
     tokenAddr: Address
     tokenSymbol: string
     poolAddress?: Address
     isGraduated?: boolean
+    creatorAddress?: Address
     className?: string
 }
 
@@ -69,8 +103,8 @@ function TradeRow({
                     className={cn(
                         'inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold',
                         trade.isBuy
-                            ? 'bg-emerald-500/15 text-emerald-400'
-                            : 'bg-red-500/15 text-red-400'
+                            ? 'bg-positive/15 text-positive'
+                            : 'bg-negative/15 text-negative'
                     )}
                 >
                     {trade.isBuy ? 'Buy' : 'Sell'}
@@ -86,7 +120,7 @@ function TradeRow({
             <TableCell
                 className={cn(
                     'py-2.5 font-mono tracking-tight',
-                    trade.isBuy ? 'text-emerald-400' : 'text-red-400'
+                    trade.isBuy ? 'text-positive' : 'text-negative'
                 )}
             >
                 {formatTokenAmount(tokenAmount)}
@@ -154,21 +188,77 @@ export function RecentTrades({
     tokenSymbol,
     poolAddress,
     isGraduated,
+    creatorAddress,
     className,
 }: RecentTradesProps) {
     const [page, setPage] = useState(1)
+    const [typeFilter, setTypeFilter] = useState('all')
+    const [accountFilter, setAccountFilter] = useState('all')
+    const [addressSearch, setAddressSearch] = useState('')
+    const [sizeFilter, setSizeFilter] = useState('all')
+
+    const debouncedSearch = useDebounce(addressSearch, 300)
+    const { address: connectedAddress } = useAccount()
+    const { nativeUsdPrice } = useNativeUsdPriceContext()
+
+    // Resolve the effective sender filter for the hook
+    const hookSenderFilter = useMemo(() => {
+        if (debouncedSearch) return debouncedSearch.toLowerCase()
+        if (accountFilter === 'creator' && creatorAddress) return creatorAddress.toLowerCase()
+        if (accountFilter === 'you' && connectedAddress) return connectedAddress.toLowerCase()
+        return undefined
+    }, [accountFilter, creatorAddress, connectedAddress, debouncedSearch])
+
+    // Resolve isBuy filter for the hook
+    const hookIsBuyFilter = useMemo<boolean | undefined>(() => {
+        if (typeFilter === 'buy') return true
+        if (typeFilter === 'sell') return false
+        return undefined
+    }, [typeFilter])
+
+    // Reset page when filters change
+    const filterKey = `${typeFilter}-${hookSenderFilter}-${sizeFilter}`
+    useEffect(() => {
+        setPage(1)
+    }, [filterKey])
+
     const { data: result, isLoading } = useTokenSwapEvents(
         tokenAddr,
         page,
         PAGE_SIZE,
         poolAddress,
-        isGraduated
+        isGraduated,
+        {
+            isBuy: hookIsBuyFilter,
+            sender: hookSenderFilter,
+        }
     )
-    const { nativeUsdPrice } = useNativeUsdPriceContext()
 
-    const trades = result?.data ?? []
+    // Client-side size filtering
+    const filteredTrades = useMemo(() => {
+        const raw = result?.data ?? []
+        if (sizeFilter === 'all') return raw
+
+        const threshold = SIZE_THRESHOLDS[sizeFilter]
+        if (!threshold) return raw
+
+        return raw.filter((trade) => {
+            const nativeAmount = trade.isBuy ? trade.amountIn : trade.amountOut
+            const valueKub = parseFloat(formatEther(nativeAmount))
+            return valueKub >= threshold.min && valueKub < threshold.max
+        })
+    }, [result?.data, sizeFilter])
+
     const totalCount = result?.totalCount ?? 0
     const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+    // Active account options (conditional on available data)
+    const activeAccountOptions = useMemo(() => {
+        const opts = [{ value: 'all', label: 'All Accounts' }]
+        if (creatorAddress) opts.push({ value: 'creator', label: 'Creator' })
+        if (connectedAddress) opts.push({ value: 'you', label: 'You' })
+        return opts
+    }, [creatorAddress, connectedAddress])
 
     const tableHeader = (
         <TableHeader>
@@ -200,6 +290,129 @@ export function RecentTrades({
             <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold">Recent Trades</CardTitle>
             </CardHeader>
+
+            {/* Filter Bar */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-border/40 px-4 pb-3">
+                {/* Type Filter Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                                'h-7 gap-1.5 rounded-lg border-input text-xs',
+                                typeFilter !== 'all' && 'border-primary/40 bg-primary/5'
+                            )}
+                        >
+                            <ArrowUpDown className="h-3 w-3" />
+                            <span className="hidden sm:inline">
+                                {TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label ??
+                                    'All Trades'}
+                            </span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-36">
+                        <DropdownMenuRadioGroup value={typeFilter} onValueChange={setTypeFilter}>
+                            {TYPE_OPTIONS.map((opt) => (
+                                <DropdownMenuRadioItem
+                                    key={opt.value}
+                                    value={opt.value}
+                                    className="text-xs"
+                                >
+                                    {opt.label}
+                                </DropdownMenuRadioItem>
+                            ))}
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Account Filter Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                                'h-7 gap-1.5 rounded-lg border-input text-xs',
+                                accountFilter !== 'all' && 'border-primary/40 bg-primary/5'
+                            )}
+                        >
+                            <User className="h-3 w-3" />
+                            <span className="hidden sm:inline">
+                                {activeAccountOptions.find((o) => o.value === accountFilter)
+                                    ?.label ?? 'All Accounts'}
+                            </span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-36">
+                        <DropdownMenuRadioGroup
+                            value={accountFilter}
+                            onValueChange={(v) => {
+                                setAccountFilter(v)
+                                setAddressSearch('')
+                            }}
+                        >
+                            {activeAccountOptions.map((opt) => (
+                                <DropdownMenuRadioItem
+                                    key={opt.value}
+                                    value={opt.value}
+                                    className="text-xs"
+                                >
+                                    {opt.label}
+                                </DropdownMenuRadioItem>
+                            ))}
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Size Filter Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                                'h-7 gap-1.5 rounded-lg border-input text-xs',
+                                sizeFilter !== 'all' && 'border-primary/40 bg-primary/5'
+                            )}
+                        >
+                            <SlidersHorizontal className="h-3 w-3" />
+                            <span className="hidden sm:inline">
+                                {SIZE_OPTIONS.find((o) => o.value === sizeFilter)?.label ??
+                                    'All Sizes'}
+                            </span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-40">
+                        <DropdownMenuRadioGroup value={sizeFilter} onValueChange={setSizeFilter}>
+                            {SIZE_OPTIONS.map((opt) => (
+                                <DropdownMenuRadioItem
+                                    key={opt.value}
+                                    value={opt.value}
+                                    className="text-xs"
+                                >
+                                    {opt.label}
+                                </DropdownMenuRadioItem>
+                            ))}
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Address search input */}
+                <div className="relative min-w-0 basis-full sm:basis-auto sm:flex-1">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Search wallet"
+                        value={addressSearch}
+                        onChange={(e) => {
+                            setAddressSearch(e.target.value)
+                            if (e.target.value) setAccountFilter('all')
+                        }}
+                        className="h-7 w-full rounded-lg border border-input bg-muted/30 pl-8 text-xs"
+                    />
+                </div>
+            </div>
+
             <CardContent className="p-0">
                 {isLoading ? (
                     <div className="px-2">
@@ -208,11 +421,13 @@ export function RecentTrades({
                             <LoadingState />
                         </Table>
                     </div>
-                ) : trades.length === 0 ? (
+                ) : filteredTrades.length === 0 && (result?.data?.length ?? 0) > 0 ? (
                     <EmptyState
-                        compact
-                        icon={Activity}
-                        variant="subtle"
+                        title="No matching trades"
+                        description="Try adjusting your filters"
+                    />
+                ) : filteredTrades.length === 0 ? (
+                    <EmptyState
                         title="No trades yet"
                         description="Trades will appear here once the token is traded"
                     />
@@ -222,7 +437,7 @@ export function RecentTrades({
                             <Table>
                                 {tableHeader}
                                 <TableBody>
-                                    {trades.map((trade, i) => (
+                                    {filteredTrades.map((trade, i) => (
                                         <TradeRow
                                             key={`${trade.transactionHash}-${i}`}
                                             trade={trade}

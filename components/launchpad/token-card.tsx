@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
 import type { LaunchToken } from '@/types/launchpad'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
@@ -14,6 +16,7 @@ interface TokenCardProps {
     marketCap?: string
     athMarketCap?: string
     isGraduated?: boolean
+    priceChange1dPct?: number | null
 }
 
 export function TokenCard({
@@ -23,6 +26,7 @@ export function TokenCard({
     marketCap,
     athMarketCap,
     isGraduated,
+    priceChange1dPct,
 }: TokenCardProps) {
     const { nativeUsdPrice } = useNativeUsdPriceContext()
     const symbol = tokenSymbol || token.symbol || '???'
@@ -34,32 +38,13 @@ export function TokenCard({
             <Card className="relative transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
                 <CardContent className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
                     {/* Large coin image - left side */}
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted lg:h-[120px] lg:w-[120px]">
-                        {token.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={token.logo}
-                                alt={symbol}
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                    const el = e.target as HTMLImageElement
-                                    el.style.display = 'none'
-                                    const parent = el.parentElement
-                                    if (parent && !parent.querySelector('span')) {
-                                        const fallback = document.createElement('span')
-                                        fallback.className =
-                                            'text-lg sm:text-2xl lg:text-3xl font-black text-muted-foreground/50'
-                                        fallback.textContent = symbol.slice(0, 3)
-                                        parent.appendChild(fallback)
-                                    }
-                                }}
-                            />
-                        ) : (
-                            <span className="text-lg font-black text-muted-foreground/50 sm:text-2xl lg:text-3xl">
-                                {symbol.slice(0, 3)}
-                            </span>
-                        )}
-                    </div>
+                    <TokenIcon
+                        src={token.logo}
+                        symbol={symbol}
+                        size="xl"
+                        variant="square"
+                        className="h-24 w-24 lg:h-[120px] lg:w-[120px]"
+                    />
 
                     {/* Info - right side */}
                     <div className="min-w-0 flex-1 py-0.5">
@@ -84,6 +69,19 @@ export function TokenCard({
                                         {nativeUsdPrice !== null
                                             ? `$${formatCompact(parseFloat(marketCap) * nativeUsdPrice)}`
                                             : `${formatCompact(parseFloat(marketCap))} KUB`}
+                                        {priceChange1dPct != null && (
+                                            <span
+                                                className={cn(
+                                                    'ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums',
+                                                    priceChange1dPct >= 0
+                                                        ? 'bg-positive/15 text-positive'
+                                                        : 'bg-negative/15 text-negative'
+                                                )}
+                                            >
+                                                {priceChange1dPct >= 0 ? '+' : ''}
+                                                {priceChange1dPct.toFixed(2)}%
+                                            </span>
+                                        )}
                                     </span>
                                 )}
                                 {athMarketCap && parseFloat(athMarketCap) > 0 && (
@@ -112,12 +110,12 @@ export function TokenCard({
                                                 style={{
                                                     width: `${progress}%`,
                                                     background:
-                                                        'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                                                        'linear-gradient(90deg, rgb(30 215 96 / 0.3), rgb(30 215 96))',
                                                 }}
                                             />
                                         </div>
                                         {isGraduated && (
-                                            <span className="text-xs text-green-500 font-medium">
+                                            <span className="text-xs text-positive font-medium">
                                                 Graduated
                                             </span>
                                         )}

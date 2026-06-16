@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { formatEther } from 'viem'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
+import { useTokenPriceMap } from '@/hooks/use-token-price-map'
 import type { V3PoolData } from '@/types/earn'
 
 const SECONDS_PER_DAY = 86400
@@ -73,6 +74,19 @@ function deriveNativeUsdPrice(
     }
 }
 
+function computeVolumeFromPrices(
+    volumeToken0: bigint,
+    decimals0: number,
+    volumeToken1: bigint,
+    decimals1: number,
+    price0: number,
+    price1: number
+): number {
+    const human0 = Number(volumeToken0) / Math.pow(10, decimals0)
+    const human1 = Number(volumeToken1) / Math.pow(10, decimals1)
+    return human0 * price0 + human1 * price1
+}
+
 function computeVolumeUsd(
     volumeToken0: bigint,
     volumeToken1: bigint,
@@ -107,6 +121,8 @@ export function usePoolVolume(
     const wrappedNative = config?.wrappedNative?.toLowerCase()
     const usdStable = config?.stables[0]?.toLowerCase()
 
+    const { priceMap, isLoading: isLoadingPrices } = useTokenPriceMap(chainId)
+
     const poolAddresses = useMemo(() => pools.map((p) => p.address.toLowerCase()), [pools])
 
     const sinceTimestamp = useMemo(() => {
@@ -136,7 +152,7 @@ export function usePoolVolume(
     })
 
     const volumeByAddress = useMemo(() => {
-        if (!data || !wrappedNative) return {}
+        if (!data) return {}
 
         const nativeUsdPrice = deriveNativeUsdPrice(pools, wrappedNative, usdStable)
 
@@ -160,9 +176,6 @@ export function usePoolVolume(
             const pool = poolMap.get(poolAddr)
             if (!pool) continue
 
-            const isToken0Native = isAddr(pool.token0.address, wrappedNative)
-            const isToken1Native = isAddr(pool.token1.address, wrappedNative)
-
             let vol1d0 = 0n,
                 vol1d1 = 0n
             let vol30d0 = 0n,
@@ -182,50 +195,84 @@ export function usePoolVolume(
                 }
             }
 
-            if (nativeUsdPrice) {
-                result[poolAddr] = {
-                    volume1d: computeVolumeUsd(
-                        vol1d0,
-                        vol1d1,
-                        pool.sqrtPriceX96,
-                        isToken0Native,
-                        isToken1Native,
-                        nativeUsdPrice
-                    ),
-                    volume30d: computeVolumeUsd(
-                        vol30d0,
-                        vol30d1,
-                        pool.sqrtPriceX96,
-                        isToken0Native,
-                        isToken1Native,
-                        nativeUsdPrice
-                    ),
+            const isToken0Native = isAddr(pool.token0.address, wrappedNative)
+            const isToken1Native = isAddr(pool.token1.address, wrappedNative)
+
+            if (isToken0Native || isToken1Native) {
+                // Native-containing pools: use sqrtPriceX96-based computation
+                // (more reliable — uses pool's own on-chain price)
+                if (nativeUsdPrice) {
+                    result[poolAddr] = {
+                        volume1d: computeVolumeUsd(
+                            vol1d0,
+                            vol1d1,
+                            pool.sqrtPriceX96,
+                            isToken0Native,
+                            isToken1Native,
+                            nativeUsdPrice
+                        ),
+                        volume30d: computeVolumeUsd(
+                            vol30d0,
+                            vol30d1,
+                            pool.sqrtPriceX96,
+                            isToken0Native,
+                            isToken1Native,
+                            nativeUsdPrice
+                        ),
+                    }
+                } else if (pool.sqrtPriceX96 > 0n) {
+                    // Fallback: compute volume in native token terms (no USD conversion)
+                    let vol1dNative: bigint, vol30dNative: bigint
+                    if (isToken1Native) {
+                        vol1dNative =
+                            (vol1d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) + vol1d1
+                        vol30dNative =
+                            (vol30d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) +
+                            vol30d1
+                    } else if (isToken0Native) {
+                        vol1dNative =
+                            vol1d0 + (vol1d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
+                        vol30dNative =
+                            vol30d0 +
+                            (vol30d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
+                    } else {
+                        continue
+                    }
+                    result[poolAddr] = {
+                        volume1d: Number(formatEther(vol1dNative)),
+                        volume30d: Number(formatEther(vol30dNative)),
+                    }
                 }
-            } else if (pool.sqrtPriceX96 > 0n) {
-                // Fallback: compute volume in native token terms (no USD conversion)
-                let vol1dNative: bigint, vol30dNative: bigint
-                if (isToken1Native) {
-                    vol1dNative =
-                        (vol1d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) + vol1d1
-                    vol30dNative =
-                        (vol30d0 * pool.sqrtPriceX96 * pool.sqrtPriceX96) / (Q96 * Q96) + vol30d1
-                } else if (isToken0Native) {
-                    vol1dNative =
-                        vol1d0 + (vol1d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
-                    vol30dNative =
-                        vol30d0 + (vol30d1 * Q96 * Q96) / (pool.sqrtPriceX96 * pool.sqrtPriceX96)
-                } else {
-                    continue
-                }
-                result[poolAddr] = {
-                    volume1d: Number(formatEther(vol1dNative)),
-                    volume30d: Number(formatEther(vol30dNative)),
+            } else {
+                // Non-native pools: use price-map from Ponder token snapshots
+                const price0 = priceMap.get(pool.token0.address.toLowerCase())
+                const price1 = priceMap.get(pool.token1.address.toLowerCase())
+
+                if (price0 != null && price1 != null) {
+                    result[poolAddr] = {
+                        volume1d: computeVolumeFromPrices(
+                            vol1d0,
+                            pool.token0.decimals,
+                            vol1d1,
+                            pool.token1.decimals,
+                            price0,
+                            price1
+                        ),
+                        volume30d: computeVolumeFromPrices(
+                            vol30d0,
+                            pool.token0.decimals,
+                            vol30d1,
+                            pool.token1.decimals,
+                            price0,
+                            price1
+                        ),
+                    }
                 }
             }
         }
 
         return result
-    }, [data, pools, wrappedNative, usdStable])
+    }, [data, pools, wrappedNative, usdStable, priceMap])
 
-    return { volumeByAddress, isLoading }
+    return { volumeByAddress, isLoading: isLoading || isLoadingPrices }
 }

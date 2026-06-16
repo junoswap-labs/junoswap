@@ -21,7 +21,6 @@ interface UseUniV2SwapExecutionParams {
     amountIn: bigint
     amountOutMinimum: bigint
     recipient: Address
-    slippage: number
     deadlineMinutes: number
     route?: SwapRoute
     skipSimulation?: boolean // Skip simulation during approval phase
@@ -47,7 +46,6 @@ export function useUniV2SwapExecution({
     amountIn,
     amountOutMinimum,
     recipient,
-    slippage, // eslint-disable-line @typescript-eslint/no-unused-vars -- reserved for future use
     deadlineMinutes,
     route,
     skipSimulation = false,

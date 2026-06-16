@@ -52,14 +52,30 @@ function getAmountOut(inputAmount: bigint, inputReserve: bigint, outputReserve: 
 }
 
 /**
- * Calculate graduation progress as percentage (0-100)
+ * Calculate the actual KUB target needed for graduation.
+ * From the contract condition: tokenReserve * graduationAmount <= INITIAL_TOKEN * nativeReserve
+ * Solving for nativeReserve: target = (tokenReserve * graduationAmount) / INITIAL_TOKEN
+ */
+export function calculateGraduationTarget(tokenReserve: bigint, graduationAmount: bigint): bigint {
+    const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
+    if (graduationAmount <= 0n) return 0n
+    return (tokenReserve * graduationAmount) / INITIAL_TOKEN
+}
+
+/**
+ * Calculate graduation progress as percentage (0-100).
+ * Uses the same ratio as the contract: (INITIAL_TOKEN * nativeReserve) / (tokenReserve * graduationAmount)
  */
 export function calculateGraduationProgress(
     nativeReserve: bigint,
+    tokenReserve: bigint,
     graduationAmount: bigint
 ): number {
-    if (graduationAmount <= 0n) return 0
-    const progress = Number((nativeReserve * 100n) / graduationAmount)
+    if (graduationAmount <= 0n || tokenReserve <= 0n) return 0
+    const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
+    const progress = Number(
+        (INITIAL_TOKEN * nativeReserve * 100n) / (tokenReserve * graduationAmount)
+    )
     return Math.min(100, progress)
 }
 
@@ -80,8 +96,8 @@ export function formatKub(weiValue: bigint): string {
     if (num < 0.0001) return '<0.0001'
     if (num < 1) return num.toFixed(4)
     if (num < 1000) return num.toFixed(2)
-    if (num < 1000000) return `${(num / 1000).toFixed(2)}K`
-    return `${(num / 1000000).toFixed(2)}M`
+    if (num < 1000000) return num.toFixed(2)
+    return num.toLocaleString('en-US', { maximumFractionDigits: 2 })
 }
 
 /**
@@ -113,14 +129,19 @@ export function formatCompact(num: number): string {
 }
 
 /**
- * Check if token is ready to graduate (threshold met but not yet graduated on-chain)
+ * Check if token is ready to graduate.
+ * Uses the same ratio check as the contract: tokenReserve / nativeReserve <= INITIALTOKEN / graduationAmount
+ * Equivalent to: tokenReserve * graduationAmount <= INITIALTOKEN * nativeReserve
  */
 export function isReadyToGraduate(
     nativeReserve: bigint,
+    tokenReserve: bigint,
     graduationAmount: bigint,
     isGraduated: boolean
 ): boolean {
-    return !isGraduated && graduationAmount > 0n && nativeReserve >= graduationAmount
+    if (isGraduated || graduationAmount === 0n) return false
+    const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
+    return tokenReserve * graduationAmount <= INITIAL_TOKEN * nativeReserve
 }
 
 /**

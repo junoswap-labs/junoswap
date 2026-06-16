@@ -10,6 +10,7 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { useEarnStore, useSelectedPosition } from '@/store/earn-store'
 import { useCollectFees } from '@/hooks/useLiquidity'
 import { formatTokenAmount } from '@/services/tokens'
@@ -86,9 +87,7 @@ export function CollectFeesDialog() {
                         </div>
                     </div>
                     {!hasFees && (
-                        <div className="text-center text-muted-foreground">
-                            No fees to collect at this time.
-                        </div>
+                        <EmptyState title="No fees to collect at this time." className="py-2" />
                     )}
                 </div>
                 <DialogFooter>

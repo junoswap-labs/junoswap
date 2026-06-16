@@ -22,7 +22,7 @@ import { calculateMinOutput as calculateMinOutputV2 } from '@/services/dex/unisw
 import { formatBalance, formatTokenAmount, formatDisplayAmount } from '@/services/tokens'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { toastError } from '@/lib/toast'
-import { findTokenByAddress, KUSDT_ADDRESS } from '@/lib/tokens'
+import { getDefaultPairTokens } from '@/lib/tokens'
 import { getDexConfig, isV2Config, getDefaultDexForChain, getSupportedDexs } from '@/lib/dex-config'
 import { TokenSelect } from './token-select'
 import { SettingsDialog } from './settings-dialog'
@@ -30,7 +30,7 @@ import { ArrowDownUp, ArrowRightLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { isSameToken, getWrapOperation } from '@/services/tokens'
 import { isValidNumberInput } from '@/lib/utils'
-import { getChainMetadata, isNativeToken, shouldSkipUnwrap, bitkub } from '@/lib/wagmi'
+import { getChainMetadata, isNativeToken, shouldSkipUnwrap } from '@/lib/wagmi'
 import { useKkubUnwrap } from '@/hooks/useKkubUnwrap'
 
 interface SwapCardProps {
@@ -38,13 +38,13 @@ interface SwapCardProps {
 }
 
 export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
-    useSwapUrlSync()
     const { address, isConnected } = useAccount()
     const chainId = useChainId()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
     const [isRateFlipped, setIsRateFlipped] = useState(false)
-    const { tokens: chainTokens } = useChainTokens(chainId)
+    const { tokens: chainTokens, isLoading: isLoadingTokens } = useChainTokens(chainId)
     const tokens = tokensOverride || chainTokens
+    const { urlTokensPending } = useSwapUrlSync(tokens, isLoadingTokens)
     const {
         tokenIn,
         tokenOut,
@@ -214,7 +214,6 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
         amountIn: amountInBigInt,
         amountOutMinimum,
         recipient: address ?? '0x0',
-        slippage: settings.slippage,
         deadlineMinutes: settings.deadlineMinutes,
         route: selectedDexRoute?.route,
         skipSimulation: skipSwapSimulation,
@@ -310,15 +309,33 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
         prevChainIdRef.current = chainId
     }, [chainId, setTokenIn, setTokenOut, isUpdatingFromUrl])
     useEffect(() => {
+        // Don't default-init while a URL-provided token is still resolving, or we'd
+        // clobber it (URL sync and this effect can run in the same passive-effect flush
+        // with a stale `tokenIn === null` closure).
+        if (isUpdatingFromUrl || urlTokensPending) return
         if (!hasInitializedTokensRef.current && !tokenIn && tokens.length > 0 && tokens[0]) {
-            setTokenIn(tokens[0])
-            if (chainId === bitkub.id && !tokenOut) {
-                const kusdt = findTokenByAddress(chainId, KUSDT_ADDRESS)
-                if (kusdt) setTokenOut(kusdt)
+            const { stablecoin, nativeTokens } = getDefaultPairTokens(chainId)
+            const defaultIn = nativeTokens[0] ?? tokens[0]
+            setTokenIn(defaultIn)
+            if (
+                !tokenOut &&
+                stablecoin &&
+                stablecoin.address.toLowerCase() !== defaultIn.address.toLowerCase()
+            ) {
+                setTokenOut(stablecoin)
             }
             hasInitializedTokensRef.current = true
         }
-    }, [tokenIn, tokenOut, tokens, chainId, setTokenIn, setTokenOut])
+    }, [
+        tokenIn,
+        tokenOut,
+        tokens,
+        chainId,
+        setTokenIn,
+        setTokenOut,
+        isUpdatingFromUrl,
+        urlTokensPending,
+    ])
     const isConfirmingApproval = approvalHash && isConfirmingApprovalRaw
     const isConfirmingSwap = swapHash && isConfirmingSwapRaw
     const handleSwapTokens = () => {

@@ -157,7 +157,7 @@ export function RemoveLiquidityDialog() {
                                     </div>
                                 </div>
                                 {selectedPosition.tokensOwed0 > 0n && (
-                                    <div className="flex justify-between text-green-600">
+                                    <div className="flex justify-between text-positive">
                                         <span>{selectedPosition.token0Info.symbol}</span>
                                         <span>
                                             +
@@ -169,7 +169,7 @@ export function RemoveLiquidityDialog() {
                                     </div>
                                 )}
                                 {selectedPosition.tokensOwed1 > 0n && (
-                                    <div className="flex justify-between text-green-600">
+                                    <div className="flex justify-between text-positive">
                                         <span>{selectedPosition.token1Info.symbol}</span>
                                         <span>
                                             +

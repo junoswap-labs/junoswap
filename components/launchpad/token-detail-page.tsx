@@ -9,6 +9,7 @@ import { useTokenList } from '@/hooks/useTokenList'
 import { useGraduatedPoolAddress } from '@/hooks/useGraduatedPoolAddress'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
 import { ExplorerLink } from '@/components/ui/explorer-link'
+import { TokenIcon } from '@/components/ui/token-icon'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { TokenTradeCard } from './token-trade-card'
@@ -18,10 +19,10 @@ import { RecentTrades } from './recent-trades'
 import { TokenHolders } from './token-holders'
 import { TokenDetailSkeleton } from './token-detail-skeleton'
 import { GraduationProgress } from './graduation-progress'
-import type { DailyMetrics } from '@/services/chart'
-import { Globe, ArrowLeft, Copy, Check } from 'lucide-react'
+import { ShareTokenDialog } from './share-token-dialog'
+import { Globe, ArrowLeft, Copy, Check, Share2 } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 
 interface TokenDetailPageProps {
     tokenAddr: Address
@@ -71,13 +72,8 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     const symbol = tokenInfo?.symbol || 'TOKEN'
     const name = tokenInfo?.name || 'Unknown Token'
     const decimals = 18 // Launch tokens always use 18 decimals
-
     const [copied, setCopied] = useState(false)
-    const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null)
-
-    const handleDailyMetricsChange = useCallback((metrics: DailyMetrics | null) => {
-        setDailyMetrics(metrics)
-    }, [])
+    const [shareOpen, setShareOpen] = useState(false)
 
     const copyAddress = () => {
         navigator.clipboard.writeText(tokenAddr)
@@ -105,75 +101,90 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 {/* Left column — token info, chart, stats, trades */}
                 <div className="order-2 min-w-0 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
                     {/* Price header */}
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         {/* Token identity */}
-                        <div className="flex items-center gap-2.5 md:gap-3">
-                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-                                {tokenInfo?.logo ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={tokenInfo.logo}
-                                        alt={symbol}
-                                        className="h-full w-full object-cover"
-                                        onError={(e) => {
-                                            ;(e.target as HTMLImageElement).style.display = 'none'
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-base font-bold text-muted-foreground">
-                                        {symbol.slice(0, 2)}
+                        <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
+                            <TokenIcon
+                                src={tokenInfo?.logo}
+                                symbol={symbol}
+                                size="xl"
+                                variant="square"
+                            />
+                            <div className="min-w-0">
+                                <h1 className="truncate text-lg font-bold md:text-xl">{name}</h1>
+                                <span className="text-sm text-muted-foreground">{symbol}</span>
+                                {tokenInfo?.creator && (
+                                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <ExplorerLink
+                                            value={tokenInfo.creator}
+                                            type="address"
+                                            chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                                            className="font-mono text-xs text-muted-foreground hover:text-foreground"
+                                        />
+                                        {tokenInfo.createdTime > 0 && (
+                                            <>
+                                                <span>·</span>
+                                                <span>{formatTimeAgo(tokenInfo.createdTime)}</span>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                            <div>
-                                <div>
-                                    <h1 className="text-lg font-bold md:text-xl">{name}</h1>
-                                    <span className="text-sm text-muted-foreground">{symbol}</span>
-                                    {tokenInfo?.creator && (
-                                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                                            <ExplorerLink
-                                                value={tokenInfo.creator}
-                                                type="address"
-                                                chainId={PUMP_CORE_NATIVE_CHAIN_ID}
-                                                className="font-mono text-xs text-muted-foreground hover:text-foreground"
-                                            />
-                                            {tokenInfo.createdTime > 0 && (
-                                                <>
-                                                    <span>·</span>
-                                                    <span>
-                                                        {formatTimeAgo(tokenInfo.createdTime)}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
                         </div>
 
-                        {/* CA badge — right side */}
-                        <button
-                            onClick={copyAddress}
-                            className="inline-flex items-center gap-2 rounded-lg bg-muted/60 px-4 py-2 transition-colors hover:bg-muted shrink-0"
-                            title="Copy contract address"
-                        >
-                            <span className="font-mono text-xs text-muted-foreground">
-                                {formatAddress(tokenAddr)}
-                            </span>
-                            {copied ? (
-                                <Check className="h-3.5 w-3.5 text-green-400" />
-                            ) : (
-                                <Copy className="h-3.5 w-3.5 text-muted-foreground/50" />
-                            )}
-                        </button>
+                        {/* CA badge + share */}
+                        <div className="flex shrink-0 items-center gap-2">
+                            <button
+                                onClick={copyAddress}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-muted/60 px-3 py-2 transition-colors hover:bg-muted sm:gap-2 sm:px-4"
+                                title="Copy contract address"
+                            >
+                                <Copy className="h-3.5 w-3.5 text-muted-foreground/50 sm:hidden" />
+                                {copied && (
+                                    <Check className="h-3.5 w-3.5 text-positive sm:hidden" />
+                                )}
+                                <span className="font-mono text-xs text-muted-foreground">
+                                    {formatAddress(tokenAddr)}
+                                </span>
+                                {copied ? (
+                                    <Check className="hidden h-3.5 w-3.5 text-positive sm:block" />
+                                ) : (
+                                    <Copy className="hidden h-3.5 w-3.5 text-muted-foreground/50 sm:block" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setShareOpen(true)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-muted/60 px-3 py-2 text-muted-foreground transition-colors hover:bg-muted active:scale-95"
+                                title="Share token"
+                            >
+                                <Share2 className="h-3.5 w-3.5" />
+                                <span className="text-xs font-medium">Share</span>
+                            </button>
+                        </div>
                     </div>
+
+                    <ShareTokenDialog
+                        open={shareOpen}
+                        onOpenChange={setShareOpen}
+                        tokenAddr={tokenAddr}
+                        symbol={symbol}
+                        name={name}
+                        logo={tokenInfo?.logo}
+                        marketCap={marketCap}
+                        priceChange1dPct={
+                            snapshotMap.get(tokenAddr.toLowerCase())?.priceChange1dPct ?? null
+                        }
+                        isGraduated={isGraduated}
+                    />
 
                     {/* Inline market stats */}
                     <TokenStats
                         marketCap={marketCap}
                         isGraduated={isGraduated}
                         athMarketCap={athMarketCap}
-                        priceChange1dPct={dailyMetrics?.priceChange1dPct ?? null}
+                        priceChange1dPct={
+                            snapshotMap.get(tokenAddr.toLowerCase())?.priceChange1dPct ?? null
+                        }
                     />
 
                     {/* Chart */}
@@ -185,7 +196,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         isGraduated={isGraduated}
                         poolAddress={poolAddress}
                         graduatedAt={tokenInfo?.graduatedAt ?? null}
-                        onDailyMetricsChange={handleDailyMetricsChange}
                     />
 
                     {/* About token */}
@@ -270,6 +280,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         tokenSymbol={symbol}
                         poolAddress={poolAddress}
                         isGraduated={isGraduated}
+                        creatorAddress={tokenInfo?.creator}
                     />
                 </div>
 
@@ -290,6 +301,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                     <h4 className="mb-2 text-sm font-semibold">Bonding Curve</h4>
                                     <GraduationProgress
                                         nativeReserve={nativeReserve}
+                                        tokenReserve={tokenReserve}
                                         graduationAmount={graduationAmount}
                                         isGraduated={!!isGraduated}
                                     />

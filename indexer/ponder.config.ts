@@ -1,7 +1,15 @@
 import { createConfig } from 'ponder'
-import { PUMP_CORE_NATIVE_ABI } from './abis/pump-core-native'
+import { PUMP_CORE_NATIVE_ABI, PUMP_CORE_NATIVE_ADDRESS } from './abis/pump-core-native'
+import { ERC20_ABI } from './abis/erc20'
 import { UNISWAP_V3_FACTORY_ABI } from './abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from './abis/uniswap-v3-pool'
+
+// The Creation event carries the new token's address (non-indexed). Ponder's
+// factory discovery reads non-indexed params via byte offset, so this still
+// works despite tokenAddr not being an indexed topic.
+const CREATION_EVENT = PUMP_CORE_NATIVE_ABI.find(
+    (e) => e.type === 'event' && e.name === 'Creation'
+)!
 
 export default createConfig({
     chains: {
@@ -23,6 +31,19 @@ export default createConfig({
             abi: PUMP_CORE_NATIVE_ABI,
             chain: 'kubTestnet',
             address: '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9',
+            startBlock: 29065000,
+        },
+        // Launch tokens are created dynamically by PumpCoreNative. Each Creation
+        // event registers the new token contract so Ponder indexes its Transfer
+        // events (used by the Portfolio activity feed).
+        LaunchToken: {
+            abi: ERC20_ABI,
+            chain: 'kubTestnet',
+            factory: {
+                address: PUMP_CORE_NATIVE_ADDRESS,
+                event: CREATION_EVENT,
+                parameter: 'tokenAddr',
+            },
             startBlock: 29065000,
         },
         // kubTestnet V3

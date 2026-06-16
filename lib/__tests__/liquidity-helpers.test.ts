@@ -19,6 +19,8 @@ import {
     MIN_TICK,
     MAX_TICK,
     MIN_SQRT_RATIO,
+    bigIntSqrt,
+    calculateGraduationSqrtPriceX96,
 } from '@/lib/liquidity-helpers'
 
 describe('tickToSqrtPriceX96', () => {
@@ -342,5 +344,127 @@ describe('sortTokens', () => {
         const [first, second] = sortTokens(tokenA, tokenB)
         expect(first).toBe(tokenA)
         expect(second).toBe(tokenB)
+    })
+})
+
+describe('bigIntSqrt', () => {
+    it('returns 0 for 0', () => {
+        expect(bigIntSqrt(0n)).toBe(0n)
+    })
+
+    it('returns 1 for 1', () => {
+        expect(bigIntSqrt(1n)).toBe(1n)
+    })
+
+    it('returns 2 for 4', () => {
+        expect(bigIntSqrt(4n)).toBe(2n)
+    })
+
+    it('returns 3 for 9', () => {
+        expect(bigIntSqrt(9n)).toBe(3n)
+    })
+
+    it('returns 10 for 100', () => {
+        expect(bigIntSqrt(100n)).toBe(10n)
+    })
+
+    it('returns floor(sqrt(n)) for non-perfect squares', () => {
+        expect(bigIntSqrt(2n)).toBe(1n) // sqrt(2) ≈ 1.414
+        expect(bigIntSqrt(3n)).toBe(1n) // sqrt(3) ≈ 1.732
+        expect(bigIntSqrt(5n)).toBe(2n) // sqrt(5) ≈ 2.236
+        expect(bigIntSqrt(8n)).toBe(2n) // sqrt(8) ≈ 2.828
+    })
+
+    it('handles large numbers (2^96)', () => {
+        const q96 = 2n ** 96n
+        const result = bigIntSqrt(q96)
+        expect(result).toBe(2n ** 48n)
+    })
+
+    it('handles very large numbers (2^192)', () => {
+        const q192 = 2n ** 192n
+        const result = bigIntSqrt(q192)
+        expect(result).toBe(2n ** 96n)
+    })
+
+    it('throws for negative input', () => {
+        expect(() => bigIntSqrt(-1n)).toThrow('square root of negative')
+    })
+})
+
+describe('calculateGraduationSqrtPriceX96', () => {
+    // Stuck token scenario: tokenAddr < wrappedNative
+    // Token: 0x3671E189BFb60fB434A902F2274f6546FCE779db
+    // tKKUB: 0x700D3ba307E1256e509eD3E45D6f9dff441d6907
+    const tokenAddr = '0x3671E189BFb60fB434A902F2274f6546FCE779db' as `0x${string}`
+    const wrappedNative = '0x700D3ba307E1256e509eD3E45D6f9dff441d6907' as `0x${string}`
+    const nativeReserve = 4009500000000000000000n // ~4010 KUB
+    const tokenReserve = 461366962461691276297068760n // ~461M tokens
+
+    it('returns non-zero sqrtPriceX96 when tokenAddr < wrappedNative', () => {
+        // The contract's buggy formula would give 0 here due to integer division
+        const result = calculateGraduationSqrtPriceX96(
+            tokenAddr,
+            wrappedNative,
+            nativeReserve,
+            tokenReserve
+        )
+        expect(result).toBeGreaterThan(0n)
+    })
+
+    it('matches the known correct value for the stuck token', () => {
+        const result = calculateGraduationSqrtPriceX96(
+            tokenAddr,
+            wrappedNative,
+            nativeReserve,
+            tokenReserve
+        )
+        // This is the value computed by the Python rescue script
+        const expected = 233561602564036164489853658n
+        expect(result).toBe(expected)
+    })
+
+    it('returns a value within uint160 range', () => {
+        const result = calculateGraduationSqrtPriceX96(
+            tokenAddr,
+            wrappedNative,
+            nativeReserve,
+            tokenReserve
+        )
+        const maxUint160 = (1n << 160n) - 1n
+        expect(result).toBeLessThanOrEqual(maxUint160)
+    })
+
+    it('works when tokenAddr > wrappedNative (no bug case)', () => {
+        // Use a higher address to test the normal case
+        const highAddr = '0x99999999990FC47611b74827486218f3398A4abD' as `0x${string}`
+        const result = calculateGraduationSqrtPriceX96(
+            highAddr,
+            wrappedNative,
+            nativeReserve,
+            tokenReserve
+        )
+        expect(result).toBeGreaterThan(0n)
+    })
+
+    it('throws for zero reserves', () => {
+        expect(() =>
+            calculateGraduationSqrtPriceX96(tokenAddr, wrappedNative, 0n, tokenReserve)
+        ).toThrow('Invalid reserves')
+        expect(() =>
+            calculateGraduationSqrtPriceX96(tokenAddr, wrappedNative, nativeReserve, 0n)
+        ).toThrow('Invalid reserves')
+    })
+
+    it('produces consistent results regardless of reserve magnitude', () => {
+        // Same ratio, different magnitudes
+        const result1 = calculateGraduationSqrtPriceX96(tokenAddr, wrappedNative, 1000n, 2000n)
+        const result2 = calculateGraduationSqrtPriceX96(
+            tokenAddr,
+            wrappedNative,
+            1000000n,
+            2000000n
+        )
+        expect(result1).toBe(result2)
     })
 })

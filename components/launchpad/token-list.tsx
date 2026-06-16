@@ -7,7 +7,6 @@ import { TokenCard } from './token-card'
 import { SortTabs } from './sort-tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Coins, SearchX } from 'lucide-react'
 
 interface TokenListProps {
     searchQuery?: string
@@ -30,6 +29,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                 isGraduated: !!token.isGraduated,
                 marketCap: snapshot?.marketCapNative,
                 athMarketCap: snapshot?.athMarketCapNative,
+                priceChange1dPct: snapshot?.priceChange1dPct ?? undefined,
             }
         })
     }, [tokens, snapshotMap])
@@ -77,7 +77,6 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     if (tokens.length === 0) {
         return (
             <EmptyState
-                icon={Coins}
                 title="No tokens yet"
                 description="Be the first to create a token on the launchpad!"
             />
@@ -87,7 +86,6 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
     if (filtered.length === 0) {
         return (
             <EmptyState
-                icon={SearchX}
                 title="No results"
                 description={`No tokens matching "${searchQuery.trim()}"`}
             />
@@ -101,7 +99,15 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
             </div>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 {sorted.map(
-                    ({ token, tokenName, tokenSymbol, isGraduated, marketCap, athMarketCap }) => {
+                    ({
+                        token,
+                        tokenName,
+                        tokenSymbol,
+                        isGraduated,
+                        marketCap,
+                        athMarketCap,
+                        priceChange1dPct,
+                    }) => {
                         return (
                             <TokenCard
                                 key={token.address}
@@ -111,6 +117,7 @@ export function TokenList({ searchQuery = '' }: TokenListProps) {
                                 marketCap={marketCap}
                                 athMarketCap={athMarketCap}
                                 isGraduated={isGraduated}
+                                priceChange1dPct={priceChange1dPct}
                             />
                         )
                     }

@@ -67,7 +67,7 @@ export function PortfolioSummary({ summary, isLoading }: PortfolioSummaryProps) 
                             <span
                                 className={cn(
                                     'text-3xl font-bold font-mono tracking-tight',
-                                    isPositive ? 'text-emerald-500' : 'text-red-500'
+                                    isPositive ? 'text-positive' : 'text-negative'
                                 )}
                             >
                                 {formatPnl(summary.totalPnl)}

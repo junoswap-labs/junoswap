@@ -38,8 +38,8 @@ export function TokenStats({
                             className={cn(
                                 'inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums',
                                 priceChange1dPct >= 0
-                                    ? 'bg-emerald-500/15 text-emerald-500'
-                                    : 'bg-red-500/15 text-red-500'
+                                    ? 'bg-positive/15 text-positive'
+                                    : 'bg-negative/15 text-negative'
                             )}
                         >
                             {priceChange1dPct >= 0 ? '+' : ''}
@@ -59,7 +59,7 @@ export function TokenStats({
                             style={{
                                 width: `${Math.min((mcapNum / athNum) * 100, 100)}%`,
                                 background:
-                                    'linear-gradient(90deg, rgb(34 197 94 / 0.3), rgb(34 197 94))',
+                                    'linear-gradient(90deg, rgb(30 215 96 / 0.3), rgb(30 215 96))',
                             }}
                         />
                     </div>

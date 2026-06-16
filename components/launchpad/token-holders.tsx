@@ -6,7 +6,7 @@ import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { ExplorerLink } from '@/components/ui/explorer-link'
-import { Users } from 'lucide-react'
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -33,20 +33,17 @@ interface TokenHoldersProps {
 
 function HolderRow({
     holder,
-    rank,
+    index,
     isCreator,
 }: {
     holder: HolderData
-    rank: number
+    index: number
     isCreator: boolean
 }) {
     return (
         <TableRow
-            className={cn('transition-colors hover:bg-muted/30', rank % 2 === 0 && 'bg-muted/10')}
+            className={cn('transition-colors hover:bg-muted/30', index % 2 === 1 && 'bg-muted/10')}
         >
-            <TableCell className="w-8 py-2.5 text-xs text-muted-foreground">
-                <span className={cn(rank <= 3 && 'font-bold text-foreground')}>{rank}</span>
-            </TableCell>
             <TableCell className="py-2.5 font-mono text-xs">
                 <div className="flex items-center gap-1.5">
                     <ExplorerLink
@@ -74,9 +71,6 @@ function LoadingState() {
         <TableBody>
             {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                    <TableCell>
-                        <div className="h-4 w-4 animate-pulse rounded bg-muted" />
-                    </TableCell>
                     <TableCell>
                         <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                     </TableCell>
@@ -114,9 +108,6 @@ export function TokenHolders({
     const tableHeader = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="w-8 text-[10px] font-semibold uppercase tracking-wider">
-                    #
-                </TableHead>
                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider">
                     Address
                 </TableHead>
@@ -149,9 +140,6 @@ export function TokenHolders({
                     </div>
                 ) : holders.length === 0 ? (
                     <EmptyState
-                        compact
-                        icon={Users}
-                        variant="subtle"
                         title="No holders yet"
                         description="Holders will appear here once the token is traded"
                     />
@@ -165,7 +153,7 @@ export function TokenHolders({
                                         <HolderRow
                                             key={holder.address}
                                             holder={holder}
-                                            rank={(page - 1) * PAGE_SIZE + i + 1}
+                                            index={i}
                                             isCreator={
                                                 !!creator &&
                                                 holder.address.toLowerCase() ===
