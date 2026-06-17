@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Address } from 'viem'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,39 @@ export function ShareTokenDialog({
     const [copied, setCopied] = useState(false)
     const cardRef = useRef<HTMLDivElement>(null)
     const { downloadImage, isGenerating } = useShareableImage()
+
+    // Inline the remote token logo as a data URL before capture. Otherwise
+    // html-to-image fetches the cross-origin image at capture time, which taints
+    // the canvas in in-app browsers (e.g. MetaMask) and makes toBlob throw — so
+    // the whole save silently fails. A data URL is same-origin and embeds cleanly.
+    const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+    useEffect(() => {
+        if (!logo) {
+            setLogoDataUrl(null)
+            return
+        }
+        let cancelled = false
+        fetch(logo)
+            .then((res) => res.blob())
+            .then(
+                (blob) =>
+                    new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader()
+                        reader.onloadend = () => resolve(reader.result as string)
+                        reader.onerror = reject
+                        reader.readAsDataURL(blob)
+                    })
+            )
+            .then((dataUrl) => {
+                if (!cancelled) setLogoDataUrl(dataUrl)
+            })
+            .catch(() => {
+                // keep the remote URL for display; capture may omit the logo but won't crash
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [logo])
 
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 
@@ -169,7 +202,7 @@ export function ShareTokenDialog({
                             {/* Right — token image */}
                             <div className="shrink-0 rounded-2xl border border-white/10 bg-white/5 p-1.5">
                                 <TokenIcon
-                                    src={logo}
+                                    src={logoDataUrl ?? logo}
                                     symbol={symbol}
                                     size="xl"
                                     variant="square"
