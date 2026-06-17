@@ -32,6 +32,10 @@ export function useShareableImage(): UseShareableImageReturn {
                 const blob = await toBlob(element, {
                     pixelRatio: 2,
                     backgroundColor: '#0a0e1a',
+                    // Force a fresh CORS fetch of remote token logos; without this,
+                    // html-to-image reuses the browser's non-CORS cached copy and
+                    // silently drops the image, leaving the icon blank in the capture.
+                    cacheBust: true,
                 })
                 if (!blob) throw new Error('Failed to generate image')
 
