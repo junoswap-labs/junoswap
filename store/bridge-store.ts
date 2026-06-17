@@ -5,10 +5,8 @@ import type { BridgeSettings, BridgeState } from '@/types/bridge'
 import type { Route } from '@lifi/types'
 
 interface BridgeStore extends BridgeState {
-    // Settings
     settings: BridgeSettings
 
-    // Actions
     setFromChainId: (chainId: number) => void
     setToChainId: (chainId: number) => void
     setFromToken: (token: Token | null) => void
@@ -22,12 +20,10 @@ interface BridgeStore extends BridgeState {
     reset: () => void
 }
 
-// Default bridge settings
 const defaultSettings: BridgeSettings = {
     slippage: 0.03, // 3%
 }
 
-// Initial bridge state
 const initialState: BridgeState = {
     fromChainId: 56, // BSC
     toChainId: 8453, // Base

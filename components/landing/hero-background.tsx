@@ -179,13 +179,12 @@ export function HeroBackground() {
         const u = uniformsRef.current
         const mobile = isMobile()
 
-        // ── ResizeObserver
         const resizeObserver = new ResizeObserver(() => resize())
         if (canvasRef.current?.parentElement) {
             resizeObserver.observe(canvasRef.current.parentElement)
         }
 
-        // ── IntersectionObserver — pause when off-screen
+        // IntersectionObserver: pause the render loop while off-screen
         const intersectionObserver = new IntersectionObserver(
             ([entry]) => {
                 isVisibleRef.current = entry?.isIntersecting ?? false
@@ -196,7 +195,6 @@ export function HeroBackground() {
             intersectionObserver.observe(canvasRef.current.parentElement)
         }
 
-        // ── Mouse / Touch tracking
         const onMouseMove = (e: MouseEvent) => {
             mouseRef.current = {
                 x: e.clientX / window.innerWidth,
@@ -215,7 +213,6 @@ export function HeroBackground() {
         window.addEventListener('mousemove', onMouseMove, { passive: true })
         window.addEventListener('touchmove', onTouchMove, { passive: true })
 
-        // ── Render loop
         const render = () => {
             rafRef.current = requestAnimationFrame(render)
 
@@ -255,7 +252,6 @@ export function HeroBackground() {
 
         rafRef.current = requestAnimationFrame(render)
 
-        // ── Cleanup
         return () => {
             cancelAnimationFrame(rafRef.current)
             resizeObserver.disconnect()

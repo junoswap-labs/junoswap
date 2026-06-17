@@ -15,38 +15,29 @@ import { DEFAULT_EARN_SETTINGS, DEFAULT_RANGE_CONFIG, DEFAULT_MINING_SETTINGS } 
 import { getPresetRange, tickToPrice } from '@/lib/liquidity-helpers'
 
 interface EarnStore {
-    // Pool selection
     selectedPool: V3PoolData | null
-    // Position selection
     selectedPosition: PositionWithTokens | null
-    // Range configuration for add liquidity
     rangeConfig: RangeConfig
-    // Token selection for new position
     token0: Token | null
     token1: Token | null
     fee: number
 
-    // Modal states
     isAddLiquidityOpen: boolean
     isRemoveLiquidityOpen: boolean
     isCollectFeesOpen: boolean
     isPositionDetailsOpen: boolean
     isIncreaseLiquidityOpen: boolean
 
-    // Mining state
     selectedIncentive: Incentive | null
     selectedStakedPosition: StakedPosition | null
     isStakeDialogOpen: boolean
     isUnstakeDialogOpen: boolean
 
-    // Settings (persisted)
     settings: EarnSettings
     miningSettings: MiningSettings
 
-    // Active tab
     activeTab: 'pools' | 'positions'
 
-    // Actions
     setSelectedPool: (pool: V3PoolData | null) => void
     setSelectedPosition: (position: PositionWithTokens | null) => void
     setRangeConfig: (config: RangeConfig) => void
@@ -56,7 +47,6 @@ interface EarnStore {
     setFee: (fee: number) => void
     setActiveTab: (tab: 'pools' | 'positions') => void
 
-    // Modal controls
     openAddLiquidity: (pool?: V3PoolData) => void
     closeAddLiquidity: () => void
     openRemoveLiquidity: (position: PositionWithTokens) => void
@@ -68,20 +58,17 @@ interface EarnStore {
     openIncreaseLiquidity: (position: PositionWithTokens) => void
     closeIncreaseLiquidity: () => void
 
-    // Mining modal controls
     openStakeDialog: (incentive: Incentive) => void
     closeStakeDialog: () => void
     openUnstakeDialog: (stakedPosition: StakedPosition) => void
     closeUnstakeDialog: () => void
 
-    // Settings
     setDefaultSlippage: (slippage: number) => void
     setDefaultDeadline: (minutes: number) => void
     setHideClosedPositions: (hide: boolean) => void
     setShowAllPools: (show: boolean) => void
     setHideEndedIncentives: (hide: boolean) => void
 
-    // Reset
     reset: () => void
     resetTokenSelection: () => void
 }
@@ -98,7 +85,6 @@ const initialState = {
     isCollectFeesOpen: false,
     isPositionDetailsOpen: false,
     isIncreaseLiquidityOpen: false,
-    // Mining state
     selectedIncentive: null,
     selectedStakedPosition: null,
     isStakeDialogOpen: false,
@@ -114,13 +100,10 @@ export const useEarnStore = create<EarnStore>()(
                 settings: DEFAULT_EARN_SETTINGS,
                 miningSettings: DEFAULT_MINING_SETTINGS,
 
-                // Pool selection
                 setSelectedPool: (pool) => set({ selectedPool: pool }),
 
-                // Position selection
                 setSelectedPosition: (position) => set({ selectedPosition: position }),
 
-                // Range configuration
                 setRangeConfig: (config) => set({ rangeConfig: config }),
 
                 setRangePreset: (preset, currentTick, tickSpacing) => {
@@ -131,7 +114,6 @@ export const useEarnStore = create<EarnStore>()(
                     )
                     const { selectedPool } = get()
 
-                    // Calculate prices if pool is selected
                     let priceLower = '0'
                     let priceUpper = '0'
 
@@ -153,15 +135,12 @@ export const useEarnStore = create<EarnStore>()(
                     })
                 },
 
-                // Token selection
                 setToken0: (token) => set({ token0: token }),
                 setToken1: (token) => set({ token1: token }),
                 setFee: (fee) => set({ fee }),
 
-                // Tab selection
                 setActiveTab: (tab) => set({ activeTab: tab }),
 
-                // Modal controls - Add Liquidity
                 openAddLiquidity: (pool) => {
                     const updates: Partial<EarnStore> = { isAddLiquidityOpen: true }
 
@@ -171,7 +150,6 @@ export const useEarnStore = create<EarnStore>()(
                         updates.token1 = pool.token1
                         updates.fee = pool.fee
 
-                        // Set default range (common)
                         const { tickLower, tickUpper } = getPresetRange(
                             pool.tick,
                             pool.tickSpacing,
@@ -206,7 +184,6 @@ export const useEarnStore = create<EarnStore>()(
                         rangeConfig: DEFAULT_RANGE_CONFIG,
                     }),
 
-                // Modal controls - Remove Liquidity
                 openRemoveLiquidity: (position) =>
                     set({
                         isRemoveLiquidityOpen: true,
@@ -219,7 +196,6 @@ export const useEarnStore = create<EarnStore>()(
                         selectedPosition: null,
                     }),
 
-                // Modal controls - Collect Fees
                 openCollectFees: (position) =>
                     set({
                         isCollectFeesOpen: true,
@@ -232,7 +208,6 @@ export const useEarnStore = create<EarnStore>()(
                         selectedPosition: null,
                     }),
 
-                // Modal controls - Position Details
                 openPositionDetails: (position) =>
                     set({
                         isPositionDetailsOpen: true,
@@ -245,7 +220,6 @@ export const useEarnStore = create<EarnStore>()(
                         selectedPosition: null,
                     }),
 
-                // Modal controls - Increase Liquidity
                 openIncreaseLiquidity: (position) =>
                     set({
                         isIncreaseLiquidityOpen: true,
@@ -258,7 +232,6 @@ export const useEarnStore = create<EarnStore>()(
                         selectedPosition: null,
                     }),
 
-                // Modal controls - Mining
                 openStakeDialog: (incentive) =>
                     set({
                         isStakeDialogOpen: true,
@@ -283,7 +256,6 @@ export const useEarnStore = create<EarnStore>()(
                         selectedStakedPosition: null,
                     }),
 
-                // Settings
                 setDefaultSlippage: (slippage) =>
                     set((state) => ({
                         settings: { ...state.settings, defaultSlippage: slippage },
@@ -309,7 +281,6 @@ export const useEarnStore = create<EarnStore>()(
                         miningSettings: { ...state.miningSettings, hideEndedIncentives: hide },
                     })),
 
-                // Reset
                 reset: () => set({ ...initialState }),
 
                 resetTokenSelection: () =>
@@ -343,7 +314,6 @@ export const useEarnStore = create<EarnStore>()(
     )
 )
 
-// Selectors
 export const useEarnSettings = () => useEarnStore((state) => state.settings)
 export const useMiningSettings = () => useEarnStore((state) => state.miningSettings)
 export const useSelectedPosition = () => useEarnStore((state) => state.selectedPosition)

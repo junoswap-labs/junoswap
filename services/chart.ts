@@ -107,14 +107,12 @@ export function aggregateCandlesticks(
                 volume: 0,
             })
         } else {
-            prevClose = candles.get(t)!.close // known to exist
+            prevClose = candles.get(t)!.close
         }
     }
 
     return Array.from(candles.values()).sort((a, b) => a.time - b.time)
 }
-
-// --- V3 reserve-based chart functions ---
 
 export interface V3SwapEvent {
     timestamp: number

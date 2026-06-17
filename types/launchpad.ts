@@ -1,8 +1,5 @@
 import type { Address } from 'viem'
 
-/**
- * Token created on the bonding curve
- */
 export interface LaunchToken {
     address: Address
     name: string
@@ -19,14 +16,8 @@ export interface LaunchToken {
     isGraduated?: boolean
 }
 
-/**
- * Sort options for the launchpad token list
- */
 export type LaunchpadSortKey = 'last-trade' | 'market-cap' | 'new' | 'oldest'
 
-/**
- * Token creation form state
- */
 export interface CreateTokenForm {
     name: string
     symbol: string
@@ -38,23 +29,14 @@ export interface CreateTokenForm {
     upfrontBuyAmount: string
 }
 
-/**
- * Launchpad settings (persisted)
- */
 export interface LaunchpadSettings {
     slippageBps: number // basis points, 100 = 1%
 }
 
-/**
- * Default launchpad settings
- */
 export const DEFAULT_LAUNCHPAD_SETTINGS: LaunchpadSettings = {
     slippageBps: 100, // 1%
 }
 
-/**
- * Swap event enriched with token metadata for the activity feed
- */
 export interface EnrichedSwapEvent {
     blockNumber: bigint
     logIndex: number

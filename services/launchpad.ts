@@ -79,16 +79,10 @@ export function calculateGraduationProgress(
     return Math.min(100, progress)
 }
 
-/**
- * Calculate minimum output with slippage tolerance
- */
 export function calculateMinOutput(expectedOut: bigint, slippageBps: number): bigint {
     return (expectedOut * BigInt(10000 - slippageBps)) / 10000n
 }
 
-/**
- * Format KUB amount for display
- */
 export function formatKub(weiValue: bigint): string {
     const formatted = formatEther(weiValue)
     const num = parseFloat(formatted)
@@ -100,9 +94,6 @@ export function formatKub(weiValue: bigint): string {
     return num.toLocaleString('en-US', { maximumFractionDigits: 2 })
 }
 
-/**
- * Format token amount for display (18 decimals)
- */
 export function formatTokenAmount(weiValue: bigint): string {
     const formatted = formatEther(weiValue)
     const num = parseFloat(formatted)
@@ -115,9 +106,6 @@ export function formatTokenAmount(weiValue: bigint): string {
     return `${(num / 1000000000).toFixed(2)}B`
 }
 
-/**
- * Format a number compactly with zero decimals
- */
 export function formatCompact(num: number): string {
     if (num === 0) return '0'
     if (num < 0.01) return '<0.01'

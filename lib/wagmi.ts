@@ -3,7 +3,6 @@ import { cookieStorage, createStorage } from 'wagmi'
 import { bsc, bitkub, jbc, base, worldchain } from 'wagmi/chains'
 import type { Address } from 'viem'
 
-// Re-export chains for use in other modules
 export { bsc, bitkub, jbc, base, worldchain }
 
 export const kubTestnet = {
@@ -19,10 +18,8 @@ export const kubTestnet = {
     testnet: true,
 } as const
 
-// Supported chains for junoswap
 export const supportedChains = [bitkub, bsc, kubTestnet, jbc, base, worldchain] as const
 
-// Configure RPC URLs
 const rpcUrls = {
     [bsc.id]: 'https://56.rpc.thirdweb.com',
     [bitkub.id]: 'https://rpc.bitkubchain.io',
@@ -32,7 +29,6 @@ const rpcUrls = {
     [worldchain.id]: 'https://worldchain-mainnet.g.alchemy.com/public',
 }
 
-// Wagmi configuration for junoswap
 export const wagmiConfig = createConfig({
     chains: supportedChains,
     transports: {
@@ -49,7 +45,6 @@ export const wagmiConfig = createConfig({
     }),
 })
 
-// Chain metadata for UI display
 export const chainMetadata = {
     [bsc.id]: {
         name: 'BNB Chain',
@@ -90,30 +85,21 @@ export const chainMetadata = {
     },
 } as const
 
-// Get chain metadata by ID
 export function getChainMetadata(chainId: number) {
     return chainMetadata[chainId as keyof typeof chainMetadata]
 }
 
-/**
- * Check if an address is a native token (ETH, KUB, etc.)
- * Native tokens use special addresses: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
- */
+/** Native tokens (ETH, KUB, …) are represented by the sentinel address 0xeee…eee. */
 export function isNativeToken(address: Address): boolean {
     return address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
 }
 
 /**
- * Chains that should NOT unwrap wrapped native tokens due to regulatory/KYC reasons
- * These chains will collect wrapped tokens (KKUB) instead of native tokens
+ * Chains that must NOT unwrap wrapped native (KYC/regulatory) — they collect the
+ * wrapped token (e.g. KKUB) instead of the native token.
  */
 const SKIP_UNWRAP_CHAINS = [bitkub.id] as const
 
-/**
- * Check if chain should skip native token unwrapping
- * @param chainId - Chain ID to check
- * @returns true if chain should skip unwrapping (collect wrapped tokens instead)
- */
 export function shouldSkipUnwrap(chainId: number): boolean {
     return SKIP_UNWRAP_CHAINS.includes(chainId as (typeof SKIP_UNWRAP_CHAINS)[number])
 }

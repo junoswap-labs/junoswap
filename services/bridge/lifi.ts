@@ -15,9 +15,6 @@ interface BridgeRoutesParams {
     slippage?: number
 }
 
-/**
- * Fetch multiple bridge routes (returns ranked route options)
- */
 export async function fetchBridgeRoutes(params: BridgeRoutesParams): Promise<Route[]> {
     const routesRequest: RoutesRequest = {
         fromChainId: params.fromChainId,

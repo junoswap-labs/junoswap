@@ -19,8 +19,6 @@ import { calculateGraduationSqrtPriceX96 } from '@/lib/liquidity-helpers'
 import { getV3Config } from '@/lib/dex-config'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 
-// ============ Types ============
-
 type PoolStatus = 'no_pool' | 'not_initialized' | 'correct' | 'wrong'
 
 export type GraduationStep =
@@ -57,8 +55,6 @@ interface UseGraduateResult {
     hash: Address | undefined
 }
 
-// ============ Step labels ============
-
 const STEP_LABELS: Record<GraduationStep, string> = {
     idle: '',
     'checking-pool': 'Checking pool state...',
@@ -80,8 +76,6 @@ const PRICE_TOLERANCE_BPS = 400n
 
 // Mirrors INITIALTOKEN in PumpCoreNative.sol (1B tokens, 18 decimals)
 const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
-
-// ============ Hook ============
 
 export function useGraduate({
     tokenAddr,
@@ -154,7 +148,7 @@ export function useGraduate({
             const positionManager = v3Config.positionManager!
             const swapRouter = v3Config.swapRouter!
 
-            // ---- 1. Read fresh reserves + cap from contract ----
+            // 1. Read fresh reserves + cap from contract
             const [freshReserves, onChainCap] = await Promise.all([
                 publicClient.readContract({
                     address: PUMP_CORE_NATIVE_ADDRESS,
@@ -177,7 +171,7 @@ export function useGraduate({
                 throw new Error('Not ready to graduate — bonding curve has not reached the cap')
             }
 
-            // ---- 2. Compute correct sqrtPriceX96 from fresh reserves ----
+            // 2. Compute correct sqrtPriceX96 from fresh reserves
             const correctSqrtPrice = calculateGraduationSqrtPriceX96(
                 tokenAddr,
                 wrappedNative,
@@ -190,7 +184,7 @@ export function useGraduate({
             const token0: Address = tokenIsToken0 ? tokenAddr : wrappedNative
             const token1: Address = tokenIsToken0 ? wrappedNative : tokenAddr
 
-            // ---- 2. Check pool state ----
+            // 2. Check pool state
             const poolAddress = (await publicClient.readContract({
                 address: factory,
                 abi: UNISWAP_V3_FACTORY_ABI,
@@ -226,7 +220,7 @@ export function useGraduate({
             const rescue = poolStatus === 'wrong'
             setNeedsRescue(rescue)
 
-            // ---- 3a. No pool or not initialized → create & init ----
+            // 3a. No pool or not initialized → create & init
             if (poolStatus === 'no_pool' || poolStatus === 'not_initialized') {
                 setStep('initializing-pool')
                 await sendTx({
@@ -237,12 +231,12 @@ export function useGraduate({
                 })
             }
 
-            // ---- 3b. Wrong price → rescue ----
+            // 3b. Wrong price → rescue
             if (rescue) {
                 // Determine swap direction early (needed for approvals)
                 const priceTooHigh = currentSqrtPrice > correctSqrtPrice
 
-                // ---- 3b.1 Buy tokens (skip if already have some) ----
+                // 3b.1 Buy tokens (skip if already have some)
                 const tokenBalBefore = (await publicClient.readContract({
                     address: tokenAddr,
                     abi: ERC20_ABI,
@@ -261,7 +255,7 @@ export function useGraduate({
                     })
                 }
 
-                // ---- 3b.2 Wrap KUB (skip or wrap deficit) ----
+                // 3b.2 Wrap KUB (skip or wrap deficit)
                 const kubToWrap = (nativeReserve * 85n) / 1000n
                 const wkubBalBefore = (await publicClient.readContract({
                     address: wrappedNative,
@@ -280,7 +274,7 @@ export function useGraduate({
                     })
                 }
 
-                // ---- 3b.3 Approve tokens (skip each if allowance sufficient) ----
+                // 3b.3 Approve tokens (skip each if allowance sufficient)
                 const readAllowance = async (token: Address, spender: Address) =>
                     (await publicClient.readContract({
                         address: token,
@@ -359,7 +353,7 @@ export function useGraduate({
                     }
                 }
 
-                // ---- 3b.4 Add liquidity (skip if existing rescue position found) ----
+                // 3b.4 Add liquidity (skip if existing rescue position found)
                 const findRescuePosition = async (): Promise<bigint | null> => {
                     const count = (await publicClient.readContract({
                         address: positionManager,
@@ -455,7 +449,7 @@ export function useGraduate({
                     if (!tokenId) throw new Error('Failed to get position tokenId from mint')
                 }
 
-                // ---- 3b.5 Swap to correct price (skip if already correct) ----
+                // 3b.5 Swap to correct price (skip if already correct)
                 const latestSlot0 = (await publicClient.readContract({
                     address: poolAddress,
                     abi: UNISWAP_V3_POOL_ABI,
@@ -525,7 +519,7 @@ export function useGraduate({
                     }
                 }
 
-                // ---- 3b.6 Remove liquidity (skip if already removed) ----
+                // 3b.6 Remove liquidity (skip if already removed)
                 const position = (await publicClient.readContract({
                     address: positionManager,
                     abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -581,7 +575,7 @@ export function useGraduate({
                 })
             }
 
-            // ---- 4. Graduate ----
+            // 4. Graduate
             setStep('graduating')
             await sendTx({
                 address: PUMP_CORE_NATIVE_ADDRESS,
@@ -590,7 +584,7 @@ export function useGraduate({
                 args: [tokenAddr],
             })
 
-            // ---- 5. Unwrap remaining tKKUB ----
+            // 5. Unwrap remaining tKKUB
             if (rescue) {
                 setStep('unwrapping')
                 const remainingWkub = (await publicClient.readContract({

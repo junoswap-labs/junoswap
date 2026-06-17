@@ -5,10 +5,7 @@ import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@/lib/abis/nonfungible-positio
 import { getWrappedNativeAddress } from '@/services/tokens'
 import { shouldSkipUnwrap } from '@/lib/wagmi'
 
-/**
- * Build collect fees parameters
- * Uses MAX_UINT128 to collect all available fees
- */
+/** MAX_UINT128 for amount0Max/amount1Max collects all accrued fees. */
 export function buildCollectFeesParams(tokenId: bigint, recipient: Address): CollectCallParams {
     return {
         tokenId,
@@ -18,9 +15,6 @@ export function buildCollectFeesParams(tokenId: bigint, recipient: Address): Col
     }
 }
 
-/**
- * Encode collect function call
- */
 function encodeCollect(params: CollectCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -29,9 +23,6 @@ function encodeCollect(params: CollectCallParams): Hex {
     })
 }
 
-/**
- * Encode unwrapWETH9 function call
- */
 function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -40,9 +31,6 @@ function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     })
 }
 
-/**
- * Encode sweepToken function call
- */
 function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,

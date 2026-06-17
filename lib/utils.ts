@@ -25,13 +25,9 @@ export function formatTimeAgo(timestampSeconds: number): string {
  * Blocks: multiple decimals, leading zeros (05), scientific notation (e5)
  */
 export function isValidNumberInput(value: string): boolean {
-    // Allow empty string
     if (value === '') return true
-    // Only allow digits and one decimal point
     if (!/^\d*\.?\d*$/.test(value)) return false
-    // Don't allow multiple decimal points
     if ((value.match(/\./g) || []).length > 1) return false
-    // Don't allow leading zeros followed by digits (e.g., "05" → "0.5" is ok, but "05" is not)
-    if (/^0\d+$/.test(value)) return false
+    if (/^0\d+$/.test(value)) return false // reject "05"-style leading zeros
     return true
 }

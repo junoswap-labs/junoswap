@@ -27,26 +27,20 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
             href={`/launchpad/token/${event.tokenAddr}`}
             className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-card/50 px-2.5 py-1 text-[11px] transition-colors hover:border-primary/40 hover:bg-accent/50"
         >
-            {/* Buy/Sell dot */}
             <span
                 className={cn(
                     'h-1.5 w-1.5 shrink-0 rounded-full',
                     event.isBuy ? 'bg-positive' : 'bg-negative'
                 )}
             />
-            {/* Symbol */}
             <span className="font-semibold">{symbol}</span>
-            {/* Action */}
             <span className={cn('font-medium', event.isBuy ? 'text-positive' : 'text-negative')}>
                 {event.isBuy ? 'bought' : 'sold'}
             </span>
-            {/* Amount */}
             <span className="font-mono tabular-nums tracking-tight">
                 {formatTokenAmount(BigInt(Math.round(tokenAmount * 1e18)))}
             </span>
-            {/* Value */}
             <span className="text-muted-foreground">{formatCompact(valueKub)} KUB</span>
-            {/* Wallet */}
             <span
                 className="hidden cursor-pointer font-mono text-muted-foreground hover:text-foreground transition-colors sm:inline"
                 onClick={(e) => {
@@ -60,7 +54,6 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
             >
                 {formatAddress(event.sender)}
             </span>
-            {/* Time */}
             <span className="text-muted-foreground">{formatTimeAgo(event.timestamp)} </span>
         </Link>
     )
@@ -106,7 +99,6 @@ export function ActivityTicker() {
     return (
         <div className="mb-4 overflow-hidden">
             <div className="flex items-center">
-                {/* Scrolling trades */}
                 <div className="min-w-0 flex-1 overflow-hidden py-2 pl-3">
                     <div className="ticker-scroll flex items-center gap-2">
                         {tickerItems.map((event, i) => (

@@ -56,7 +56,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         buyAmount: bigint
     } | null>(null)
 
-    // --- Read contract state ---
     const { data: createFee } = useReadContract({
         address: PUMP_CORE_NATIVE_ADDRESS,
         abi: PUMP_CORE_NATIVE_ABI,
@@ -78,7 +77,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         chainId: PUMP_CORE_NATIVE_CHAIN_ID,
     })
 
-    // --- Parse upfront buy amount ---
     const upfrontBuyNative = useMemo(() => {
         const str = form?.upfrontBuyAmount?.trim()
         if (!str || str === '0' || str === '0.0' || str === '0.00') return 0n
@@ -90,7 +88,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }, [form?.upfrontBuyAmount])
 
-    // --- Calculate expected buy output (uses initial reserve state) ---
+    // Calculate expected buy output (uses initial reserve state)
     const expectedTokens = useMemo(() => {
         if (upfrontBuyNative <= 0n || initialNative === undefined || virtualAmount === undefined)
             return 0n
@@ -107,7 +105,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         [expectedTokens, settings.slippageBps]
     )
 
-    // --- Total cost ---
     const createCost = useMemo(() => {
         if (createFee === undefined || initialNative === undefined) return 0n
         return (createFee as bigint) + (initialNative as bigint)
@@ -115,7 +112,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
 
     const totalCost = useMemo(() => createCost + upfrontBuyNative, [createCost, upfrontBuyNative])
 
-    // --- Transaction 1: Create Token ---
+    // Transaction 1: Create Token
     const {
         data: createHash,
         writeContract: writeCreate,
@@ -140,7 +137,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     const isCreateConfirming = !!createHash && !createReceipt
     const isCreateSuccess = !!createReceipt && createReceipt.status === 'success'
 
-    // --- Transaction 2: Buy ---
+    // Transaction 2: Buy
     const {
         data: buyHash,
         writeContract: writeBuy,
@@ -165,7 +162,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     const isBuyConfirming = !!buyHash && !buyReceipt
     const isBuySuccess = !!buyReceipt && buyReceipt.status === 'success'
 
-    // --- Parse token address from creation receipt ---
+    // Parse token address from creation receipt
     const parseTokenAddress = async (hash: Address): Promise<Address | null> => {
         if (!publicClient) return null
         try {
@@ -176,7 +173,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }
 
-    // --- Effect: When create succeeds, trigger buy or mark success ---
+    // Effect: When create succeeds, trigger buy or mark success
     const didTriggerBuy = useRef(false)
 
     useEffect(() => {
@@ -246,14 +243,14 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }, [isCreateSuccess, createHash, upfrontBuyNative, minTokenOut, writeBuy])
 
-    // --- Effect: When buy succeeds ---
+    // Effect: When buy succeeds
     useEffect(() => {
         if (isBuySuccess) {
             setPhase('success')
         }
     }, [isBuySuccess])
 
-    // --- Effect: Handle errors ---
+    // Effect: Handle errors
     useEffect(() => {
         if (
             phase === 'creating' &&
@@ -275,7 +272,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }, [phase, isBuyWriteError, buyWriteError, buyReceipt])
 
-    // --- Reset on new create call ---
+    // Reset on new create call
     const create = (logoOverride?: string) => {
         if (!form || createCost === 0n) return
         setPhase('creating')
@@ -301,7 +298,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         })
     }
 
-    // --- Computed state ---
     const isExecuting =
         (phase === 'creating' && isCreateExecuting) || (phase === 'buying' && isBuyExecuting)
     const isConfirming =

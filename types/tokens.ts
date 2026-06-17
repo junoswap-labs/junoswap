@@ -1,8 +1,5 @@
 import type { Address } from 'viem'
 
-/**
- * Token information
- */
 export interface Token {
     address: Address
     symbol: string

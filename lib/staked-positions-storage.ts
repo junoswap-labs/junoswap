@@ -31,9 +31,6 @@ function setStorageData(data: StakedPositionsData): void {
     }
 }
 
-/**
- * Get all staked tokenIds for a specific chain and address
- */
 export function getStakedTokenIds(chainId: number, address: string): bigint[] {
     const data = getStorageData()
     const chainData = data[chainId.toString()]
@@ -45,9 +42,6 @@ export function getStakedTokenIds(chainId: number, address: string): bigint[] {
     return tokenIds.map((id) => BigInt(id))
 }
 
-/**
- * Add a staked tokenId to localStorage
- */
 export function addStakedTokenId(chainId: number, address: string, tokenId: bigint): void {
     const data = getStorageData()
     const chainKey = chainId.toString()
@@ -67,9 +61,6 @@ export function addStakedTokenId(chainId: number, address: string, tokenId: bigi
     }
 }
 
-/**
- * Remove a staked tokenId from localStorage (on unstake/withdraw)
- */
 export function removeStakedTokenId(chainId: number, address: string, tokenId: bigint): void {
     const data = getStorageData()
     const chainKey = chainId.toString()
@@ -80,7 +71,6 @@ export function removeStakedTokenId(chainId: number, address: string, tokenId: b
     const tokenIdStr = tokenId.toString()
     data[chainKey][addressKey] = data[chainKey][addressKey].filter((id) => id !== tokenIdStr)
 
-    // Clean up empty entries
     if (data[chainKey][addressKey].length === 0) {
         delete data[chainKey][addressKey]
     }
@@ -91,9 +81,7 @@ export function removeStakedTokenId(chainId: number, address: string, tokenId: b
     setStorageData(data)
 }
 
-/**
- * Set all staked tokenIds for a chain/address (used after event query fallback)
- */
+/** Overwrites the stored set; used after the on-chain event-query fallback. */
 export function setStakedTokenIds(chainId: number, address: string, tokenIds: bigint[]): void {
     const data = getStorageData()
     const chainKey = chainId.toString()
@@ -107,9 +95,6 @@ export function setStakedTokenIds(chainId: number, address: string, tokenIds: bi
     setStorageData(data)
 }
 
-/**
- * Check if localStorage has any stored tokenIds for a chain/address
- */
 export function hasStoredTokenIds(chainId: number, address: string): boolean {
     const data = getStorageData()
     const chainData = data[chainId.toString()]

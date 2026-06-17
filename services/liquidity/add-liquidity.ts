@@ -16,15 +16,11 @@ import {
 import { isNativeToken } from '@/lib/wagmi'
 import { getWrappedNativeAddress } from '@/services/tokens'
 
-/**
- * Build mint parameters for creating a new liquidity position
- */
 export function buildMintParams(params: AddLiquidityParams): MintCallParams {
-    // Sort tokens - V3 requires token0 < token1
+    // V3 requires token0 < token1, so sort and reorder the amounts to match
     const [token0, token1] = sortTokens(params.token0, params.token1)
     const isToken0First = token0.address === params.token0.address
 
-    // Get amounts in correct order
     const amount0Desired = isToken0First ? params.amount0Desired : params.amount1Desired
     const amount1Desired = isToken0First ? params.amount1Desired : params.amount0Desired
 
@@ -37,7 +33,6 @@ export function buildMintParams(params: AddLiquidityParams): MintCallParams {
     const amount0Min = 0n
     const amount1Min = 0n
 
-    // Ensure ticks are properly aligned
     const tickSpacing = getTickSpacing(params.fee)
     const tickLower = nearestUsableTick(params.tickLower, tickSpacing)
     const tickUpper = nearestUsableTick(params.tickUpper, tickSpacing)
@@ -57,9 +52,6 @@ export function buildMintParams(params: AddLiquidityParams): MintCallParams {
     }
 }
 
-/**
- * Build increase liquidity parameters for an existing position
- */
 export function buildIncreaseLiquidityParams(
     params: IncreaseLiquidityParams
 ): IncreaseLiquidityCallParams {
@@ -79,9 +71,6 @@ export function buildIncreaseLiquidityParams(
     }
 }
 
-/**
- * Encode mint function call
- */
 function encodeMint(params: MintCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -90,9 +79,6 @@ function encodeMint(params: MintCallParams): Hex {
     })
 }
 
-/**
- * Encode increaseLiquidity function call
- */
 function encodeIncreaseLiquidity(params: IncreaseLiquidityCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -101,9 +87,6 @@ function encodeIncreaseLiquidity(params: IncreaseLiquidityCallParams): Hex {
     })
 }
 
-/**
- * Encode createAndInitializePoolIfNecessary function call
- */
 function encodeCreateAndInitializePool(
     token0: Address,
     token1: Address,
@@ -117,9 +100,6 @@ function encodeCreateAndInitializePool(
     })
 }
 
-/**
- * Encode refundETH function call
- */
 function encodeRefundETH(): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -142,7 +122,6 @@ export function buildMintWithNativeMulticall(
     const token1IsNative = isNativeToken(params.token1.address)
 
     if (!token0IsNative && !token1IsNative) {
-        // No native token, single mint call
         const mintParams = buildMintParams(params)
         return {
             data: [encodeMint(mintParams)],
@@ -150,7 +129,6 @@ export function buildMintWithNativeMulticall(
         }
     }
 
-    // Replace native token with wrapped version
     const wrappedNative = getWrappedNativeAddress(chainId)
     const modifiedParams = { ...params }
 
@@ -198,7 +176,6 @@ export function buildPoolCreationMulticall(
     const Q96 = 2n ** 96n
     const finalSqrtPriceX96 = isReversed ? (Q96 * Q96) / sqrtPriceX96 : sqrtPriceX96
 
-    // Use wrapped native address for pool creation
     const poolToken0 =
         token0IsNative && sortedToken0.address.toLowerCase() === params.token0.address.toLowerCase()
             ? wrappedNative
@@ -215,7 +192,6 @@ export function buildPoolCreationMulticall(
         finalSqrtPriceX96
     )
 
-    // Build mint data (handles native token wrapping and refundETH)
     const { data: mintData, value } = buildMintWithNativeMulticall(params, chainId)
 
     return {
@@ -224,9 +200,6 @@ export function buildPoolCreationMulticall(
     }
 }
 
-/**
- * Build multicall data for increasing liquidity with native token
- */
 export function buildIncreaseLiquidityWithNativeMulticall(
     params: IncreaseLiquidityParams,
     hasNativeToken: boolean,

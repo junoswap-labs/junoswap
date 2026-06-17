@@ -390,9 +390,6 @@ const BSC_TOKENS: Token[] = [
     },
 ]
 
-/**
- * Token list by chain ID
- */
 export const TOKEN_LISTS: Record<number, Token[]> = {
     [kubTestnet.id]: KUB_TESTNET_TOKENS,
     [bitkub.id]: KUB_MAINNET_TOKENS,
@@ -402,9 +399,6 @@ export const TOKEN_LISTS: Record<number, Token[]> = {
     [bsc.id]: BSC_TOKENS,
 }
 
-/**
- * Get tokens for a specific chain
- */
 export function getTokensForChain(chainId: number): Token[] {
     return TOKEN_LISTS[chainId] || []
 }
@@ -431,12 +425,8 @@ export function getDefaultPairTokens(chainId: number): {
     return { stablecoin, nativeTokens }
 }
 
-/**
- * Find token by address on a specific chain
- */
 export function findTokenByAddress(chainId: number, address: string): Token | undefined {
     const tokens = TOKEN_LISTS[chainId] || []
-    // Handle native token
     if (isNativeToken(address as Address)) {
         return tokens.find((t) => t.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
     }

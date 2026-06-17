@@ -10,8 +10,6 @@ import type { ActivityEvent } from '@/types/portfolio'
 
 const PAGE_SIZE = 20
 
-// ── GraphQL response types ──────────────────────────────────────────
-
 interface BondingCurvePage {
     swapEvents: {
         items: Array<{
@@ -77,8 +75,6 @@ interface V3TokenMetaPage {
         }>
     }
 }
-
-// ── Fetch helpers ───────────────────────────────────────────────────
 
 async function fetchBondingCurveEvents(
     sender: string,
@@ -234,8 +230,6 @@ async function fetchV3TokenMeta(
     }
     return map
 }
-
-// ── Hook ────────────────────────────────────────────────────────────
 
 export function useUserActivity(
     address: Address | undefined,
