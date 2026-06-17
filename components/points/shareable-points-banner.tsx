@@ -96,9 +96,9 @@ export function ShareablePointsBanner({
     const accent = getTierAccent(resolvedTier.name)
     const hasPoints = resolvedSummary.points > 0
 
-    const handleCapture = (action: (el: HTMLElement) => Promise<void>) => {
+    const handleSave = () => {
         if (!cardRef.current) return
-        action(cardRef.current)
+        downloadImage(cardRef.current, 'junoswap-points.png', 'My Junoswap Points')
     }
 
     return (
@@ -128,7 +128,7 @@ export function ShareablePointsBanner({
                             </div>
                             {!isEmptyState && (
                                 <button
-                                    onClick={() => handleCapture(downloadImage)}
+                                    onClick={handleSave}
                                     disabled={isGenerating}
                                     aria-label="Save image"
                                     className="rounded-full p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"

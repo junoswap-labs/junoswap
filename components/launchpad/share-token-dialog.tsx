@@ -92,7 +92,11 @@ export function ShareTokenDialog({
 
     const saveImage = () => {
         if (!cardRef.current) return
-        downloadImage(cardRef.current, `junoswap-${symbol.toLowerCase()}.png`)
+        downloadImage(
+            cardRef.current,
+            `junoswap-${symbol.toLowerCase()}.png`,
+            `$${symbol} on Junoswap`
+        )
     }
 
     return (
