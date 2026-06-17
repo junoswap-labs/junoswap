@@ -1,38 +1,58 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { toPng, toBlob } from 'html-to-image'
-import { toastSuccess, toastError } from '@/lib/toast'
+import { toBlob } from 'html-to-image'
+import { toastError } from '@/lib/toast'
 
 interface UseShareableImageReturn {
     downloadImage: (element: HTMLElement, filename?: string) => Promise<void>
-    shareImage: (element: HTMLElement) => Promise<void>
-    copyToClipboard: (element: HTMLElement) => Promise<void>
     isGenerating: boolean
+}
+
+// iPadOS 13+ reports its user agent as `Macintosh`, so it's detected via touch points.
+function isMobileDevice(): boolean {
+    if (typeof navigator === 'undefined') return false
+    const ua = navigator.userAgent
+    const isIOS =
+        /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+    return isIOS || /Android/.test(ua)
 }
 
 export function useShareableImage(): UseShareableImageReturn {
     const [isGenerating, setIsGenerating] = useState(false)
 
-    const generateImage = useCallback(async (element: HTMLElement): Promise<string> => {
-        return toPng(element, {
-            pixelRatio: 2,
-            backgroundColor: '#0a0e1a',
-        })
-    }, [])
-
     const downloadImage = useCallback(
         async (element: HTMLElement, filename = 'junoswap-points.png') => {
             setIsGenerating(true)
             try {
-                // Use a blob + object URL rather than a data URL: iOS Safari
-                // ignores the `download` attribute for data: URLs, so this keeps
-                // the save flow working on both desktop and mobile.
                 const blob = await toBlob(element, {
                     pixelRatio: 2,
                     backgroundColor: '#0a0e1a',
+                    // Force a fresh CORS fetch of remote token logos; without this,
+                    // html-to-image reuses the browser's non-CORS cached copy and
+                    // silently drops the image, leaving the icon blank in the capture.
+                    cacheBust: true,
+                    // Drop UI-only chrome (e.g. the save button) from the captured image.
+                    filter: (node) =>
+                        !(node instanceof HTMLElement && node.dataset.captureIgnore !== undefined),
                 })
                 if (!blob) throw new Error('Failed to generate image')
+
+                const file = new File([blob], filename, { type: 'image/png' })
+
+                // iOS/Android ignore the <a download> attribute, so route mobile through
+                // the native share sheet — its "Save Image" action writes to the photo album.
+                // Share files ONLY: adding a title/text/url makes iOS present a generic
+                // share sheet that hides "Save Image", so the album save is no longer offered.
+                if (isMobileDevice() && navigator.canShare?.({ files: [file] })) {
+                    try {
+                        await navigator.share({ files: [file] })
+                        return
+                    } catch (error) {
+                        if (error instanceof Error && error.name === 'AbortError') return
+                        // any other share failure: fall through to the anchor download
+                    }
+                }
 
                 const url = URL.createObjectURL(blob)
                 const link = document.createElement('a')
@@ -52,61 +72,5 @@ export function useShareableImage(): UseShareableImageReturn {
         []
     )
 
-    const copyToClipboard = useCallback(
-        async (element: HTMLElement) => {
-            setIsGenerating(true)
-            try {
-                const blob = await toBlob(element, {
-                    pixelRatio: 2,
-                    backgroundColor: '#0a0e1a',
-                })
-                if (!blob) throw new Error('Failed to generate image')
-
-                try {
-                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-                    toastSuccess('Card copied to clipboard!')
-                } catch {
-                    const dataUrl = await generateImage(element)
-                    await navigator.clipboard.writeText(dataUrl)
-                    toastSuccess('Card image link copied!')
-                }
-            } catch (error) {
-                toastError(error instanceof Error ? error : 'Failed to copy image')
-            } finally {
-                setIsGenerating(false)
-            }
-        },
-        [generateImage]
-    )
-
-    const shareImage = useCallback(
-        async (element: HTMLElement) => {
-            if (!navigator.share) {
-                return copyToClipboard(element)
-            }
-
-            setIsGenerating(true)
-            try {
-                const blob = await toBlob(element, {
-                    pixelRatio: 2,
-                    backgroundColor: '#0a0e1a',
-                })
-                if (!blob) throw new Error('Failed to generate image')
-
-                const file = new File([blob], 'junoswap-points.png', { type: 'image/png' })
-                await navigator.share({
-                    files: [file],
-                    title: 'My Junoswap Points',
-                })
-            } catch (error) {
-                if (error instanceof Error && error.name === 'AbortError') return
-                toastError(error instanceof Error ? error : 'Failed to share image')
-            } finally {
-                setIsGenerating(false)
-            }
-        },
-        [copyToClipboard]
-    )
-
-    return { downloadImage, shareImage, copyToClipboard, isGenerating }
+    return { downloadImage, isGenerating }
 }
