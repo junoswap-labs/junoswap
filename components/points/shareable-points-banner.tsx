@@ -2,6 +2,8 @@
 
 import { useRef } from 'react'
 import { useShareableImage } from '@/hooks/useShareableImage'
+import { Jazzicon } from '@/components/web3/jazzicon'
+import { formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
 import { getTierForPoints } from '@/types/points'
 import { Download } from 'lucide-react'
@@ -66,6 +68,21 @@ function LogoMark({ size = 28 }: { size?: number }) {
     )
 }
 
+function AccountChip({ address }: { address: string }) {
+    return (
+        <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+            <Jazzicon
+                address={address}
+                size={22}
+                className="shrink-0 overflow-hidden rounded-full"
+            />
+            <span className="font-mono text-sm font-medium text-white/75">
+                {formatAddress(address, 4, 3)}
+            </span>
+        </div>
+    )
+}
+
 function StatItem({ value, label }: { value: string; label: string }) {
     return (
         <div className="flex flex-col gap-0.5">
@@ -80,7 +97,7 @@ function StatItem({ value, label }: { value: string; label: string }) {
 }
 
 export function ShareablePointsBanner({
-    address: _address,
+    address,
     userSummary,
     totalPoints: _totalPoints,
     totalVolumeUsd: _totalVolumeUsd,
@@ -131,6 +148,7 @@ export function ShareablePointsBanner({
                                     onClick={handleSave}
                                     disabled={isGenerating}
                                     aria-label="Save image"
+                                    data-capture-ignore
                                     className="rounded-full p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
                                 >
                                     <Download className="h-4 w-4" />
@@ -142,23 +160,26 @@ export function ShareablePointsBanner({
                         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                             {/* Left — tier + headline points */}
                             <div className="min-w-0">
-                                {hasPoints ? (
-                                    <div
-                                        className={`${accent.bg} ${accent.border} inline-flex items-center rounded-full border px-3 py-1`}
-                                    >
-                                        <span
-                                            className={`text-[11px] font-bold uppercase tracking-widest ${accent.text}`}
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    {address && <AccountChip address={address} />}
+                                    {hasPoints ? (
+                                        <div
+                                            className={`${accent.bg} ${accent.border} inline-flex items-center rounded-full border px-3 py-1`}
                                         >
-                                            {resolvedTier.label} Tier
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                                        <span className="text-[11px] font-bold uppercase tracking-widest text-white/50">
-                                            No Tier
-                                        </span>
-                                    </div>
-                                )}
+                                            <span
+                                                className={`text-[11px] font-bold uppercase tracking-widest ${accent.text}`}
+                                            >
+                                                {resolvedTier.label} Tier
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                                            <span className="text-[11px] font-bold uppercase tracking-widest text-white/50">
+                                                No Tier
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
 
                                 <div className="mt-3 flex items-baseline gap-2">
                                     <span className="font-mono text-4xl font-extrabold tracking-tight text-white">

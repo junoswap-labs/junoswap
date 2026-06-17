@@ -32,6 +32,9 @@ export function useShareableImage(): UseShareableImageReturn {
                     // html-to-image reuses the browser's non-CORS cached copy and
                     // silently drops the image, leaving the icon blank in the capture.
                     cacheBust: true,
+                    // Drop UI-only chrome (e.g. the save button) from the captured image.
+                    filter: (node) =>
+                        !(node instanceof HTMLElement && node.dataset.captureIgnore !== undefined),
                 })
                 if (!blob) throw new Error('Failed to generate image')
 
