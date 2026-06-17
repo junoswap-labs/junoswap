@@ -130,7 +130,14 @@ function ActivityRow({
             </TypeChip>
 
             {/* Token icon(s) sit directly in front of each amount */}
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+            <div
+                className={cn(
+                    'flex min-w-0 flex-1 gap-x-3 gap-y-1',
+                    isTransfer
+                        ? 'flex-wrap items-center'
+                        : 'flex-col items-start sm:flex-row sm:flex-wrap sm:items-center'
+                )}
+            >
                 {isTransfer ? (
                     <>
                         <AmountLeg
