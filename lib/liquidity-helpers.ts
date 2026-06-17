@@ -1,32 +1,17 @@
 import type { RangePreset } from '@/types/earn'
 import { TICK_SPACING } from '@/types/earn'
 
-// ============ Constants ============
-
-/**
- * Q96 = 2^96, used in sqrtPriceX96 calculations
- */
+/** Q96 = 2^96, the fixed-point scale used in sqrtPriceX96 values. */
 const Q96 = 2n ** 96n
 
-/**
- * Minimum tick value (-887272)
- */
 export const MIN_TICK = -887272
 
-/**
- * Maximum tick value (887272)
- */
 export const MAX_TICK = 887272
 
-/**
- * Minimum sqrt ratio (corresponds to MIN_TICK)
- */
+/** Minimum sqrt ratio, corresponding to MIN_TICK. */
 export const MIN_SQRT_RATIO = 4295128739n
 
-// ============ Tick/Price Conversions ============
-
 /**
- * Convert tick to sqrtPriceX96
  * sqrtPriceX96 = sqrt(1.0001^tick) * 2^96
  */
 export function tickToSqrtPriceX96(tick: number): bigint {
@@ -68,9 +53,6 @@ export function tickToSqrtPriceX96(tick: number): bigint {
     return sqrtPriceX96
 }
 
-/**
- * Convert sqrtPriceX96 to tick
- */
 export function sqrtPriceX96ToTick(sqrtPriceX96: bigint): number {
     // Get the most significant bit position
     const ratio = sqrtPriceX96 << 32n
@@ -132,17 +114,12 @@ export function sqrtPriceX96ToTick(sqrtPriceX96: bigint): number {
     return tickToSqrtPriceX96(tickHigh) <= sqrtPriceX96 ? tickHigh : tickLow
 }
 
-/**
- * Convert tick to price (token1/token0)
- */
+/** Returns price as token1/token0. */
 export function tickToPrice(tick: number, decimals0: number, decimals1: number): string {
     const sqrtPriceX96 = tickToSqrtPriceX96(tick)
     return sqrtPriceX96ToPrice(sqrtPriceX96, decimals0, decimals1)
 }
 
-/**
- * Convert price to tick
- */
 export function priceToTick(price: string, decimals0: number, decimals1: number): number {
     const priceNum = parseFloat(price)
     if (priceNum <= 0) return MIN_TICK
@@ -155,9 +132,7 @@ export function priceToTick(price: string, decimals0: number, decimals1: number)
     return Math.max(MIN_TICK, Math.min(MAX_TICK, tick))
 }
 
-/**
- * Convert sqrtPriceX96 to price (token1/token0)
- */
+/** Returns price as token1/token0. */
 export function sqrtPriceX96ToPrice(
     sqrtPriceX96: bigint,
     decimals0: number,
@@ -177,7 +152,6 @@ export function sqrtPriceX96ToPrice(
         return '∞'
     }
 
-    // Format with appropriate precision
     if (adjustedPrice < 0.0001) {
         return adjustedPrice.toExponential(4)
     } else if (adjustedPrice < 1) {
@@ -189,27 +163,17 @@ export function sqrtPriceX96ToPrice(
     }
 }
 
-/**
- * Convert price to sqrtPriceX96
- */
 export function priceToSqrtPriceX96(price: string, decimals0: number, decimals1: number): bigint {
     const priceNum = parseFloat(price)
     if (priceNum <= 0) return MIN_SQRT_RATIO
 
-    // Adjust for decimals
     const adjustedPrice = priceNum * Math.pow(10, decimals1 - decimals0)
     const sqrtPrice = Math.sqrt(adjustedPrice)
 
-    // Convert to X96 format
     const sqrtPriceX96 = BigInt(Math.floor(sqrtPrice * Number(Q96)))
     return sqrtPriceX96
 }
 
-// ============ Liquidity Calculations ============
-
-/**
- * Calculate liquidity from amount0
- */
 function getLiquidityForAmount0(
     sqrtPriceAX96: bigint,
     sqrtPriceBX96: bigint,
@@ -222,9 +186,6 @@ function getLiquidityForAmount0(
     return (amount0 * intermediate) / (sqrtPriceBX96 - sqrtPriceAX96)
 }
 
-/**
- * Calculate liquidity from amount1
- */
 function getLiquidityForAmount1(
     sqrtPriceAX96: bigint,
     sqrtPriceBX96: bigint,
@@ -236,9 +197,6 @@ function getLiquidityForAmount1(
     return (amount1 * Q96) / (sqrtPriceBX96 - sqrtPriceAX96)
 }
 
-/**
- * Calculate token amounts from liquidity for a given range
- */
 export function getAmountsForLiquidity(
     sqrtPriceX96: bigint,
     sqrtPriceAX96: bigint,
@@ -271,9 +229,6 @@ export function getAmountsForLiquidity(
     }
 }
 
-/**
- * Calculate amount0 from liquidity
- */
 function getAmount0ForLiquidity(
     sqrtPriceAX96: bigint,
     sqrtPriceBX96: bigint,
@@ -285,9 +240,6 @@ function getAmount0ForLiquidity(
     return (liquidity * Q96 * (sqrtPriceBX96 - sqrtPriceAX96)) / sqrtPriceBX96 / sqrtPriceAX96
 }
 
-/**
- * Calculate amount1 from liquidity
- */
 function getAmount1ForLiquidity(
     sqrtPriceAX96: bigint,
     sqrtPriceBX96: bigint,
@@ -299,10 +251,6 @@ function getAmount1ForLiquidity(
     return (liquidity * (sqrtPriceBX96 - sqrtPriceAX96)) / Q96
 }
 
-/**
- * Calculate the required amount1 given a desired amount0 for a position
- * Returns the amount1 needed to match the amount0 at the current price and range
- */
 export function calculateAmount1FromAmount0(
     sqrtPriceX96: bigint,
     sqrtPriceLowerX96: bigint,
@@ -331,10 +279,6 @@ export function calculateAmount1FromAmount0(
     }
 }
 
-/**
- * Calculate the required amount0 given a desired amount1 for a position
- * Returns the amount0 needed to match the amount1 at the current price and range
- */
 export function calculateAmount0FromAmount1(
     sqrtPriceX96: bigint,
     sqrtPriceLowerX96: bigint,
@@ -363,25 +307,14 @@ export function calculateAmount0FromAmount1(
     }
 }
 
-// ============ Range Helpers ============
-
-/**
- * Check if current tick is within range
- */
 export function isInRange(currentTick: number, tickLower: number, tickUpper: number): boolean {
     return currentTick >= tickLower && currentTick < tickUpper
 }
 
-/**
- * Get tick spacing for a fee tier
- */
 export function getTickSpacing(fee: number): number {
     return TICK_SPACING[fee] ?? 60 // Default to 0.3% spacing
 }
 
-/**
- * Snap tick to nearest usable tick based on tick spacing
- */
 export function nearestUsableTick(tick: number, tickSpacing: number): number {
     const rounded = Math.round(tick / tickSpacing) * tickSpacing
     if (rounded < MIN_TICK) return MIN_TICK + (tickSpacing - (MIN_TICK % tickSpacing))
@@ -389,9 +322,6 @@ export function nearestUsableTick(tick: number, tickSpacing: number): number {
     return rounded
 }
 
-/**
- * Get tick range for a preset
- */
 export function getPresetRange(
     currentTick: number,
     tickSpacing: number,
@@ -440,9 +370,6 @@ export function getPresetRange(
     }
 }
 
-/**
- * Calculate price range percentage from current price
- */
 export function calculateRangePercentage(
     currentTick: number,
     tickLower: number,
@@ -487,11 +414,6 @@ export function calculateSliderViewport(
     return { lower, upper }
 }
 
-// ============ Slippage Calculations ============
-
-/**
- * Calculate minimum amounts after slippage
- */
 export function calculateMinAmounts(
     amount0: bigint,
     amount1: bigint,
@@ -504,14 +426,9 @@ export function calculateMinAmounts(
     }
 }
 
-/**
- * Calculate deadline timestamp
- */
 export function calculateDeadline(deadlineMinutes: number): bigint {
     return BigInt(Math.floor(Date.now() / 1000) + deadlineMinutes * 60)
 }
-
-// ============ Graduation Helpers ============
 
 /**
  * Pure BigInt integer square root using Newton's method.
@@ -583,20 +500,13 @@ export function calculateGraduationSqrtPriceX96(
     return sqrtPriceX96 > MAX_UINT160 ? MAX_UINT160 : sqrtPriceX96
 }
 
-// ============ Token Sorting ============
-
-/**
- * Sort tokens by address (token0 < token1)
- */
+/** Sorts so the lower address is token0, matching the V3 convention. */
 export function sortTokens<T extends { address: string }>(tokenA: T, tokenB: T): [T, T] {
     const addressA = tokenA.address.toLowerCase()
     const addressB = tokenB.address.toLowerCase()
     return addressA < addressB ? [tokenA, tokenB] : [tokenB, tokenA]
 }
 
-/**
- * Format fee tier for display
- */
 export function formatFeeTier(fee: number): string {
     return `${(fee / 10000).toFixed(2)}%`
 }

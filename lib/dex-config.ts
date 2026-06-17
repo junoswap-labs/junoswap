@@ -2,27 +2,17 @@ import type { Address } from 'viem'
 import type { DEXType } from '@/types/dex'
 import { kubTestnet, jbc, bitkub, worldchain, base, bsc } from './wagmi'
 
-/**
- * Protocol types supported by the DEX system
- */
 export enum ProtocolType {
     V2 = 'v2',
     V3 = 'v3',
 }
 
-/**
- * Base configuration interface for all protocol types
- */
 interface BaseProtocolConfig {
     protocolType: ProtocolType
     chainId: number
     enabled: boolean
 }
 
-/**
- * Uniswap V2 protocol configuration
- * Used for constant product AMM DEXs
- */
 interface V2Config extends BaseProtocolConfig {
     protocolType: ProtocolType.V2
     factory: Address
@@ -30,10 +20,6 @@ interface V2Config extends BaseProtocolConfig {
     wnative?: Address
 }
 
-/**
- * Uniswap V3 protocol configuration
- * Used for concentrated liquidity AMM DEXs
- */
 interface V3Config extends BaseProtocolConfig {
     protocolType: ProtocolType.V3
     factory: Address
@@ -46,14 +32,8 @@ interface V3Config extends BaseProtocolConfig {
     routerVersion?: 'v1' | 'v2' // v1 = original SwapRouter (has deadline param), v2 = SwapRouter02 (no deadline)
 }
 
-/**
- * Union type of all protocol configurations
- */
 type ProtocolConfig = V2Config | V3Config
 
-/**
- * DEX configuration containing all protocols supported by a DEX
- */
 interface DEXConfiguration {
     dexId: DEXType
     defaultProtocol: ProtocolType
@@ -61,9 +41,6 @@ interface DEXConfiguration {
     protocols: Record<number, Partial<Record<ProtocolType, ProtocolConfig>>>
 }
 
-/**
- * Fee tiers for Uniswap V3 pools
- */
 export const FEE_TIERS = {
     STABLE: 100, // 0.01%
     LOW: 500, // 0.05%
@@ -71,10 +48,7 @@ export const FEE_TIERS = {
     HIGH: 10000, // 1%
 } as const
 
-/**
- * Fee tiers for PancakeSwap V3 pools
- * NOTE: PancakeSwap uses 0.25% (2500) instead of Uniswap's 0.3% (3000)
- */
+/** NOTE: PancakeSwap's standard tier is 0.25% (2500), not Uniswap's 0.3% (3000). */
 const PANCAKESWAP_FEE_TIERS = {
     STABLE: 100, // 0.01%
     LOW: 500, // 0.05%
@@ -82,9 +56,6 @@ const PANCAKESWAP_FEE_TIERS = {
     HIGH: 10000, // 1%
 } as const
 
-/**
- * Unified DEX configuration registry
- */
 const DEX_CONFIGS_REGISTRY: Record<DEXType, DEXConfiguration> = {
     junoswap: {
         dexId: 'junoswap',
@@ -278,9 +249,6 @@ const DEX_CONFIGS_REGISTRY: Record<DEXType, DEXConfiguration> = {
     },
 }
 
-/**
- * Get V3 protocol configuration with type narrowing
- */
 export function getV3Config(chainId: number, dexId?: DEXType): V3Config | undefined {
     const targetDex = dexId || 'junoswap'
     const dexConfig = DEX_CONFIGS_REGISTRY[targetDex]
@@ -298,17 +266,11 @@ export function getV3Config(chainId: number, dexId?: DEXType): V3Config | undefi
     return config?.protocolType === ProtocolType.V3 && config.enabled ? config : undefined
 }
 
-/**
- * Get V3 Staker contract address for LP mining
- */
 export function getV3StakerAddress(chainId: number, dexId?: DEXType): Address | undefined {
     const config = getV3Config(chainId, dexId)
     return config?.staker
 }
 
-/**
- * Get V2 protocol configuration with type narrowing
- */
 export function getV2Config(chainId: number, dexId?: DEXType): V2Config | undefined {
     const targetDex = dexId || 'junoswap'
     const dexConfig = DEX_CONFIGS_REGISTRY[targetDex]
@@ -326,9 +288,6 @@ export function getV2Config(chainId: number, dexId?: DEXType): V2Config | undefi
     return config?.protocolType === ProtocolType.V2 && config.enabled ? config : undefined
 }
 
-/**
- * Get default protocol configuration for a DEX on a chain
- */
 export function getDexConfig(chainId: number, dexId?: DEXType): ProtocolConfig | undefined {
     const targetDex = dexId || 'junoswap'
     const dexConfig = DEX_CONFIGS_REGISTRY[targetDex]
@@ -345,9 +304,6 @@ export function getDexConfig(chainId: number, dexId?: DEXType): ProtocolConfig |
     return chainProtocols[dexConfig.defaultProtocol]
 }
 
-/**
- * Get all DEXs that support a specific protocol on a chain
- */
 export function getDexsByProtocol(chainId: number, protocolType: ProtocolType): DEXType[] {
     return Object.entries(DEX_CONFIGS_REGISTRY)
         .filter(([_, dexConfig]) => {
@@ -365,9 +321,6 @@ export function getDexsByProtocol(chainId: number, protocolType: ProtocolType): 
         })
 }
 
-/**
- * Get all supported DEXs for a chain (any protocol)
- */
 export function getSupportedDexs(chainId: number): DEXType[] {
     return Object.entries(DEX_CONFIGS_REGISTRY)
         .filter(([_, dexConfig]) => {
@@ -384,31 +337,14 @@ export function getSupportedDexs(chainId: number): DEXType[] {
         })
 }
 
-/**
- * Type guard to check if config is V2Config
- */
 export function isV2Config(config: ProtocolConfig): config is V2Config {
     return config.protocolType === ProtocolType.V2
 }
 
-/**
- * Type guard to check if config is V3Config
- */
 export function isV3Config(config: ProtocolConfig): config is V3Config {
     return config.protocolType === ProtocolType.V3
 }
 
-/**
- * Get the spender address for token approval based on protocol type
- * Different protocols use different contract addresses for approvals:
- * - V2: router
- * - V3: swapRouter
- * - Aggregator: aggregator
- * - Stable: registry (typically)
- *
- * @param config Protocol configuration
- * @returns Spender address or undefined if config is invalid
- */
 export function getProtocolSpender(config: ProtocolConfig): Address | undefined {
     switch (config.protocolType) {
         case ProtocolType.V2:
@@ -420,25 +356,17 @@ export function getProtocolSpender(config: ProtocolConfig): Address | undefined 
     }
 }
 
-/**
- * Check if a DEX uses SwapRouter v1 (original, has deadline param)
- * Default is v2 (SwapRouter02, no deadline) if not specified
- */
+/** Defaults to v2 (SwapRouter02, no deadline) when routerVersion is unspecified. */
 export function isRouterV1(chainId: number, dexId?: DEXType): boolean {
     const config = getV3Config(chainId, dexId)
     return config?.routerVersion === 'v1'
 }
 
-/**
- * Default fee tier to use (0.3% is most common)
- */
 export const DEFAULT_FEE_TIER = FEE_TIERS.MEDIUM
 
 /**
- * Get the default DEX for a given chain
- * Returns 'pancakeswap' for BSC (uses PancakeSwap V3)
- * Returns 'uniswap' for Worldchain and Base (uses actual Uniswap V3)
- * Returns 'junoswap' for other chains (uses forked/custom deployments)
+ * pancakeswap on BSC, uniswap on Worldchain/Base (real Uniswap V3),
+ * junoswap elsewhere (forked/custom deployments).
  */
 export function getDefaultDexForChain(chainId: number): DEXType {
     if (chainId === bsc.id) return 'pancakeswap'

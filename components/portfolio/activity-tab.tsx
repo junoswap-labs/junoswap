@@ -22,8 +22,6 @@ import type { ActivityEvent } from '@/types/portfolio'
 const PAGE_SIZE = 20
 const NATIVE_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
 
-// ── Date grouping ───────────────────────────────────────────────────
-
 function groupByDate(events: ActivityEvent[]): { label: string; events: ActivityEvent[] }[] {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000
@@ -45,8 +43,6 @@ function groupByDate(events: ActivityEvent[]): { label: string; events: Activity
     }
     return Array.from(groups.entries()).map(([label, events]) => ({ label, events }))
 }
-
-// ── Shared row pieces ───────────────────────────────────────────────
 
 function TypeChip({ children, className }: { children: ReactNode; className?: string }) {
     return (
@@ -85,8 +81,6 @@ function AmountLeg({
         </span>
     )
 }
-
-// ── Unified activity row (trade + transfer branches) ────────────────
 
 function ActivityRow({
     event,
@@ -197,7 +191,7 @@ function ActivityRow({
     )
 }
 
-// ── Loading skeleton (mirrors the row layout) ───────────────────────
+// Loading skeleton mirrors the row layout
 
 function LoadingSkeleton() {
     return (
@@ -224,8 +218,6 @@ function LoadingSkeleton() {
         </div>
     )
 }
-
-// ── Main component ──────────────────────────────────────────────────
 
 interface ActivityTabProps {
     address: Address

@@ -95,7 +95,7 @@ export function BridgeStatus({ route, onComplete }: BridgeStatusProps) {
                 setPhase(hasDestTx ? 'destination' : 'bridging')
             }
         } catch {
-            // Silently ignore polling errors
+            /* transient poll error — keep polling */
         }
     }, [route, onComplete])
 

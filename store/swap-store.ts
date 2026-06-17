@@ -5,17 +5,12 @@ import type { SwapSettings, SwapState, QuoteResult, DexQuote } from '@/types/swa
 import type { DEXType } from '@/types/dex'
 
 interface SwapStore extends SwapState {
-    // Settings
     settings: SwapSettings
-    // DEX selection
     selectedDex: DEXType
-    // Multi-DEX quotes state
     dexQuotes: Record<DEXType, DexQuote>
     bestQuoteDex: DEXType | null
-    // URL sync state
     isUpdatingFromUrl: boolean
 
-    // Actions
     setTokenIn: (token: Token | null) => void
     setTokenOut: (token: Token | null) => void
     setSelectedDex: (dex: DEXType) => void
@@ -37,7 +32,6 @@ interface SwapStore extends SwapState {
     reset: () => void
 }
 
-// Default swap settings
 const defaultSettings: SwapSettings = {
     slippage: 0.5,
     slippagePreset: '0.5',
@@ -46,7 +40,6 @@ const defaultSettings: SwapSettings = {
     autoSelectBestDex: true,
 }
 
-// Initial swap state
 const initialState: SwapState = {
     tokenIn: null,
     tokenOut: null,
@@ -68,28 +61,22 @@ export const useSwapStore = create<SwapStore>()(
                 dexQuotes: {},
                 bestQuoteDex: null,
 
-                // Token actions
                 setTokenIn: (token) => set({ tokenIn: token }),
 
                 setTokenOut: (token) => set({ tokenOut: token }),
 
                 setSelectedDex: (dex) => set({ selectedDex: dex }),
 
-                // Amount actions
                 setAmountIn: (amount) => set({ amountIn: amount }),
 
                 setAmountOut: (amount) => set({ amountOut: amount }),
 
-                // Quote actions
                 setQuote: (quote) => set({ quote }),
 
-                // Loading state
                 setIsLoading: (loading) => set({ isLoading: loading }),
 
-                // Error state
                 setError: (error) => set({ error }),
 
-                // Settings actions
                 setSlippage: (slippage) =>
                     set((state) => ({
                         settings: {
@@ -135,7 +122,6 @@ export const useSwapStore = create<SwapStore>()(
                         },
                     })),
 
-                // Swap tokens (reverse)
                 swapTokens: () =>
                     set((state) => ({
                         tokenIn: state.tokenOut,
@@ -147,29 +133,25 @@ export const useSwapStore = create<SwapStore>()(
 
                 setIsUpdatingFromUrl: (updating) => set({ isUpdatingFromUrl: updating }),
 
-                // Multi-DEX quotes actions
                 setDexQuotes: (quotes) => set({ dexQuotes: quotes }),
                 setBestQuoteDex: (dexId) => set({ bestQuoteDex: dexId }),
                 clearDexQuotes: () => set({ dexQuotes: {}, bestQuoteDex: null }),
 
-                // Reset to initial state
                 reset: () => set(initialState),
             }),
             {
                 name: 'junoswap-swap-store',
-                // Only persist settings, not the current swap state
                 partialize: (state) => ({
                     settings: state.settings,
                 }),
-                // CRITICAL: Merge persisted settings with defaults to handle new fields
+                // Merge persisted settings over defaults so newly-added setting fields are populated
                 merge: (persistedState, currentState) => {
                     const persisted = persistedState as Partial<SwapStore>
                     return {
                         ...currentState,
-                        // Deep merge settings to include new fields from defaults
                         settings: {
-                            ...defaultSettings, // Start with defaults (includes new fields)
-                            ...persisted.settings, // Override with persisted values
+                            ...defaultSettings,
+                            ...persisted.settings,
                         },
                     }
                 },

@@ -12,8 +12,7 @@ import { UNISWAP_V3_SWAP_ROUTER_V1_ABI } from '@/lib/abis/uniswap-v3-swap-router
 const ADDRESS_THIS = '0x0000000000000000000000000000000000000002' as Address
 
 /**
- * Get a quote from QuoterV2 contract
- * This should be called from a hook using useReadContract
+ * Returns QuoterV2 read params; call from a hook via useReadContract (it does not fetch).
  */
 export function buildQuoteParams(
     tokenIn: Address,
@@ -31,9 +30,6 @@ export function buildQuoteParams(
     }
 }
 
-/**
- * Build swap parameters for exactInputSingle
- */
 export function buildSwapParams(
     params: SwapParams,
     fee: number = DEFAULT_FEE_TIER,
@@ -50,19 +46,12 @@ export function buildSwapParams(
     }
 }
 
-/**
- * Calculate minimum output amount based on slippage tolerance
- * @param amountOut The expected output amount
- * @param slippageBasisPoints Slippage in basis points (100 = 1%)
- */
+/** slippageBasisPoints is in basis points (100 = 1%). */
 export function calculateMinOutput(amountOut: bigint, slippageBasisPoints: number): bigint {
     const slippageMultiplier = BigInt(10000 - slippageBasisPoints)
     return (amountOut * slippageMultiplier) / 10000n
 }
 
-/**
- * Encode exactInputSingle call for multicall
- */
 function encodeExactInputSingle(params: {
     tokenIn: Address
     tokenOut: Address
@@ -79,9 +68,6 @@ function encodeExactInputSingle(params: {
     })
 }
 
-/**
- * Encode unwrapWETH9 call for multicall
- */
 export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: UNISWAP_V3_SWAP_ROUTER_ABI,
@@ -90,10 +76,6 @@ export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): He
     })
 }
 
-/**
- * Build multicall data for swapping to native token
- * Returns array of encoded calls: [exactInputSingle, unwrapWETH9]
- */
 export function buildMulticallSwapToNative(
     params: SwapParams,
     fee: number,
@@ -119,16 +101,10 @@ export function buildMulticallSwapToNative(
     return [swapCall, unwrapCall]
 }
 
-// ============================================================================
-// Multi-Hop Routing Functions
-// ============================================================================
-
 /**
- * Encode a multi-hop path for V3 exactInput/exactOutput
- * Path format: tokenA (20 bytes) + fee1 (3 bytes) + tokenB (20 bytes) + fee2 (3 bytes) + tokenC (20 bytes)
- *
- * @param tokens Array of token addresses in swap order
- * @param fees Array of fee tiers (length = tokens.length - 1)
+ * Encode a multi-hop path for V3 exactInput/exactOutput.
+ * Path format: token (20 bytes) + fee (3 bytes) + token (20 bytes) + fee (3 bytes) + … + token.
+ * `fees` length must be `tokens.length - 1`.
  */
 export function encodeV3Path(tokens: Address[], fees: number[]): Hex {
     if (tokens.length < 2) throw new Error('Path must have at least 2 tokens')
@@ -140,10 +116,8 @@ export function encodeV3Path(tokens: Address[], fees: number[]): Hex {
         const token = tokens[i]
         if (!token) throw new Error(`Token at index ${i} is undefined`)
 
-        // Add token address (20 bytes)
         parts.push(token.toLowerCase() as Hex)
 
-        // Add fee tier if not the last token (3 bytes = 24 bits)
         if (i < fees.length) {
             const fee = fees[i]
             if (fee === undefined) throw new Error(`Fee at index ${i} is undefined`)
@@ -155,9 +129,6 @@ export function encodeV3Path(tokens: Address[], fees: number[]): Hex {
     return concat(parts)
 }
 
-/**
- * Build swap parameters for multi-hop exactInput
- */
 export function buildMultiHopSwapParams(
     tokens: Address[],
     fees: number[],
@@ -175,9 +146,6 @@ export function buildMultiHopSwapParams(
     }
 }
 
-/**
- * Encode exactInput call for multicall (multi-hop)
- */
 function encodeExactInput(params: {
     path: Hex
     recipient: Address
@@ -191,10 +159,6 @@ function encodeExactInput(params: {
     })
 }
 
-/**
- * Build multicall data for multi-hop swap to native token
- * Returns array of encoded calls: [exactInput, unwrapWETH9]
- */
 export function buildMulticallMultiHopSwapToNative(
     tokens: Address[],
     fees: number[],
@@ -219,13 +183,7 @@ export function buildMulticallMultiHopSwapToNative(
     return [swapCall, unwrapCall]
 }
 
-// ============================================================================
-// SwapRouter V1 Functions (original Uniswap V3 router — has deadline param)
-// ============================================================================
-
-/**
- * Build swap parameters for SwapRouter v1 exactInputSingle (includes deadline)
- */
+// SwapRouter V1 = the original Uniswap V3 router; these variants carry the extra deadline param.
 export function buildSwapParamsV1(
     params: SwapParams,
     fee: number = DEFAULT_FEE_TIER,
@@ -243,9 +201,6 @@ export function buildSwapParamsV1(
     }
 }
 
-/**
- * Encode exactInputSingle call for SwapRouter v1 multicall
- */
 function encodeExactInputSingleV1(params: {
     tokenIn: Address
     tokenOut: Address
@@ -263,9 +218,6 @@ function encodeExactInputSingleV1(params: {
     })
 }
 
-/**
- * Encode exactInput (multi-hop) call for SwapRouter v1 — includes deadline
- */
 function encodeExactInputV1(params: {
     path: Hex
     recipient: Address
@@ -280,9 +232,6 @@ function encodeExactInputV1(params: {
     })
 }
 
-/**
- * Build swap parameters for SwapRouter v1 multi-hop exactInput
- */
 export function buildMultiHopSwapParamsV1(
     tokens: Address[],
     fees: number[],
@@ -302,9 +251,6 @@ export function buildMultiHopSwapParamsV1(
     }
 }
 
-/**
- * Build multicall data for SwapRouter v1 swap-to-native
- */
 export function buildMulticallSwapToNativeV1(
     params: SwapParams,
     fee: number,
@@ -330,9 +276,6 @@ export function buildMulticallSwapToNativeV1(
     return [swapCall, unwrapCall]
 }
 
-/**
- * Build multicall data for SwapRouter v1 multi-hop swap-to-native
- */
 export function buildMulticallMultiHopSwapToNativeV1(
     tokens: Address[],
     fees: number[],

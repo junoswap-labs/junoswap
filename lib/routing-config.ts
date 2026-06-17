@@ -86,9 +86,6 @@ export const INTERMEDIARY_TOKENS: Record<number, IntermediaryConfig> = {
     },
 }
 
-/**
- * Get intermediary tokens for a chain in priority order
- */
 export function getIntermediaryTokens(chainId: number): Address[] {
     return INTERMEDIARY_TOKENS[chainId]?.priority ?? []
 }

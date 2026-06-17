@@ -44,7 +44,7 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
             setCopied(true)
             setTimeout(() => setCopied(false), 1500)
         } catch {
-            // silently ignore clipboard errors
+            /* clipboard unavailable — ignore */
         }
     }
     const handleViewOnExplorer = () => {

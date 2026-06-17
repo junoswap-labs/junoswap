@@ -3,8 +3,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
-// ── Size system ──────────────────────────────────────────────────────────────
-
 type TokenIconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
 const SIZE_MAP: Record<TokenIconSize, { container: string; text: string }> = {
@@ -15,16 +13,12 @@ const SIZE_MAP: Record<TokenIconSize, { container: string; text: string }> = {
     xl: { container: 'h-20 w-20', text: 'text-xl' },
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function getInitials(symbol: string | null | undefined): string {
     if (!symbol) return '?'
     const cleaned = symbol.replace(/[^a-zA-Z0-9]/g, '')
     if (!cleaned) return '?'
     return cleaned.slice(0, 2).toUpperCase()
 }
-
-// ── TokenIcon ────────────────────────────────────────────────────────────────
 
 export interface TokenIconProps {
     /** Image URL for the token logo */
@@ -64,8 +58,6 @@ export function TokenIcon({
     )
 }
 
-// ── TokenIconPair (overlapping LP pair) ──────────────────────────────────────
-
 export interface TokenIconPairProps {
     src0?: string | null
     symbol0?: string | null
@@ -100,8 +92,6 @@ export function TokenIconPair({
         </div>
     )
 }
-
-// ── TokenIconSkeleton ────────────────────────────────────────────────────────
 
 export interface TokenIconSkeletonProps {
     size?: TokenIconSize

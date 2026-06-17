@@ -1,32 +1,20 @@
 import type { IncentiveKey } from '@/types/earn'
 
-/**
- * Check if an incentive is currently active (started but not ended)
- */
 export function isIncentiveActive(key: IncentiveKey): boolean {
     const now = Math.floor(Date.now() / 1000)
     return now >= key.startTime && now < key.endTime
 }
 
-/**
- * Check if an incentive has ended
- */
 export function isIncentiveEnded(key: IncentiveKey): boolean {
     const now = Math.floor(Date.now() / 1000)
     return now >= key.endTime
 }
 
-/**
- * Check if an incentive has not started yet
- */
 export function isIncentivePending(key: IncentiveKey): boolean {
     const now = Math.floor(Date.now() / 1000)
     return now < key.startTime
 }
 
-/**
- * Get the remaining time for an active incentive
- */
 export function getTimeRemaining(endTime: number): {
     days: number
     hours: number
@@ -59,9 +47,6 @@ export function getTimeRemaining(endTime: number): {
     }
 }
 
-/**
- * Format time remaining for display
- */
 export function formatTimeRemaining(endTime: number): string {
     const { days, hours, minutes, isEnded } = getTimeRemaining(endTime)
 
@@ -71,18 +56,12 @@ export function formatTimeRemaining(endTime: number): string {
     return `${minutes}m remaining`
 }
 
-/**
- * Get incentive status label
- */
 export function getIncentiveStatus(key: IncentiveKey): 'pending' | 'active' | 'ended' {
     if (isIncentivePending(key)) return 'pending'
     if (isIncentiveEnded(key)) return 'ended'
     return 'active'
 }
 
-/**
- * Get progress percentage for an active incentive
- */
 export function getIncentiveProgress(startTime: number, endTime: number): number {
     const now = Math.floor(Date.now() / 1000)
 

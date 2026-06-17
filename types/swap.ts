@@ -3,9 +3,6 @@ import type { DEXType } from './dex'
 import type { SwapRoute } from './routing'
 import { ProtocolType } from '@/lib/dex-config'
 
-/**
- * Swap parameters for executing a swap
- */
 export interface SwapParams {
     tokenIn: Address
     tokenOut: Address
@@ -14,14 +11,10 @@ export interface SwapParams {
     recipient: Address
     slippageTolerance: number // in basis points (100 = 1%, 500 = 5%)
     deadline: number // Unix timestamp in seconds
-    // Multi-hop support
-    path?: Address[] // Full path for multi-hop [tokenIn, ...intermediaries, tokenOut]
+    path?: Address[] // Full multi-hop path [tokenIn, ...intermediaries, tokenOut]
     fees?: number[] // Fee tiers for V3 multi-hop (length = path.length - 1)
 }
 
-/**
- * Quote result from Quoter contract
- */
 export interface QuoteResult {
     amountOut: bigint
     sqrtPriceX96After: bigint
@@ -29,9 +22,6 @@ export interface QuoteResult {
     gasEstimate: bigint
 }
 
-/**
- * Individual DEX quote result for multi-DEX comparison
- */
 export interface DexQuote {
     dexId: DEXType
     quote: QuoteResult | null
@@ -44,9 +34,6 @@ export interface DexQuote {
     isMultiHop?: boolean
 }
 
-/**
- * Swap execution result
- */
 export interface SwapResult {
     hash: Address
     amountOut: bigint
@@ -54,14 +41,8 @@ export interface SwapResult {
     error?: string
 }
 
-/**
- * Slippage tolerance preset
- */
 export type SlippagePreset = '0.1' | '0.5' | '1' | 'custom'
 
-/**
- * Swap settings
- */
 export interface SwapSettings {
     slippage: number // in percentage (0.1, 0.5, 1, etc.)
     slippagePreset: SlippagePreset
@@ -70,9 +51,6 @@ export interface SwapSettings {
     autoSelectBestDex: boolean
 }
 
-/**
- * Swap state for UI
- */
 export interface SwapState {
     tokenIn: Token | null
     tokenOut: Token | null
@@ -84,10 +62,7 @@ export interface SwapState {
     isUpdatingFromUrl: boolean
 }
 
-/**
- * URL parameters for swap page
- * Format: /swap?input={address}&output={address}&amount={string}&chain={chainId}
- */
+/** URL format: /swap?input={address}&output={address}&amount={string}&chain={chainId} */
 export interface SwapUrlParams {
     input?: string // Token address
     output?: string // Token address
@@ -95,9 +70,6 @@ export interface SwapUrlParams {
     chain?: string // Chain ID as string
 }
 
-/**
- * Validated and parsed URL parameters
- */
 export interface ParsedSwapUrlParams {
     tokenIn: Token | null
     tokenOut: Token | null
@@ -107,5 +79,4 @@ export interface ParsedSwapUrlParams {
     errors: string[]
 }
 
-// Import Token type from tokens.ts
 import type { Token } from './tokens'

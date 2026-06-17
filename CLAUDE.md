@@ -19,6 +19,7 @@ contracts/      Foundry Solidity project (PumpCoreNative bonding curve) — git 
 
 - Runtime: **bun only** — never use npm, yarn, or pnpm. Lockfile is `bun.lock`.
 - Tests: test business logic, not framework behavior — skip tautologies, passthroughs, exact duplicates, and trivial defaults.
+- Comments: comment only genuinely complex or non-obvious code — the *why*, gotchas, workarounds, magic-value/address decoders, sign conventions, contract-ABI correspondences, and math derivations. Do NOT add section-divider banners (`// ==== X ====`, `// ── X ──`), one-word grouping labels (`// Settings`, `// Actions`), JSDoc that restates the function/type name, or inline narration of self-evident code.
 
 ## Notes
 

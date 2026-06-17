@@ -1,10 +1,9 @@
 import type { Address } from 'viem'
 import type { Token } from './tokens'
 
-// ============ Position Types ============
-
 /**
- * Raw V3 position data from the NonfungiblePositionManager contract
+ * Raw V3 position data straight from the NonfungiblePositionManager contract.
+ * Enriched into PositionWithTokens, then PositionDetails (adds live pool state).
  */
 export interface V3Position {
     tokenId: bigint
@@ -22,9 +21,6 @@ export interface V3Position {
     tokensOwed1: bigint
 }
 
-/**
- * V3 position enriched with token information
- */
 export interface PositionWithTokens extends V3Position {
     token0Info: Token
     token1Info: Token
@@ -36,9 +32,6 @@ export interface PositionWithTokens extends V3Position {
     uncollectedFees1: bigint
 }
 
-/**
- * Full position details including current pool state
- */
 export interface PositionDetails extends PositionWithTokens {
     currentTick: number
     sqrtPriceX96: bigint
@@ -50,11 +43,6 @@ export interface PositionDetails extends PositionWithTokens {
     feesValueUsd?: number
 }
 
-// ============ Pool Types ============
-
-/**
- * V3 pool data
- */
 export interface V3PoolData {
     address: Address
     token0: Token
@@ -69,11 +57,6 @@ export interface V3PoolData {
     apr?: number
 }
 
-// ============ Liquidity Operation Types ============
-
-/**
- * Parameters for creating a new liquidity position
- */
 export interface AddLiquidityParams {
     token0: Token
     token1: Token
@@ -89,9 +72,6 @@ export interface AddLiquidityParams {
     initialSqrtPriceX96?: bigint
 }
 
-/**
- * Parameters for increasing liquidity on an existing position
- */
 export interface IncreaseLiquidityParams {
     tokenId: bigint
     amount0Desired: bigint
@@ -100,9 +80,6 @@ export interface IncreaseLiquidityParams {
     deadline: number
 }
 
-/**
- * Parameters for removing liquidity from a position
- */
 export interface RemoveLiquidityParams {
     tokenId: bigint
     liquidity: bigint
@@ -112,9 +89,6 @@ export interface RemoveLiquidityParams {
     collectFees: boolean
 }
 
-/**
- * Parameters for collecting fees from a position
- */
 export interface CollectFeesParams {
     tokenId: bigint
     recipient: Address
@@ -122,16 +96,8 @@ export interface CollectFeesParams {
     amount1Max: bigint
 }
 
-// ============ Range Selection Types ============
-
-/**
- * Range preset options for concentrated liquidity
- */
 export type RangePreset = 'full' | 'safe' | 'common' | 'narrow' | 'custom'
 
-/**
- * Range configuration for a position
- */
 export interface RangeConfig {
     preset: RangePreset
     tickLower: number
@@ -140,9 +106,6 @@ export interface RangeConfig {
     priceUpper: string
 }
 
-/**
- * Range preset configuration
- */
 interface RangePresetConfig {
     label: string
     value: RangePreset
@@ -150,11 +113,7 @@ interface RangePresetConfig {
     tickRange?: number // Percentage of ticks from current (e.g., 50 means ±50% from current)
 }
 
-// ============ Contract Call Types ============
-
-/**
- * Mint call parameters (matches NonfungiblePositionManager.mint)
- */
+/** Mirrors the NonfungiblePositionManager.mint argument struct. */
 export interface MintCallParams {
     token0: Address
     token1: Address
@@ -169,9 +128,6 @@ export interface MintCallParams {
     deadline: bigint
 }
 
-/**
- * IncreaseLiquidity call parameters
- */
 export interface IncreaseLiquidityCallParams {
     tokenId: bigint
     amount0Desired: bigint
@@ -181,9 +137,6 @@ export interface IncreaseLiquidityCallParams {
     deadline: bigint
 }
 
-/**
- * DecreaseLiquidity call parameters
- */
 export interface DecreaseLiquidityCallParams {
     tokenId: bigint
     liquidity: bigint
@@ -192,9 +145,6 @@ export interface DecreaseLiquidityCallParams {
     deadline: bigint
 }
 
-/**
- * Collect call parameters
- */
 export interface CollectCallParams {
     tokenId: bigint
     recipient: Address
@@ -202,11 +152,6 @@ export interface CollectCallParams {
     amount1Max: bigint
 }
 
-// ============ Store Types ============
-
-/**
- * Earn feature settings (persisted)
- */
 export interface EarnSettings {
     defaultSlippage: number // basis points
     defaultDeadlineMinutes: number
@@ -214,16 +159,9 @@ export interface EarnSettings {
     showAllPools: boolean
 }
 
-// ============ Constants ============
-
-/**
- * Maximum uint128 value for collecting all fees
- */
+/** Passed as amount0Max/amount1Max to collect all accrued fees. */
 export const MAX_UINT128 = 2n ** 128n - 1n
 
-/**
- * Tick spacing by fee tier
- */
 export const TICK_SPACING: Record<number, number> = {
     100: 1, // 0.01%
     500: 10, // 0.05%
@@ -232,9 +170,6 @@ export const TICK_SPACING: Record<number, number> = {
     10000: 200, // 1%
 }
 
-/**
- * Default range presets
- */
 export const RANGE_PRESETS: RangePresetConfig[] = [
     {
         label: 'Full Range',
@@ -266,9 +201,6 @@ export const RANGE_PRESETS: RangePresetConfig[] = [
     },
 ]
 
-/**
- * Default earn settings
- */
 export const DEFAULT_EARN_SETTINGS: EarnSettings = {
     defaultSlippage: 50, // 0.5%
     defaultDeadlineMinutes: 20,
@@ -276,9 +208,6 @@ export const DEFAULT_EARN_SETTINGS: EarnSettings = {
     showAllPools: true,
 }
 
-/**
- * Default range config
- */
 export const DEFAULT_RANGE_CONFIG: RangeConfig = {
     preset: 'common',
     tickLower: 0,
@@ -287,11 +216,7 @@ export const DEFAULT_RANGE_CONFIG: RangeConfig = {
     priceUpper: '0',
 }
 
-// ============ Staking/Mining Types ============
-
-/**
- * IncentiveKey structure matching V3 Staker contract
- */
+/** Matches the IncentiveKey struct in the V3 Staker contract. */
 export interface IncentiveKey {
     rewardToken: Address
     pool: Address
@@ -300,41 +225,29 @@ export interface IncentiveKey {
     refundee: Address
 }
 
-/**
- * Incentive data with computed fields
- */
 export interface Incentive extends IncentiveKey {
     incentiveId: `0x${string}` // keccak256 hash of IncentiveKey
     totalRewardUnclaimed: bigint
     totalSecondsClaimedX128: bigint
     numberOfStakes: number
-    // Enriched token info
     rewardTokenInfo: Token
     poolToken0: Token
     poolToken1: Token
     poolFee: number
-    // Status
     isActive: boolean
     isEnded: boolean
 }
 
-/**
- * User's staked position in an incentive
- */
 export interface StakedPosition {
     tokenId: bigint
     incentiveId: `0x${string}`
     liquidity: bigint
     secondsPerLiquidityInsideInitialX128: bigint
-    // Enriched data
     position: PositionWithTokens
     incentive: Incentive
     pendingRewards: bigint
 }
 
-/**
- * Deposit info from V3 Staker contract
- */
 export interface DepositInfo {
     owner: Address
     numberOfStakes: number
@@ -342,24 +255,15 @@ export interface DepositInfo {
     tickUpper: number
 }
 
-/**
- * Parameters for unstaking a position
- */
 export interface UnstakeParams {
     tokenId: bigint
     incentiveKey: IncentiveKey
 }
 
-/**
- * Mining settings (persisted)
- */
 export interface MiningSettings {
     hideEndedIncentives: boolean
 }
 
-/**
- * Default mining settings
- */
 export const DEFAULT_MINING_SETTINGS: MiningSettings = {
     hideEndedIncentives: true,
 }

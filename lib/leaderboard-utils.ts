@@ -6,7 +6,6 @@ import type { LeaderboardTimePeriod } from '@/types/leaderboard'
 /** Chains that have indexed Ponder V3 swap data for the leaderboard/points/portfolio. */
 const LEADERBOARD_SUPPORTED_CHAINS = new Set<number>([kubTestnet.id, bitkub.id, jbc.id])
 
-/** Returns true if the given chain has indexed leaderboard/points data. */
 export function isLeaderboardSupportedChain(chainId: number): boolean {
     return LEADERBOARD_SUPPORTED_CHAINS.has(chainId)
 }

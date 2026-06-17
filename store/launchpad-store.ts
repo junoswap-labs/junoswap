@@ -5,14 +5,11 @@ import type { LaunchpadSettings } from '@/types/launchpad'
 import { DEFAULT_LAUNCHPAD_SETTINGS } from '@/types/launchpad'
 
 interface LaunchpadStore {
-    // Settings (persisted)
     settings: LaunchpadSettings
 
-    // UI state (not persisted)
     isCreateDialogOpen: boolean
     selectedTokenAddress: Address | null
 
-    // Actions
     setIsCreateDialogOpen: (open: boolean) => void
     setSelectedTokenAddress: (addr: Address | null) => void
     setSlippageBps: (bps: number) => void

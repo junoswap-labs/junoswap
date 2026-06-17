@@ -3,11 +3,8 @@ import { getSwapAddress } from '@/services/tokens'
 import { isNativeToken } from '@/lib/wagmi'
 
 /**
- * Build swap path array for V2 router
- * V2 uses simple address[] path, no fee tiers
- *
- * @param wnative Optional DEX-specific wrapped native token address
- * Some DEXs (like jibswap) use their own wrapped native token instead of the chain's standard wrapped token
+ * `wnative` overrides the chain's standard wrapped-native address — some DEXs (e.g. jibswap)
+ * use their own wrapped native token, so native legs must route through it instead.
  */
 function buildSwapPath(
     tokenIn: Address,
@@ -18,7 +15,6 @@ function buildSwapPath(
     const defaultSwapIn = getSwapAddress(tokenIn, chainId)
     const defaultSwapOut = getSwapAddress(tokenOut, chainId)
 
-    // If DEX has custom wrapped native, use it for native tokens
     if (wnative) {
         const nativeIn = isNativeToken(tokenIn)
         const nativeOut = isNativeToken(tokenOut)
@@ -28,9 +24,6 @@ function buildSwapPath(
     return [defaultSwapIn, defaultSwapOut]
 }
 
-/**
- * Build quote params for getAmountsOut call
- */
 export function buildV2QuoteParams(
     tokenIn: Address,
     tokenOut: Address,
@@ -44,9 +37,6 @@ export function buildV2QuoteParams(
     }
 }
 
-/**
- * V2 Swap parameters interface
- */
 interface V2SwapParams {
     tokenIn: Address
     tokenOut: Address
@@ -56,9 +46,6 @@ interface V2SwapParams {
     deadline: number
 }
 
-/**
- * Build swap params for Router02 swap functions
- */
 export function buildV2SwapParams(params: V2SwapParams, chainId: number, wnative?: Address) {
     const path = buildSwapPath(params.tokenIn, params.tokenOut, chainId, wnative)
     return {
@@ -70,28 +57,12 @@ export function buildV2SwapParams(params: V2SwapParams, chainId: number, wnative
     }
 }
 
-/**
- * Calculate minimum output with slippage
- * @param amountOut The expected output amount
- * @param slippageBasisPoints Slippage in basis points (100 = 1%)
- */
+/** slippageBasisPoints is in basis points (100 = 1%). */
 export function calculateMinOutput(amountOut: bigint, slippageBasisPoints: number): bigint {
     const slippageMultiplier = BigInt(10000 - slippageBasisPoints)
     return (amountOut * slippageMultiplier) / 10000n
 }
 
-// ============================================================================
-// Multi-Hop Routing Functions
-// ============================================================================
-
-/**
- * Build multi-hop swap path array for V2 router
- * V2 uses simple address[] path for multi-hop
- *
- * @param tokens Array of token addresses in swap order
- * @param chainId Chain ID
- * @param wnative Optional DEX-specific wrapped native token address
- */
 export function buildMultiHopSwapPath(
     tokens: Address[],
     chainId: number,
@@ -106,9 +77,6 @@ export function buildMultiHopSwapPath(
     })
 }
 
-/**
- * V2 Multi-hop Swap parameters interface
- */
 interface V2MultiHopSwapParams {
     path: Address[]
     amountIn: bigint
@@ -117,9 +85,6 @@ interface V2MultiHopSwapParams {
     deadline: number
 }
 
-/**
- * Build V2 swap params for multi-hop
- */
 export function buildV2MultiHopSwapParams(
     params: V2MultiHopSwapParams,
     chainId: number,

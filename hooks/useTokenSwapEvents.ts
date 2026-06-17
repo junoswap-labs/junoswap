@@ -133,7 +133,7 @@ export function useTokenSwapEvents(
 
             // For graduated tokens, merge V3 + bonding curve events
             if (isGraduated) {
-                // --- Bonding curve events (historical, finite) ---
+                // Bonding curve events (historical, finite)
                 const hasBcIsBuy = filters?.isBuy !== undefined
                 const hasBcSender = !!filters?.sender
                 const bcQuery = buildBondingCurveQuery(hasBcIsBuy, hasBcSender)
@@ -145,7 +145,7 @@ export function useTokenSwapEvents(
                 if (hasBcIsBuy) bcVariables.isBuy = filters!.isBuy! ? 1 : 0
                 if (hasBcSender) bcVariables.sender = filters!.sender!.toLowerCase()
 
-                // --- V3 events (server-side pagination, txFrom filter) ---
+                // V3 events (server-side pagination, txFrom filter)
                 const v3Variables: Record<string, unknown> = {
                     tokenAddr: tokenAddr.toLowerCase(),
                     limit: fetchLimit,

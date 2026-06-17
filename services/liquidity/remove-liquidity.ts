@@ -10,9 +10,6 @@ import { calculateDeadline } from '@/lib/liquidity-helpers'
 import { getWrappedNativeAddress } from '@/services/tokens'
 import { shouldSkipUnwrap } from '@/lib/wagmi'
 
-/**
- * Build decrease liquidity parameters
- */
 function buildDecreaseLiquidityParams(params: RemoveLiquidityParams): DecreaseLiquidityCallParams {
     return {
         tokenId: params.tokenId,
@@ -23,9 +20,6 @@ function buildDecreaseLiquidityParams(params: RemoveLiquidityParams): DecreaseLi
     }
 }
 
-/**
- * Encode decreaseLiquidity function call
- */
 function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -34,9 +28,6 @@ function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): Hex {
     })
 }
 
-/**
- * Encode collect function call
- */
 function encodeCollect(params: CollectCallParams): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -45,9 +36,6 @@ function encodeCollect(params: CollectCallParams): Hex {
     })
 }
 
-/**
- * Encode unwrapWETH9 function call
- */
 export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -56,9 +44,6 @@ export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): He
     })
 }
 
-/**
- * Encode sweepToken function call (for leftover tokens)
- */
 function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
         abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
@@ -84,11 +69,9 @@ export function buildRemoveWithCollectMulticall(
 ): Hex[] {
     const data: Hex[] = []
 
-    // 1. Decrease liquidity
     const decreaseCallParams = buildDecreaseLiquidityParams(decreaseParams)
     data.push(encodeDecreaseLiquidity(decreaseCallParams))
 
-    // Check if either token is native (wrapped)
     const wrappedNative = getWrappedNativeAddress(chainId)
     const token0IsWrappedNative = token0Address.toLowerCase() === wrappedNative.toLowerCase()
     const token1IsWrappedNative = token1Address.toLowerCase() === wrappedNative.toLowerCase()
@@ -108,13 +91,11 @@ export function buildRemoveWithCollectMulticall(
         }
         data.push(encodeCollect(collectParams))
 
-        // Unwrap the wrapped native token
         const unwrapAmount = token0IsWrappedNative
             ? decreaseParams.amount0Min
             : decreaseParams.amount1Min
         data.push(encodeUnwrapWETH9(unwrapAmount, recipient))
 
-        // Sweep the other token
         const sweepToken = token0IsWrappedNative ? token1Address : token0Address
         const sweepAmount = token0IsWrappedNative
             ? decreaseParams.amount1Min
