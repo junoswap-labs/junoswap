@@ -98,7 +98,7 @@ export function ShareablePointsBanner({
 
     const handleSave = () => {
         if (!cardRef.current) return
-        downloadImage(cardRef.current, 'junoswap-points.png', 'My Junoswap Points')
+        downloadImage(cardRef.current, 'junoswap-points.png')
     }
 
     return (

@@ -5,7 +5,7 @@ import { toBlob } from 'html-to-image'
 import { toastError } from '@/lib/toast'
 
 interface UseShareableImageReturn {
-    downloadImage: (element: HTMLElement, filename?: string, title?: string) => Promise<void>
+    downloadImage: (element: HTMLElement, filename?: string) => Promise<void>
     isGenerating: boolean
 }
 
@@ -22,11 +22,7 @@ export function useShareableImage(): UseShareableImageReturn {
     const [isGenerating, setIsGenerating] = useState(false)
 
     const downloadImage = useCallback(
-        async (
-            element: HTMLElement,
-            filename = 'junoswap-points.png',
-            title = 'My Junoswap Points'
-        ) => {
+        async (element: HTMLElement, filename = 'junoswap-points.png') => {
             setIsGenerating(true)
             try {
                 const blob = await toBlob(element, {
@@ -43,9 +39,11 @@ export function useShareableImage(): UseShareableImageReturn {
 
                 // iOS/Android ignore the <a download> attribute, so route mobile through
                 // the native share sheet — its "Save Image" action writes to the photo album.
+                // Share files ONLY: adding a title/text/url makes iOS present a generic
+                // share sheet that hides "Save Image", so the album save is no longer offered.
                 if (isMobileDevice() && navigator.canShare?.({ files: [file] })) {
                     try {
-                        await navigator.share({ files: [file], title })
+                        await navigator.share({ files: [file] })
                         return
                     } catch (error) {
                         if (error instanceof Error && error.name === 'AbortError') return
