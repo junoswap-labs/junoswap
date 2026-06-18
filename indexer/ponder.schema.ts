@@ -88,6 +88,61 @@ export const v3SwapEvent = onchainTable('v3_swap_event', (t) => ({
     blockNumber: t.integer().notNull(),
     timestamp: t.integer().notNull(),
     transactionHash: t.text().notNull(),
+    // 1 when the swap's calldata carried the juno tracking marker — i.e. it was
+    // routed through this frontend. Junoswap's own pool swaps are untagged (0).
+    viaFrontend: t.integer().notNull().default(0),
+    // Optional ?ref= attribution address from the tracking suffix. Null when no
+    // referral link was used (independent of viaFrontend).
+    referrer: t.text(),
+    // Both pool legs, for the generalized (token/token) activity display. Populated
+    // for external (kublerx) rows; Junoswap rows may leave these null and use the
+    // native-paired tokenAddr/tokenIsToken0 decode.
+    token0Addr: t.text(),
+    token1Addr: t.text(),
+    // Liquidity source the swap executed on (matches lib/dex-config dexIds):
+    // 'junoswap' for our own V3 pools, 'kublerx' for the external V3 DEX.
+    protocol: t.text().notNull().default(''),
+}))
+
+// Swaps on external (non-Junoswap) Uniswap-V2-style pairs, indexed from the
+// tracking start block onward. Shape mirrors v3SwapEvent; amounts follow the V2
+// Swap event (separate in/out per token side).
+export const v2SwapEvent = onchainTable('v2_swap_event', (t) => ({
+    id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
+    poolAddress: t.text().notNull(),
+    tokenAddr: t.text().notNull(),
+    tokenIsToken0: t.integer().notNull().default(1),
+    sender: t.text().notNull(),
+    to: t.text().notNull(),
+    txFrom: t.text().notNull(),
+    amount0In: t.text().notNull(),
+    amount1In: t.text().notNull(),
+    amount0Out: t.text().notNull(),
+    amount1Out: t.text().notNull(),
+    blockNumber: t.integer().notNull(),
+    timestamp: t.integer().notNull(),
+    transactionHash: t.text().notNull(),
+    // Always 1 — external V2 pools only record swaps that carry the juno marker.
+    viaFrontend: t.integer().notNull().default(0),
+    referrer: t.text(),
+    // Both pool legs (denormalized) so the activity feed renders both sides without
+    // a join — supports token/token pools that have no native leg.
+    token0Addr: t.text().notNull(),
+    token1Addr: t.text().notNull(),
+    // External V2 DEX the swap executed on (matches lib/dex-config dexIds):
+    // 'jibswap' | 'udonswap' | 'ponder' | 'diamon'.
+    protocol: t.text().notNull().default(''),
+}))
+
+export const v2Pool = onchainTable('v2_pool', (t) => ({
+    id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
+    address: t.text().notNull(),
+    token0: t.text().notNull(),
+    token1: t.text().notNull(),
+    createdAtBlock: t.integer().notNull(),
+    createdAtTimestamp: t.integer().notNull(),
 }))
 
 export const v3Token = onchainTable('v3_token', (t) => ({

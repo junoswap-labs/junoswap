@@ -16,7 +16,12 @@ import {
     computeTraderStatsByAddress,
     type LeaderboardSwapEvent,
 } from '@/services/dex/portfolio-pnl'
-import { getTimeThreshold, fetchSwapEvents, fetchV3SwapEvents } from '@/lib/leaderboard-utils'
+import {
+    getTimeThreshold,
+    fetchSwapEvents,
+    fetchV3SwapEvents,
+    fetchV2SwapEvents,
+} from '@/lib/leaderboard-utils'
 import type { LeaderboardTimePeriod, TraderSortKey, SortDirection } from '@/types/leaderboard'
 
 export interface TraderAgg {
@@ -81,14 +86,19 @@ export function useLeaderboardTraders(
         queryFn: async () => {
             const since = getTimeThreshold(timePeriod)
             // Bonding-curve swaps and launch-token holders only exist on the
-            // launchpad chain; V3 swaps are indexed for all supported chains.
+            // launchpad chain; V3 (junoswap + external kublerx) and external V2 swaps
+            // are indexed for all supported chains.
             const includeLaunchpad = isLaunchpadChain(chainId)
-            const [swapEvents, v3SwapEvents, tokenHolders] = await Promise.all([
+            const [swapEvents, v3SwapEvents, v2SwapEvents, tokenHolders] = await Promise.all([
                 includeLaunchpad ? fetchSwapEvents(since) : Promise.resolve([]),
                 fetchV3SwapEvents(chainId, since),
+                fetchV2SwapEvents(chainId, since),
                 includeLaunchpad ? fetchTokenHolders() : Promise.resolve([]),
             ])
-            return { swapEvents: [...swapEvents, ...v3SwapEvents], tokenHolders }
+            return {
+                swapEvents: [...swapEvents, ...v3SwapEvents, ...v2SwapEvents],
+                tokenHolders,
+            }
         },
         enabled: isSupportedChain,
         staleTime: 30_000,

@@ -7,6 +7,8 @@ import {
     getTimeThreshold,
     fetchSwapEvents,
     fetchV3SwapEvents,
+    fetchV2SwapEvents,
+    computePoints,
     safeFormatEther,
     isLeaderboardSupportedChain,
 } from '@/lib/leaderboard-utils'
@@ -57,13 +59,15 @@ export function usePointsData(
         queryKey: ['points-data', timePeriod, chainId],
         queryFn: async () => {
             const since = getTimeThreshold(timePeriod)
-            // Bonding-curve volume only exists on the launchpad chain; V3 volume
-            // is indexed for all supported chains. Count both where available.
-            const [bondingCurve, v3] = await Promise.all([
+            // Bonding-curve volume only exists on the launchpad chain; V3 (junoswap +
+            // external kublerx) and external V2 volume are indexed for all supported
+            // chains. Count every source where available.
+            const [bondingCurve, v3, v2] = await Promise.all([
                 isLaunchpadChain(chainId) ? fetchSwapEvents(since) : Promise.resolve([]),
                 fetchV3SwapEvents(chainId, since),
+                fetchV2SwapEvents(chainId, since),
             ])
-            return [...bondingCurve, ...v3]
+            return [...bondingCurve, ...v3, ...v2]
         },
         enabled: isSupportedChain,
         staleTime: 30_000,
@@ -102,7 +106,10 @@ export function usePointsData(
         const effectiveNativeUsdPrice = nativeUsdPrice ?? 0
 
         interface SwapAgg {
-            volumeNative: number
+            // Native volume split by source: junoswap (incl. bonding curve) earns points
+            // at the full rate, external DEXes at a 10× discount (see computePoints).
+            junoVolumeNative: number
+            externalVolumeNative: number
             tradeCount: number
             buyCount: number
             sellCount: number
@@ -116,11 +123,18 @@ export function usePointsData(
 
             let agg = bySender.get(sender)
             if (!agg) {
-                agg = { volumeNative: 0, tradeCount: 0, buyCount: 0, sellCount: 0 }
+                agg = {
+                    junoVolumeNative: 0,
+                    externalVolumeNative: 0,
+                    tradeCount: 0,
+                    buyCount: 0,
+                    sellCount: 0,
+                }
                 bySender.set(sender, agg)
             }
 
-            agg.volumeNative += nativeAmount
+            if (e.protocol === 'junoswap') agg.junoVolumeNative += nativeAmount
+            else agg.externalVolumeNative += nativeAmount
             agg.tradeCount++
             if (isBuy) agg.buyCount++
             else agg.sellCount++
@@ -128,13 +142,16 @@ export function usePointsData(
 
         const allTraders: PointsTrader[] = []
         for (const [addr, agg] of bySender) {
-            const volumeUsd = agg.volumeNative * effectiveNativeUsdPrice
+            // Displayed volume is the real total (junoswap full + external full); only
+            // points apply the external discount.
+            const volumeNative = agg.junoVolumeNative + agg.externalVolumeNative
+            const volumeUsd = volumeNative * effectiveNativeUsdPrice
             allTraders.push({
                 rank: 0,
                 address: addr,
-                volumeNative: agg.volumeNative,
+                volumeNative,
                 volumeUsd,
-                points: Math.floor(agg.volumeNative / 50),
+                points: computePoints(agg.junoVolumeNative, agg.externalVolumeNative),
                 tradeCount: agg.tradeCount,
                 buyCount: agg.buyCount,
                 sellCount: agg.sellCount,

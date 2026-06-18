@@ -1,8 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useWriteContract, useWaitForTransactionReceipt, useSimulateContract } from 'wagmi'
-import type { Address, Hex } from 'viem'
+import {
+    useWriteContract,
+    useWaitForTransactionReceipt,
+    useSimulateContract,
+    useSendTransaction,
+} from 'wagmi'
+import { encodeFunctionData, type Address, type Hex } from 'viem'
 import type { Token } from '@/types/tokens'
 import type { SwapParams, SwapResult } from '@/types/swap'
 import { getV3Config, isRouterV1 } from '@/lib/dex-config'
@@ -24,6 +29,8 @@ import { toastError } from '@/lib/toast'
 import { isNativeToken, shouldSkipUnwrap } from '@/lib/wagmi'
 import { getWrapOperation, getWrappedNativeAddress } from '@/services/tokens'
 import { WETH9_ABI } from '@/lib/abis/weth9'
+import { useReferrer } from '@/hooks/useReferrer'
+import { appendTrackingTag, shouldTagDex } from '@/lib/swap-tracking'
 
 interface UseUniV3SwapExecutionParams {
     tokenIn: Token
@@ -65,6 +72,7 @@ export function useUniV3SwapExecution({
     skipSimulation = false,
 }: UseUniV3SwapExecutionParams): UseUniV3SwapExecutionResult {
     const { selectedDex } = useSwapStore()
+    const referrer = useReferrer()
     const dexConfig = getV3Config(tokenIn.chainId, selectedDex)
     const routerIsV1 = isRouterV1(tokenIn.chainId, selectedDex)
     const routerAbi = routerIsV1 ? UNISWAP_V3_SWAP_ROUTER_V1_ABI : UNISWAP_V3_SWAP_ROUTER_ABI
@@ -226,13 +234,28 @@ export function useUniV3SwapExecution({
                   },
               }) as any // eslint-disable-line @typescript-eslint/no-explicit-any -- complex conditional type union
     )
+    // Non-Junoswap router swaps carry a tracking suffix appended to the calldata,
+    // which requires a raw sendTransaction (writeContract re-encodes and would drop
+    // the suffix). Junoswap swaps keep the simulated writeContract path unchanged.
+    const shouldTag = !wrapOperation && shouldTagDex(selectedDex)
     const {
-        data: hash,
+        data: writeHash,
         writeContract: swap,
-        isPending: isExecuting,
-        isError,
-        error,
+        isPending: isWriting,
+        isError: isWriteError,
+        error: writeError,
     } = useWriteContract()
+    const {
+        data: sendHash,
+        sendTransaction,
+        isPending: isSending,
+        isError: isSendError,
+        error: sendError,
+    } = useSendTransaction()
+    const hash = shouldTag ? sendHash : writeHash
+    const isExecuting = shouldTag ? isSending : isWriting
+    const isError = shouldTag ? isSendError : isWriteError
+    const error = shouldTag ? sendError : writeError
     const { isSuccess, isPending: isConfirming } = useWaitForTransactionReceipt({
         hash,
     })
@@ -243,6 +266,27 @@ export function useUniV3SwapExecution({
         }
         if (!simulationData?.request) {
             toastError('Swap simulation failed. Please try again.')
+            return
+        }
+        if (shouldTag && dexConfig) {
+            const data = appendTrackingTag(
+                encodeFunctionData({
+                    abi: routerAbi,
+                    functionName: contractCall.functionName,
+                    args: contractCall.args,
+                    // shouldTag implies !wrapOperation, so functionName is always a
+                    // router method here, but the contractCall union still includes
+                    // the wrap ops — erase the param type rather than narrow.
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any),
+                referrer
+            )
+            sendTransaction({
+                to: dexConfig.swapRouter,
+                data,
+                value: contractCall.value,
+                chainId: tokenIn.chainId,
+            })
             return
         }
         swap({

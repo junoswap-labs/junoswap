@@ -19,6 +19,16 @@ export interface PortfolioSummary {
     totalPnlPercent: number | null
 }
 
+/** One side of a generalized (token/token) trade — used when neither leg is native. */
+export interface ActivityLeg {
+    tokenAddr: string
+    symbol: string
+    logo: string
+    /** raw on-chain amount (bigint string) */
+    amount: string
+    decimals: number
+}
+
 export interface ActivityEvent {
     id: string
     /** Discriminator for merged feed rendering. */
@@ -31,6 +41,15 @@ export interface ActivityEvent {
     isBuy: boolean
     amountIn: string
     amountOut: string
+    /**
+     * Generalized two-leg display for external token/token swaps (no forced native
+     * leg). When present, the row renders `sell`/`buy` directly instead of the
+     * native-centric isBuy/amountIn/amountOut model.
+     */
+    sell?: ActivityLeg
+    buy?: ActivityLeg
+    /** trade-only — liquidity source dexId (e.g. 'junoswap', 'kublerx', 'udonswap') */
+    protocol?: string
     /** transfer-only — 'in' = received, 'out' = sent */
     direction?: 'in' | 'out'
     counterparty?: string

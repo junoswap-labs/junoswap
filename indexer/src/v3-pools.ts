@@ -1,26 +1,13 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { readERC20Metadata } from './erc20-read.js'
+import { parseTrackingTag } from './tracking.js'
+import { WRAPPED_NATIVE_ADDRESSES, STABLECOIN_ADDRESSES } from './chains.js'
 
 const Q96 = 2n ** 96n
 const WRAPPED_NATIVE = '0x700d3ba307e1256e509ed3e45d6f9dff441d6907'
 const GRADUATED_FEE_TIER = 10000
 const SECONDS_PER_DAY = 86400
-
-const WRAPPED_NATIVE_ADDRESSES: Record<number, string> = {
-    25925: '0x700d3ba307e1256e509ed3e45d6f9dff441d6907',
-    96: '0x67ebd850304c70d983b2d1b93ea79c7cd6c3f6b5',
-    8899: '0xc4b7c87510675167643e3de6eeed4d2c06a9e747',
-}
-
-const STABLECOIN_ADDRESSES: Record<number, Set<string>> = {
-    25925: new Set(['0x70138f1b88bee73dd2cb06f24146f964dde6144e']),
-    96: new Set(['0x7d984c24d2499d840eb3b7016077164e15e5faa6']),
-    8899: new Set([
-        '0x24599b658b57f91e7643f4f154b16bcd2884f9ac',
-        '0xfd8ef75c1cb00a594d02df48addc27414bd07f8a',
-    ]),
-}
 
 function computePriceFromSqrtPriceX96(sqrtPriceX96: bigint, tokenIsToken0: boolean): number {
     let priceRaw: bigint
@@ -33,7 +20,12 @@ function computePriceFromSqrtPriceX96(sqrtPriceX96: bigint, tokenIsToken0: boole
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function upsertToken(context: any, chainId: number, address: string, timestamp: number) {
+export async function upsertToken(
+    context: any,
+    chainId: number,
+    address: string,
+    timestamp: number
+) {
     const id = `${chainId}-${address}`
     const existing = await context.db.find(schema.v3Token, { id })
     if (existing) return
@@ -216,7 +208,7 @@ async function updateV3TokenSnapshot(
 // Inserts a v3_swap_event row for a swap on any chain. The token side is
 // resolved against the per-chain wrapped native; the row id is namespaced by
 // chainId so block numbers (which are per-chain) can't collide across chains.
-async function recordV3SwapEvent(
+export async function recordV3SwapEvent(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     context: any,
     chainId: number,
@@ -224,7 +216,14 @@ async function recordV3SwapEvent(
     event: any,
     poolRecord: { token0: string; token1: string },
     poolAddress: string,
-    timestamp: number
+    timestamp: number,
+    // Junoswap/launchpad pools require a native leg (default true) — token/token
+    // pools are skipped to protect the native-denominated PnL model. External
+    // (kublerx) pools pass false to record token/token swaps for the activity feed.
+    requireNative = true,
+    // Liquidity source for the activity feed (dexId). Junoswap's own V3 pools keep
+    // the default; the external kublerx handler passes 'kublerx'.
+    protocol = 'junoswap'
 ) {
     const { sender, recipient, amount0, amount1, sqrtPriceX96, liquidity, tick } = event.args
     const wn = WRAPPED_NATIVE_ADDRESSES[chainId]
@@ -238,15 +237,20 @@ async function recordV3SwapEvent(
     } else if (token0 === wn) {
         tokenAddr = token1
         tokenIsToken0 = false
-    } else {
-        // Token/token pool: neither side is wrapped native, so there is no native
-        // side to value the swap against. Recording it would mis-read the paired
-        // token's amount as KUB and blow up PnL (a 0.001-token swap for 129M of a
-        // worthless pair shows as ~$99M realized). The native-denominated PnL model
-        // can't price these legs, so skip them.
+    } else if (requireNative) {
+        // Token/token pool: no native side to value the swap against. Recording it
+        // would mis-read the paired token's amount as KUB and blow up PnL, so the
+        // native-denominated model skips it.
         return
+    } else {
+        // External pools rendered via the generalized two-leg activity display, which
+        // uses token0Addr/token1Addr + amounts (not the native model). tokenAddr is a
+        // best-effort default.
+        tokenAddr = token0
+        tokenIsToken0 = true
     }
 
+    const tag = parseTrackingTag(event.transaction.input)
     const id = `${chainId}-${event.block.number}-${event.log.logIndex}`
     await context.db
         .insert(schema.v3SwapEvent)
@@ -256,6 +260,8 @@ async function recordV3SwapEvent(
             poolAddress,
             tokenAddr,
             tokenIsToken0: tokenIsToken0 ? 1 : 0,
+            token0Addr: token0,
+            token1Addr: token1,
             sender: sender.toLowerCase(),
             recipient: recipient.toLowerCase(),
             txFrom: event.transaction.from.toLowerCase(),
@@ -267,6 +273,9 @@ async function recordV3SwapEvent(
             blockNumber: Number(event.block.number),
             timestamp,
             transactionHash: event.transaction.hash,
+            viaFrontend: tag ? 1 : 0,
+            referrer: tag?.referrer ?? null,
+            protocol,
         })
         .onConflictDoNothing()
 }

@@ -8,16 +8,23 @@ import { ExternalLink, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { useUserActivity } from '@/hooks/useUserActivity'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
+import {
+    formatTokenAmount as formatTokenAmountDecimals,
+    getWrappedNativeAddress,
+} from '@/services/tokens'
+import { NATIVE_USD_STABLE } from '@/lib/routing-config'
 import { cn, formatTimeAgo, formatAddress } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
 import { getChainMetadata } from '@/lib/wagmi'
 import { findTokenByAddress } from '@/lib/tokens'
+import { getProtocolMeta } from '@/lib/protocols'
 import { TokenIcon, TokenIconSkeleton } from '@/components/ui/token-icon'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PaginationControls } from '@/components/ui/pagination'
 
-import type { ActivityEvent } from '@/types/portfolio'
+import type { ActivityEvent, ActivityLeg } from '@/types/portfolio'
 
 const PAGE_SIZE = 20
 const NATIVE_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
@@ -57,6 +64,22 @@ function TypeChip({ children, className }: { children: ReactNode; className?: st
     )
 }
 
+// Leads each swap row with the liquidity source: small logo (monogram fallback) + name.
+function ProtocolBadge({ protocol }: { protocol: string }) {
+    const { label, logo } = getProtocolMeta(protocol)
+    return (
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <Avatar className="h-4 w-4 shrink-0 rounded-full">
+                {logo && <AvatarImage src={logo} alt={label} />}
+                <AvatarFallback className="bg-primary/8 text-[7px] font-semibold text-primary/60">
+                    {label.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+            </Avatar>
+            {label}
+        </span>
+    )
+}
+
 function AmountLeg({
     src,
     symbol,
@@ -82,6 +105,35 @@ function AmountLeg({
     )
 }
 
+// USD value for a generalized two-leg trade: prefer the native leg (× nativeUsdPrice),
+// else a stablecoin leg (already USD), else null (no USD shown).
+function generalizedUsd(
+    sell: ActivityLeg,
+    buy: ActivityLeg,
+    chainId: number,
+    nativeUsdPrice: number | null
+): string | null {
+    let wrapped: string | null = null
+    try {
+        wrapped = getWrappedNativeAddress(chainId).toLowerCase()
+    } catch {
+        wrapped = null
+    }
+    const stable = NATIVE_USD_STABLE[chainId]
+    const stableAddr = stable?.address.toLowerCase()
+    for (const leg of [sell, buy]) {
+        if (wrapped && leg.tokenAddr === wrapped && nativeUsdPrice !== null) {
+            const amt = parseFloat(formatTokenAmountDecimals(BigInt(leg.amount), leg.decimals))
+            return `$${formatCompact(amt * nativeUsdPrice)}`
+        }
+        if (stable && stableAddr && leg.tokenAddr === stableAddr) {
+            const amt = parseFloat(formatTokenAmountDecimals(BigInt(leg.amount), stable.decimals))
+            return `$${formatCompact(amt)}`
+        }
+    }
+    return null
+}
+
 function ActivityRow({
     event,
     nativeLogo,
@@ -98,18 +150,38 @@ function ActivityRow({
     const txUrl = getExplorerTxUrl(chainId, event.transactionHash)
     const isTransfer = event.kind === 'transfer'
 
-    // Trade legs: a buy gives native / receives token; a sell gives token / receives native.
-    const nativeAmount = BigInt(event.isBuy ? event.amountIn : event.amountOut)
-    const tokenAmount = BigInt(event.isBuy ? event.amountOut : event.amountIn)
-    const valueKub = parseFloat(formatEther(nativeAmount))
-    const displayValue = nativeUsdPrice !== null ? valueKub * nativeUsdPrice : valueKub
-    const outIsNative = event.isBuy
-    const outText = outIsNative ? formatKub(nativeAmount) : formatTokenAmount(tokenAmount)
-    const inText = outIsNative ? formatTokenAmount(tokenAmount) : formatKub(nativeAmount)
-    const outSrc = outIsNative ? nativeLogo : event.tokenLogo
-    const outSymbol = outIsNative ? nativeSymbol : event.tokenSymbol
-    const inSrc = outIsNative ? event.tokenLogo : nativeLogo
-    const inSymbol = outIsNative ? event.tokenSymbol : nativeSymbol
+    // Trade legs. Generalized external swaps (token/token) carry explicit sell/buy
+    // legs; everything else uses the native-centric model (one leg is KUB).
+    let outText: string, inText: string
+    let outSrc: string | undefined | null, outSymbol: string
+    let inSrc: string | undefined | null, inSymbol: string
+    let usdText: string | null
+    if (event.sell && event.buy) {
+        const { sell, buy } = event
+        outText = formatTokenAmountDecimals(BigInt(sell.amount), sell.decimals)
+        inText = formatTokenAmountDecimals(BigInt(buy.amount), buy.decimals)
+        outSrc = sell.logo
+        outSymbol = sell.symbol
+        inSrc = buy.logo
+        inSymbol = buy.symbol
+        usdText = generalizedUsd(sell, buy, chainId, nativeUsdPrice)
+    } else {
+        const nativeAmount = BigInt(event.isBuy ? event.amountIn : event.amountOut)
+        const tokenAmount = BigInt(event.isBuy ? event.amountOut : event.amountIn)
+        const valueKub = parseFloat(formatEther(nativeAmount))
+        const displayValue = nativeUsdPrice !== null ? valueKub * nativeUsdPrice : valueKub
+        const outIsNative = event.isBuy
+        outText = outIsNative ? formatKub(nativeAmount) : formatTokenAmount(tokenAmount)
+        inText = outIsNative ? formatTokenAmount(tokenAmount) : formatKub(nativeAmount)
+        outSrc = outIsNative ? nativeLogo : event.tokenLogo
+        outSymbol = outIsNative ? nativeSymbol : event.tokenSymbol
+        inSrc = outIsNative ? event.tokenLogo : nativeLogo
+        inSymbol = outIsNative ? event.tokenSymbol : nativeSymbol
+        usdText =
+            nativeUsdPrice !== null
+                ? `$${formatCompact(displayValue)}`
+                : `${formatCompact(displayValue)} ${nativeSymbol}`
+    }
 
     // Transfer direction.
     const isSent = event.direction === 'out'
@@ -128,6 +200,9 @@ function ActivityRow({
             <TypeChip className="bg-muted text-muted-foreground">
                 {isTransfer ? (isSent ? 'Send' : 'Receive') : 'Swap'}
             </TypeChip>
+
+            {/* Protocol the swap executed on — trades only */}
+            {!isTransfer && event.protocol && <ProtocolBadge protocol={event.protocol} />}
 
             {/* Token icon(s) sit directly in front of each amount */}
             <div
@@ -177,11 +252,9 @@ function ActivityRow({
 
             {/* Right: USD value (trades only) + time + explorer link */}
             <div className="shrink-0 text-right">
-                {!isTransfer && (
+                {!isTransfer && usdText && (
                     <div className="font-mono text-xs tracking-tight text-muted-foreground sm:text-sm">
-                        {nativeUsdPrice !== null
-                            ? `$${formatCompact(displayValue)}`
-                            : `${formatCompact(displayValue)} ${nativeSymbol}`}
+                        {usdText}
                     </div>
                 )}
                 <div
@@ -206,6 +279,10 @@ function LoadingSkeleton() {
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-lg px-3 py-3 sm:px-4">
                     <div className="h-5 w-12 shrink-0 animate-pulse rounded bg-muted/50" />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="h-4 w-4 animate-pulse rounded-full bg-muted/50" />
+                        <div className="h-3 w-14 animate-pulse rounded bg-muted/40" />
+                    </div>
                     <div className="flex flex-1 flex-wrap items-center gap-3">
                         <div className="flex items-center gap-1.5">
                             <TokenIconSkeleton size="xs" />
