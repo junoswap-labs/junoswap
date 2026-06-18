@@ -17,7 +17,6 @@ export default defineConfig({
             'hooks/__tests__/**/*.test.ts',
         ],
         globals: true,
-        setupFiles: ['./store/__tests__/setup.ts'],
         coverage: {
             provider: 'v8',
             include: ['lib/**/*.ts', 'services/**/*.ts', 'store/**/*.ts', 'hooks/**/*.ts'],

@@ -152,13 +152,6 @@ export interface CollectCallParams {
     amount1Max: bigint
 }
 
-export interface EarnSettings {
-    defaultSlippage: number // basis points
-    defaultDeadlineMinutes: number
-    hideClosedPositions: boolean
-    showAllPools: boolean
-}
-
 /** Passed as amount0Max/amount1Max to collect all accrued fees. */
 export const MAX_UINT128 = 2n ** 128n - 1n
 
@@ -200,13 +193,6 @@ export const RANGE_PRESETS: RangePresetConfig[] = [
         description: 'Set your own range',
     },
 ]
-
-export const DEFAULT_EARN_SETTINGS: EarnSettings = {
-    defaultSlippage: 50, // 0.5%
-    defaultDeadlineMinutes: 20,
-    hideClosedPositions: false,
-    showAllPools: true,
-}
 
 export const DEFAULT_RANGE_CONFIG: RangeConfig = {
     preset: 'common',
@@ -258,12 +244,4 @@ export interface DepositInfo {
 export interface UnstakeParams {
     tokenId: bigint
     incentiveKey: IncentiveKey
-}
-
-export interface MiningSettings {
-    hideEndedIncentives: boolean
-}
-
-export const DEFAULT_MINING_SETTINGS: MiningSettings = {
-    hideEndedIncentives: true,
 }

@@ -15,7 +15,6 @@ import { usePortfolioPrices } from '@/hooks/usePortfolioPrices'
 import { useUserSwapEvents } from '@/hooks/useUserSwapEvents'
 import { useNativeUsdPriceHistory } from '@/hooks/useNativeUsdPriceHistory'
 import { usePortfolioPnl } from '@/hooks/usePortfolioPnl'
-import { usePortfolioStore } from '@/store/portfolio-store'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import type { PortfolioToken, PortfolioSummary as Summary } from '@/types/portfolio'
 
@@ -24,7 +23,7 @@ export function PortfolioContent() {
     const chainId = useChainId()
     const { nativeUsdPrice, isLoading: isPriceLoading } = useNativeUsdPriceContext()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
-    const { activeTab, setActiveTab } = usePortfolioStore()
+    const [activeTab, setActiveTab] = useState<'holdings' | 'activity'>('holdings')
 
     const { tokens, getTokenType } = usePortfolioTokens(chainId, address)
     const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(tokens, chainId)

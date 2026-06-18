@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { TokenList } from '@/components/launchpad/token-list'
 import { CreateTokenDialog } from '@/components/launchpad/create-token-dialog'
 import { ActivityTicker } from '@/components/launchpad/activity-feed'
-import { useLaunchpadStore } from '@/store/launchpad-store'
 import { Plus, Search } from 'lucide-react'
 
 export default function LaunchpadPage() {
@@ -59,7 +58,7 @@ export default function LaunchpadPage() {
 }
 
 function LaunchpadContent() {
-    const { setIsCreateDialogOpen } = useLaunchpadStore()
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
 
     return (
@@ -92,7 +91,7 @@ function LaunchpadContent() {
             <TokenList searchQuery={searchQuery} />
 
             {/* Create token dialog */}
-            <CreateTokenDialog />
+            <CreateTokenDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
         </div>
     )
 }

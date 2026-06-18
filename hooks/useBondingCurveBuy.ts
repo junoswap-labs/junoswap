@@ -10,7 +10,7 @@ import {
     PUMP_CORE_NATIVE_CHAIN_ID,
 } from '@/lib/abis/pump-core-native'
 import { calculateBuyOutput, calculateMinOutput } from '@/services/launchpad'
-import { useLaunchpadStore } from '@/store/launchpad-store'
+import { useSwapStore } from '@/store/swap-store'
 
 interface UseBondingCurveBuyParams {
     tokenAddr: Address | null
@@ -42,7 +42,8 @@ export function useBondingCurveBuy({
     virtualAmount,
     enabled = true,
 }: UseBondingCurveBuyParams): UseBondingCurveBuyResult {
-    const { settings } = useLaunchpadStore()
+    const { settings } = useSwapStore()
+    const slippageBps = Math.round(settings.slippage * 100)
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     const expectedOut = useMemo(
@@ -51,8 +52,8 @@ export function useBondingCurveBuy({
     )
 
     const minTokenOut = useMemo(
-        () => calculateMinOutput(expectedOut, settings.slippageBps),
-        [expectedOut, settings.slippageBps]
+        () => calculateMinOutput(expectedOut, slippageBps),
+        [expectedOut, slippageBps]
     )
 
     const { data: simulationData, isLoading: isPreparing } = useSimulateContract({

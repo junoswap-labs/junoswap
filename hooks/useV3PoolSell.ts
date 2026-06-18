@@ -11,7 +11,7 @@ import { UNISWAP_V3_QUOTER_V2_ABI } from '@/lib/abis/uniswap-v3-quoter'
 import { UNISWAP_V3_SWAP_ROUTER_ABI } from '@/lib/abis/uniswap-v3-swap-router'
 import { buildQuoteParams, buildMulticallSwapToNative } from '@/services/dex/uniswap-v3'
 import { calculateMinOutput } from '@/services/launchpad'
-import { useLaunchpadStore } from '@/store/launchpad-store'
+import { useSwapStore } from '@/store/swap-store'
 import type { SwapParams } from '@/types/swap'
 
 interface UseV3PoolSellParams {
@@ -43,7 +43,8 @@ export function useV3PoolSell({
     enabled = true,
 }: UseV3PoolSellParams): UseV3PoolSellResult {
     const { address } = useAccount()
-    const { settings } = useLaunchpadStore()
+    const { settings } = useSwapStore()
+    const slippageBps = Math.round(settings.slippage * 100)
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
     const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
 
@@ -77,8 +78,8 @@ export function useV3PoolSell({
     }, [quoteData])
 
     const minNativeOut = useMemo(
-        () => calculateMinOutput(expectedOut, settings.slippageBps),
-        [expectedOut, settings.slippageBps]
+        () => calculateMinOutput(expectedOut, slippageBps),
+        [expectedOut, slippageBps]
     )
 
     // Build multicall: [exactInputSingle, unwrapWETH9]
@@ -90,19 +91,11 @@ export function useV3PoolSell({
             amountIn: tokenAmount,
             amountOutMinimum: minNativeOut,
             recipient: address,
-            slippageTolerance: settings.slippageBps,
+            slippageTolerance: slippageBps,
             deadline: Math.floor(Date.now() / 1000) + 20 * 60,
         }
         return buildMulticallSwapToNative(swapParams, poolFee, PUMP_CORE_NATIVE_CHAIN_ID)
-    }, [
-        tokenAddr,
-        wrappedNative,
-        tokenAmount,
-        minNativeOut,
-        address,
-        poolFee,
-        settings.slippageBps,
-    ])
+    }, [tokenAddr, wrappedNative, tokenAmount, minNativeOut, address, poolFee, slippageBps])
 
     // Simulate multicall on SwapRouter
     const { data: simulationData, isLoading: isPreparing } = useSimulateContract({

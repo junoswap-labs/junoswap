@@ -10,24 +10,29 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { useEarnStore } from '@/store/earn-store'
 import { useRemoveLiquidity } from '@/hooks/useLiquidity'
 import { useUserPositions, usePositionDetails } from '@/hooks/useUserPositions'
 import { formatTokenAmount } from '@/services/tokens'
 import { toastError } from '@/lib/toast'
 import { toast } from 'sonner'
 import { getChainMetadata } from '@/lib/wagmi'
+import type { PositionWithTokens } from '@/types/earn'
 
 const PERCENTAGE_OPTIONS = [25, 50, 75, 100]
 
-export function RemoveLiquidityDialog() {
+interface RemoveLiquidityDialogProps {
+    open: boolean
+    position: PositionWithTokens | null
+    onClose: () => void
+}
+
+export function RemoveLiquidityDialog({
+    open,
+    position: storePosition,
+    onClose,
+}: RemoveLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
-    const {
-        isRemoveLiquidityOpen,
-        closeRemoveLiquidity,
-        selectedPosition: storePosition,
-    } = useEarnStore()
     const [percentage, setPercentage] = useState(100)
     const { refetch: refetchPositions } = useUserPositions(address, undefined)
     const { position: selectedPosition } = usePositionDetails(storePosition?.tokenId, undefined)
@@ -66,10 +71,10 @@ export function RemoveLiquidityDialog() {
                 },
             })
             refetchPositions()
-            closeRemoveLiquidity()
+            onClose()
             setPercentage(100)
         }
-    }, [isSuccess, hash, chainId, closeRemoveLiquidity, refetchPositions])
+    }, [isSuccess, hash, chainId, onClose, refetchPositions])
     useEffect(() => {
         if (error) {
             toastError(error)
@@ -96,7 +101,7 @@ export function RemoveLiquidityDialog() {
         return 'Remove Liquidity'
     }
     return (
-        <Dialog open={isRemoveLiquidityOpen} onOpenChange={closeRemoveLiquidity}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Remove Liquidity</DialogTitle>

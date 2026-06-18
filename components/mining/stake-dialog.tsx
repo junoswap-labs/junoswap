@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/ui/empty-state'
-import { useEarnStore, useSelectedIncentive } from '@/store/earn-store'
 import { TICK_SPACING } from '@/types/earn'
 import { useUserPositions } from '@/hooks/useUserPositions'
 import { useDepositInfo } from '@/hooks/useStakedPositions'
@@ -24,13 +23,23 @@ import { formatTokenAmount } from '@/services/tokens'
 import { formatTimeRemaining } from '@/services/mining/incentives'
 import { toastSuccess, toastError } from '@/lib/toast'
 import { addStakedTokenId } from '@/lib/staked-positions-storage'
-import type { PositionWithTokens } from '@/types/earn'
+import type { PositionWithTokens, Incentive, V3PoolData } from '@/types/earn'
 
-export function StakeDialog() {
+interface StakeDialogProps {
+    open: boolean
+    incentive: Incentive | null
+    onClose: () => void
+    onAddLiquidity: (pool: V3PoolData) => void
+}
+
+export function StakeDialog({
+    open,
+    incentive: selectedIncentive,
+    onClose,
+    onAddLiquidity,
+}: StakeDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
-    const { isStakeDialogOpen, closeStakeDialog, openAddLiquidity } = useEarnStore()
-    const selectedIncentive = useSelectedIncentive()
     const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null)
     const [approvalCompleted, setApprovalCompleted] = useState(false)
     type TxType = 'approval' | 'stake' | null
@@ -60,13 +69,13 @@ export function StakeDialog() {
         hash,
     } = useStakePosition(selectedPosition, selectedIncentive, address)
     useEffect(() => {
-        if (isStakeDialogOpen) {
+        if (open) {
             setSelectedPositionId(null)
             setApprovalCompleted(false)
             setPendingTxType(null)
             setProcessedTxHash(null)
         }
-    }, [isStakeDialogOpen])
+    }, [open])
     useEffect(() => {
         if (isSuccess && hash && pendingTxType && hash !== processedTxHash) {
             if (pendingTxType === 'stake') {
@@ -75,7 +84,7 @@ export function StakeDialog() {
                 }
                 toastSuccess('Position staked successfully!')
                 setProcessedTxHash(hash)
-                closeStakeDialog()
+                onClose()
             } else if (pendingTxType === 'approval') {
                 toastSuccess('Approval successful! Please click again to stake.')
                 setApprovalCompleted(true)
@@ -88,7 +97,7 @@ export function StakeDialog() {
         hash,
         pendingTxType,
         processedTxHash,
-        closeStakeDialog,
+        onClose,
         address,
         chainId,
         selectedPosition,
@@ -120,7 +129,7 @@ export function StakeDialog() {
         }
     }
     return (
-        <Dialog open={isStakeDialogOpen} onOpenChange={closeStakeDialog}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Stake LP Position</DialogTitle>
@@ -157,8 +166,8 @@ export function StakeDialog() {
                                         size="sm"
                                         variant="outline"
                                         onClick={() => {
-                                            closeStakeDialog()
-                                            openAddLiquidity({
+                                            onClose()
+                                            onAddLiquidity({
                                                 address: selectedIncentive.pool,
                                                 token0: selectedIncentive.poolToken0,
                                                 token1: selectedIncentive.poolToken1,

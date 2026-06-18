@@ -24,7 +24,7 @@ import { toastSuccess, toastError } from '@/lib/toast'
 import { getChainMetadata } from '@/lib/wagmi'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { SettingsDialog } from '@/components/swap/settings-dialog'
-import { useLaunchpadStore } from '@/store/launchpad-store'
+import { useSwapStore } from '@/store/swap-store'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { getV3Config } from '@/lib/dex-config'
 
@@ -89,7 +89,7 @@ export function TokenTradeCard({
     const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy')
     const [buyAmount, setBuyAmount] = useState('')
     const [sellAmount, setSellAmount] = useState('')
-    const { settings, setSlippageBps } = useLaunchpadStore()
+    const { settings, setSlippage } = useSwapStore()
 
     const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative as
         | Address
@@ -500,11 +500,11 @@ export function TokenTradeCard({
 
                         {/* Slippage settings */}
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Slippage: {(settings.slippageBps / 100).toFixed(1)}%</span>
+                            <span>Slippage: {settings.slippage.toFixed(1)}%</span>
                             <SettingsDialog
-                                currentSlippage={settings.slippageBps / 100}
+                                currentSlippage={settings.slippage}
                                 currentDeadlineMinutes={20}
-                                onSave={(slippage) => setSlippageBps(Math.round(slippage * 100))}
+                                onSave={(slippage) => setSlippage(slippage)}
                             />
                         </div>
 

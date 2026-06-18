@@ -39,13 +39,3 @@ export interface ActivityEvent {
     transactionHash: string
     sender: string
 }
-
-export type PortfolioSortKey = 'value' | 'balance' | 'pnl' | 'name'
-export type SortDirection = 'asc' | 'desc'
-
-export interface PortfolioSettings {
-    sortBy: PortfolioSortKey
-    sortDirection: SortDirection
-    hideSmallBalances: boolean
-    smallBalanceThreshold: number
-}

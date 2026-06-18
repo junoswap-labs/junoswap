@@ -42,6 +42,8 @@ export const useBridgeStore = create<BridgeStore>()(
                 ...initialState,
                 settings: defaultSettings,
 
+                // Can't bridge a chain to itself: if the new chain collides with
+                // the opposite side, null that side's token to force a re-pick.
                 setFromChainId: (chainId) =>
                     set((state) => ({
                         fromChainId: chainId,

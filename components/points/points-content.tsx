@@ -1,20 +1,42 @@
 'use client'
 
+import { useState } from 'react'
 import { useAccount, useChainId } from 'wagmi'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
-import { usePointsStore } from '@/store/points-store'
 import { usePointsData } from '@/hooks/usePointsData'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ShareablePointsBanner } from './shareable-points-banner'
 import { PointsLeaderboardTable } from './points-leaderboard-table'
 import { Search } from 'lucide-react'
-import type { PointsSortKey } from '@/types/points'
+import type { PointsSettings, PointsSortKey, SortDirection } from '@/types/points'
+
+const DEFAULT_SETTINGS: PointsSettings = {
+    timePeriod: 'all',
+    sortKey: 'points',
+    sortDirection: 'desc',
+}
 
 export function PointsContent() {
-    const { settings, page, searchQuery, setSortKey, setSortDirection, setPage, setSearchQuery } =
-        usePointsStore()
+    const [settings, setSettings] = useState<PointsSettings>(DEFAULT_SETTINGS)
+    const [page, setPage] = useState(1)
+    const [searchQuery, setSearchQueryState] = useState('')
+
+    function setSortKey(sortKey: PointsSortKey) {
+        setSettings((s) => ({ ...s, sortKey }))
+        setPage(1)
+    }
+
+    function setSortDirection(sortDirection: SortDirection) {
+        setSettings((s) => ({ ...s, sortDirection }))
+    }
+
+    function setSearchQuery(query: string) {
+        setSearchQueryState(query)
+        setPage(1)
+    }
+
     const debouncedSearch = useDebounce(searchQuery, 300)
     const { nativeUsdPrice } = useNativeUsdPriceContext()
     const { address } = useAccount()

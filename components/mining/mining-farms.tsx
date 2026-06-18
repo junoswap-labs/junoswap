@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useChainId } from 'wagmi'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -9,7 +9,6 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { TokenIconSkeleton } from '@/components/ui/token-icon'
 import { MiningFarmCard } from './farm-card'
 import { useIncentives } from '@/hooks/useIncentives'
-import { useEarnStore, useMiningSettings } from '@/store/earn-store'
 import { getV3StakerAddress } from '@/lib/dex-config'
 import { KNOWN_INCENTIVES } from '@/lib/mining-constants'
 import type { Incentive } from '@/types/earn'
@@ -48,20 +47,16 @@ function FarmCardSkeleton() {
     )
 }
 
-export function MiningFarms() {
+export function MiningFarms({ onStake }: { onStake: (incentive: Incentive) => void }) {
     const chainId = useChainId()
     const stakerAddress = getV3StakerAddress(chainId)
-    const { openStakeDialog, setHideEndedIncentives } = useEarnStore()
-    const miningSettings = useMiningSettings()
+    const [hideEndedIncentives, setHideEndedIncentives] = useState(true)
     const incentiveKeys = useMemo(() => KNOWN_INCENTIVES[chainId] ?? [], [chainId])
     const { incentives, isLoading } = useIncentives(incentiveKeys)
     const filteredIncentives = useMemo(() => {
-        if (!miningSettings.hideEndedIncentives) return incentives
+        if (!hideEndedIncentives) return incentives
         return incentives.filter((i) => !i.isEnded)
-    }, [incentives, miningSettings.hideEndedIncentives])
-    const handleStake = (incentive: Incentive) => {
-        openStakeDialog(incentive)
-    }
+    }, [incentives, hideEndedIncentives])
 
     const header = (
         <div className="flex items-center justify-between">
@@ -69,7 +64,7 @@ export function MiningFarms() {
             <div className="flex items-center space-x-2">
                 <Switch
                     id="hide-ended"
-                    checked={miningSettings.hideEndedIncentives}
+                    checked={hideEndedIncentives}
                     onCheckedChange={setHideEndedIncentives}
                 />
                 <Label htmlFor="hide-ended" className="text-sm">
@@ -111,7 +106,7 @@ export function MiningFarms() {
                         <MiningFarmCard
                             key={incentive.incentiveId}
                             incentive={incentive}
-                            onStake={handleStake}
+                            onStake={onStake}
                         />
                     ))}
                 </div>

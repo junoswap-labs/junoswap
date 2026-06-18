@@ -16,7 +16,7 @@ import {
     INITIAL_TOKEN_SUPPLY,
     parseTokenAddressFromLogs,
 } from '@/services/launchpad'
-import { useLaunchpadStore } from '@/store/launchpad-store'
+import { useSwapStore } from '@/store/swap-store'
 import type { CreateTokenForm } from '@/types/launchpad'
 
 type CreatePhase = 'idle' | 'creating' | 'buying' | 'success' | 'error'
@@ -42,7 +42,8 @@ interface UseCreateTokenResult {
 }
 
 export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenResult {
-    const { settings } = useLaunchpadStore()
+    const { settings } = useSwapStore()
+    const slippageBps = Math.round(settings.slippage * 100)
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
 
     const [phase, setPhase] = useState<CreatePhase>('idle')
@@ -101,8 +102,8 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     }, [upfrontBuyNative, initialNative, virtualAmount])
 
     const minTokenOut = useMemo(
-        () => calculateMinOutput(expectedTokens, settings.slippageBps),
-        [expectedTokens, settings.slippageBps]
+        () => calculateMinOutput(expectedTokens, slippageBps),
+        [expectedTokens, slippageBps]
     )
 
     const createCost = useMemo(() => {
@@ -218,7 +219,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     tokenReserve,
                     virtualAmount as bigint
                 )
-                const actualMinOut = calculateMinOutput(actualExpected, settings.slippageBps)
+                const actualMinOut = calculateMinOutput(actualExpected, slippageBps)
 
                 buyParamsRef.current = {
                     tokenAddr,

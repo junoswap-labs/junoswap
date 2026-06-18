@@ -11,15 +11,23 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
-import { useEarnStore, useSelectedPosition } from '@/store/earn-store'
 import { useCollectFees } from '@/hooks/useLiquidity'
 import { formatTokenAmount } from '@/services/tokens'
 import { toastSuccess, toastError } from '@/lib/toast'
+import type { PositionWithTokens } from '@/types/earn'
 
-export function CollectFeesDialog() {
+interface CollectFeesDialogProps {
+    open: boolean
+    position: PositionWithTokens | null
+    onClose: () => void
+}
+
+export function CollectFeesDialog({
+    open,
+    position: selectedPosition,
+    onClose,
+}: CollectFeesDialogProps) {
     const { address } = useAccount()
-    const { isCollectFeesOpen, closeCollectFees } = useEarnStore()
-    const selectedPosition = useSelectedPosition()
     const {
         collect,
         hasFees,
@@ -35,9 +43,9 @@ export function CollectFeesDialog() {
     useEffect(() => {
         if (isSuccess && hash) {
             toastSuccess('Fees collected successfully!')
-            closeCollectFees()
+            onClose()
         }
-    }, [isSuccess, hash, closeCollectFees])
+    }, [isSuccess, hash, onClose])
     useEffect(() => {
         if (error) {
             toastError(error)
@@ -52,7 +60,7 @@ export function CollectFeesDialog() {
         return 'Collect Fees'
     }
     return (
-        <Dialog open={isCollectFeesOpen} onOpenChange={closeCollectFees}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Collect Fees</DialogTitle>

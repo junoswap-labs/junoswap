@@ -1,29 +1,53 @@
 'use client'
 
+import { useState } from 'react'
 import { useChainId } from 'wagmi'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
-import { useLeaderboardStore } from '@/store/leaderboard-store'
 import { useLeaderboardTraders } from '@/hooks/useLeaderboardTraders'
 import { useDebounce } from '@/hooks/useDebounce'
 import { TimePeriodFilter } from './time-period-filter'
 import { TraderLeaderboardTable } from './trader-leaderboard-table'
 import { Search } from 'lucide-react'
-import type { TraderSortKey } from '@/types/leaderboard'
+import type {
+    LeaderboardSettings,
+    LeaderboardTimePeriod,
+    TraderSortKey,
+    SortDirection,
+} from '@/types/leaderboard'
+
+const DEFAULT_SETTINGS: LeaderboardSettings = {
+    timePeriod: 'all',
+    sortKey: 'netWorth',
+    sortDirection: 'desc',
+}
 
 export function LeaderboardContent() {
     const chainId = useChainId()
-    const {
-        settings,
-        page,
-        searchQuery,
-        setTimePeriod,
-        setSortKey,
-        setSortDirection,
-        setPage,
-        setSearchQuery,
-    } = useLeaderboardStore()
+    const [settings, setSettings] = useState<LeaderboardSettings>(DEFAULT_SETTINGS)
+    const [page, setPage] = useState(1)
+    const [searchQuery, setSearchQueryState] = useState('')
+
+    function setTimePeriod(timePeriod: LeaderboardTimePeriod) {
+        setSettings((s) => ({ ...s, timePeriod }))
+        setPage(1)
+    }
+
+    function setSortKey(sortKey: TraderSortKey) {
+        setSettings((s) => ({ ...s, sortKey }))
+        setPage(1)
+    }
+
+    function setSortDirection(sortDirection: SortDirection) {
+        setSettings((s) => ({ ...s, sortDirection }))
+    }
+
+    function setSearchQuery(query: string) {
+        setSearchQueryState(query)
+        setPage(1)
+    }
+
     const debouncedSearch = useDebounce(searchQuery, 300)
     const { nativeUsdPrice } = useNativeUsdPriceContext()
 

@@ -13,14 +13,57 @@ import { CollectFeesDialog } from '@/components/positions/collect-fees-dialog'
 import { PositionDetailsModal } from '@/components/positions/position-details-modal'
 import { IncreaseLiquidityDialog } from '@/components/positions/increase-liquidity-dialog'
 import { MiningFarms, StakedPositions, StakeDialog, UnstakeDialog } from '@/components/mining'
-import { useEarnStore, useActiveTab } from '@/store/earn-store'
 import { ConnectModal } from '@/components/web3/connect-modal'
+import type { PositionWithTokens, Incentive, StakedPosition, V3PoolData } from '@/types/earn'
 
 function EarnContent() {
     const { isConnected } = useAccount()
-    const activeTab = useActiveTab()
-    const { setActiveTab, openAddLiquidity } = useEarnStore()
+    const [activeTab, setActiveTab] = useState<'pools' | 'positions'>('pools')
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+
+    const [selectedPosition, setSelectedPosition] = useState<PositionWithTokens | null>(null)
+    const [selectedIncentive, setSelectedIncentive] = useState<Incentive | null>(null)
+    const [selectedStakedPosition, setSelectedStakedPosition] = useState<StakedPosition | null>(
+        null
+    )
+
+    const [isAddLiquidityOpen, setIsAddLiquidityOpen] = useState(false)
+    const [addLiquidityPool, setAddLiquidityPool] = useState<V3PoolData | null>(null)
+    const [isRemoveLiquidityOpen, setIsRemoveLiquidityOpen] = useState(false)
+    const [isCollectFeesOpen, setIsCollectFeesOpen] = useState(false)
+    const [isPositionDetailsOpen, setIsPositionDetailsOpen] = useState(false)
+    const [isIncreaseLiquidityOpen, setIsIncreaseLiquidityOpen] = useState(false)
+    const [isStakeDialogOpen, setIsStakeDialogOpen] = useState(false)
+    const [isUnstakeDialogOpen, setIsUnstakeDialogOpen] = useState(false)
+
+    const openAddLiquidity = (pool?: V3PoolData) => {
+        setAddLiquidityPool(pool ?? null)
+        setIsAddLiquidityOpen(true)
+    }
+    const openRemoveLiquidity = (position: PositionWithTokens) => {
+        setSelectedPosition(position)
+        setIsRemoveLiquidityOpen(true)
+    }
+    const openCollectFees = (position: PositionWithTokens) => {
+        setSelectedPosition(position)
+        setIsCollectFeesOpen(true)
+    }
+    const openPositionDetails = (position: PositionWithTokens) => {
+        setSelectedPosition(position)
+        setIsPositionDetailsOpen(true)
+    }
+    const openIncreaseLiquidity = (position: PositionWithTokens) => {
+        setSelectedPosition(position)
+        setIsIncreaseLiquidityOpen(true)
+    }
+    const openStakeDialog = (incentive: Incentive) => {
+        setSelectedIncentive(incentive)
+        setIsStakeDialogOpen(true)
+    }
+    const openUnstakeDialog = (stakedPosition: StakedPosition) => {
+        setSelectedStakedPosition(stakedPosition)
+        setIsUnstakeDialogOpen(true)
+    }
     return (
         <div className="flex min-h-screen items-start justify-center p-4 pt-8">
             <div className="w-full max-w-5xl space-y-4">
@@ -50,21 +93,59 @@ function EarnContent() {
                         </Button>
                     </div>
                     <TabsContent value="pools" className="space-y-6">
-                        <MiningFarms />
-                        <PoolsList />
+                        <MiningFarms onStake={openStakeDialog} />
+                        <PoolsList onAddLiquidity={openAddLiquidity} />
                     </TabsContent>
                     <TabsContent value="positions" className="space-y-6">
-                        <PositionsList />
-                        <StakedPositions />
+                        <PositionsList
+                            onAddLiquidity={openAddLiquidity}
+                            onPositionDetails={openPositionDetails}
+                            onCollectFees={openCollectFees}
+                            onRemoveLiquidity={openRemoveLiquidity}
+                            onIncreaseLiquidity={openIncreaseLiquidity}
+                        />
+                        <StakedPositions onUnstake={openUnstakeDialog} />
                     </TabsContent>
                 </Tabs>
-                <AddLiquidityDialog />
-                <RemoveLiquidityDialog />
-                <CollectFeesDialog />
-                <PositionDetailsModal />
-                <IncreaseLiquidityDialog />
-                <StakeDialog />
-                <UnstakeDialog />
+                <AddLiquidityDialog
+                    open={isAddLiquidityOpen}
+                    initialPool={addLiquidityPool}
+                    onClose={() => setIsAddLiquidityOpen(false)}
+                />
+                <RemoveLiquidityDialog
+                    open={isRemoveLiquidityOpen}
+                    position={selectedPosition}
+                    onClose={() => setIsRemoveLiquidityOpen(false)}
+                />
+                <CollectFeesDialog
+                    open={isCollectFeesOpen}
+                    position={selectedPosition}
+                    onClose={() => setIsCollectFeesOpen(false)}
+                />
+                <PositionDetailsModal
+                    open={isPositionDetailsOpen}
+                    position={selectedPosition}
+                    onClose={() => setIsPositionDetailsOpen(false)}
+                    onCollectFees={openCollectFees}
+                    onRemoveLiquidity={openRemoveLiquidity}
+                    onIncreaseLiquidity={openIncreaseLiquidity}
+                />
+                <IncreaseLiquidityDialog
+                    open={isIncreaseLiquidityOpen}
+                    position={selectedPosition}
+                    onClose={() => setIsIncreaseLiquidityOpen(false)}
+                />
+                <StakeDialog
+                    open={isStakeDialogOpen}
+                    incentive={selectedIncentive}
+                    onClose={() => setIsStakeDialogOpen(false)}
+                    onAddLiquidity={openAddLiquidity}
+                />
+                <UnstakeDialog
+                    open={isUnstakeDialogOpen}
+                    stakedPosition={selectedStakedPosition}
+                    onClose={() => setIsUnstakeDialogOpen(false)}
+                />
                 <ConnectModal open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen} />
             </div>
         </div>

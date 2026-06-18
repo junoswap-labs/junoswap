@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useLaunchpadStore } from '@/store/launchpad-store'
 import { useCreateToken } from '@/hooks/useCreateToken'
 import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
 import { toastError, toastSuccess, toastWarning } from '@/lib/toast'
@@ -20,11 +19,15 @@ import type { CreateTokenForm, LaunchToken } from '@/types/launchpad'
 import { Globe, Twitter, MessageCircle, Coins } from 'lucide-react'
 import { LogoUpload } from './logo-upload'
 
-export function CreateTokenDialog() {
+interface CreateTokenDialogProps {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}
+
+export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps) {
     const { isConnected, address } = useAccount()
     const queryClient = useQueryClient()
     const router = useRouter()
-    const { isCreateDialogOpen, setIsCreateDialogOpen } = useLaunchpadStore()
 
     const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
     const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -58,7 +61,7 @@ export function CreateTokenDialog() {
 
     // Reset form when dialog opens
     useEffect(() => {
-        if (isCreateDialogOpen) {
+        if (open) {
             setForm({
                 name: '',
                 symbol: '',
@@ -71,7 +74,7 @@ export function CreateTokenDialog() {
             })
             setPendingLogoFile(null)
         }
-    }, [isCreateDialogOpen])
+    }, [open])
 
     // Handle success
     const handleSuccess = useCallback(async () => {
@@ -82,8 +85,8 @@ export function CreateTokenDialog() {
                 onClick: () => window.open(`${metadata.explorer}/tx/${hash}`, '_blank'),
             },
         })
-        setIsCreateDialogOpen(false)
-    }, [hash, setIsCreateDialogOpen])
+        onOpenChange(false)
+    }, [hash, onOpenChange])
 
     useEffect(() => {
         if (isSuccess) handleSuccess()
@@ -101,9 +104,9 @@ export function CreateTokenDialog() {
             toastWarning(
                 'Token created, but upfront buy failed. You can buy manually on the token page.'
             )
-            setIsCreateDialogOpen(false)
+            onOpenChange(false)
         }
-    }, [isError, error, phase, setIsCreateDialogOpen])
+    }, [isError, error, phase, onOpenChange])
 
     // Handle create-phase error
     useEffect(() => {
@@ -203,7 +206,7 @@ export function CreateTokenDialog() {
     const hasUpfrontBuy = form.upfrontBuyAmount && parseFloat(form.upfrontBuyAmount) > 0
 
     return (
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md max-h-[90vh]">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-semibold">Create Token</DialogTitle>

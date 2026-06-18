@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
+import type { Token } from '@/types/tokens'
 import { useAccount, useChainId } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -10,7 +11,6 @@ import { TokenIcon } from '@/components/ui/token-icon'
 import { ArrowUpDown, ArrowRight } from 'lucide-react'
 import { RangeSelector } from './range-selector'
 import { TokenSelect } from '@/components/swap/token-select'
-import { useEarnStore, useRangeConfig } from '@/store/earn-store'
 import { usePool } from '@/hooks/usePools'
 import { useAddLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
@@ -32,7 +32,8 @@ import {
     MAX_TICK,
 } from '@/lib/liquidity-helpers'
 import { useChainTokens } from '@/hooks/useChainTokens'
-import type { AddLiquidityParams } from '@/types/earn'
+import type { AddLiquidityParams, RangeConfig, V3PoolData } from '@/types/earn'
+import { DEFAULT_RANGE_CONFIG } from '@/types/earn'
 import { toastError } from '@/lib/toast'
 import { toast } from 'sonner'
 
@@ -43,7 +44,13 @@ const FEE_OPTIONS = [
     { value: FEE_TIERS.HIGH, label: '1%', description: 'Best for exotic pairs' },
 ]
 
-export function AddLiquidityDialog() {
+interface AddLiquidityDialogProps {
+    open: boolean
+    initialPool: V3PoolData | null
+    onClose: () => void
+}
+
+export function AddLiquidityDialog({ open, initialPool, onClose }: AddLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
     const router = useRouter()
@@ -51,23 +58,33 @@ export function AddLiquidityDialog() {
     const dexConfig = getV3Config(chainId)
     const { tokens: allTokens } = useChainTokens(chainId)
 
-    const {
-        isAddLiquidityOpen,
-        closeAddLiquidity,
-        token0,
-        token1,
-        fee,
-        setToken0,
-        setToken1,
-        setFee,
-        setRangeConfig,
-    } = useEarnStore()
-    const rangeConfig = useRangeConfig()
+    const [token0, setToken0] = useState<Token | null>(null)
+    const [token1, setToken1] = useState<Token | null>(null)
+    const [fee, setFee] = useState(3000)
+    const [rangeConfig, setRangeConfig] = useState<RangeConfig>(DEFAULT_RANGE_CONFIG)
     const handledHashRef = useRef<string | null>(null)
     const [amount0, setAmount0] = useState('')
     const [amount1, setAmount1] = useState('')
     const [activeInput, setActiveInput] = useState<'token0' | 'token1' | null>(null)
     const [initialPrice, setInitialPrice] = useState('')
+
+    // Seed the form when the dialog opens: from initialPool if provided (opened for a specific
+    // pool), otherwise a clean slate. The usePool + range-reset effects below then populate the
+    // range once pool data loads.
+    const wasOpenRef = useRef(false)
+    useEffect(() => {
+        if (open && !wasOpenRef.current) {
+            setToken0(initialPool?.token0 ?? null)
+            setToken1(initialPool?.token1 ?? null)
+            setFee(initialPool?.fee ?? 3000)
+            setRangeConfig(DEFAULT_RANGE_CONFIG)
+            setAmount0('')
+            setAmount1('')
+            setActiveInput(null)
+            setInitialPrice('')
+        }
+        wasOpenRef.current = open
+    }, [open, initialPool])
     const { pool, isLoading: isLoadingPool } = usePool(token0, token1, fee, chainId)
     const { balance: balance0 } = useTokenBalance({ token: token0, address })
     const { balance: balance1 } = useTokenBalance({ token: token1, address })
@@ -292,13 +309,13 @@ export function AddLiquidityDialog() {
                 },
             })
             refetchPositions()
-            closeAddLiquidity()
+            onClose()
             setAmount0('')
             setAmount1('')
             setActiveInput(null)
             setInitialPrice('')
         }
-    }, [isSuccess, hash, chainId, closeAddLiquidity, refetchPositions])
+    }, [isSuccess, hash, chainId, onClose, refetchPositions])
     useEffect(() => {
         if (error) {
             toastError(error)
@@ -352,7 +369,7 @@ export function AddLiquidityDialog() {
     }
 
     const handleGoSwap = (outputAddress: string, inputAddress?: string) => {
-        closeAddLiquidity()
+        onClose()
         const params = new URLSearchParams()
         if (inputAddress) params.set('input', inputAddress)
         params.set('output', outputAddress)
@@ -381,7 +398,7 @@ export function AddLiquidityDialog() {
     }
 
     return (
-        <Dialog open={isAddLiquidityOpen} onOpenChange={closeAddLiquidity}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="sm:max-w-lg max-h-[90vh] bg-card/95 backdrop-blur-md border-border/50 card-glow">
                 <DialogHeader>
                     <DialogTitle className="text-lg">Add Liquidity</DialogTitle>

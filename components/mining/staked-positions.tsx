@@ -14,7 +14,6 @@ import { useIncentives } from '@/hooks/useIncentives'
 import { useStakedPositions } from '@/hooks/useStakedPositions'
 import { usePendingRewardsMultiple } from '@/hooks/useRewards'
 import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
-import { useEarnStore } from '@/store/earn-store'
 import { formatTimeRemaining } from '@/services/mining/incentives'
 import { formatRewardAmount } from '@/lib/format'
 import { getV3StakerAddress } from '@/lib/dex-config'
@@ -62,11 +61,14 @@ function LoadingState() {
     )
 }
 
-export function StakedPositions() {
+export function StakedPositions({
+    onUnstake,
+}: {
+    onUnstake: (stakedPosition: StakedPosition) => void
+}) {
     const { address } = useAccount()
     const chainId = useChainId()
     const stakerAddress = getV3StakerAddress(chainId)
-    const { openUnstakeDialog } = useEarnStore()
     const { tokenIds, isLoading: isLoadingTokenIds } = useDepositedTokenIds(address)
     const { positions: depositedPositions, isLoading: isLoadingPositions } = usePositionsByTokenIds(
         tokenIds,
@@ -90,9 +92,6 @@ export function StakedPositions() {
             }
         })
     }, [stakedPositions, rewardsMap])
-    const handleUnstake = (stakedPosition: StakedPosition) => {
-        openUnstakeDialog(stakedPosition)
-    }
     if (!stakerAddress) {
         return (
             <div className="space-y-4">
@@ -151,7 +150,7 @@ export function StakedPositions() {
                     <StakedPositionCard
                         key={`${sp.tokenId.toString()}-${sp.incentiveId}`}
                         stakedPosition={sp}
-                        onUnstake={handleUnstake}
+                        onUnstake={onUnstake}
                     />
                 ))}
             </div>

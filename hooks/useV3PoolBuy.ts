@@ -11,7 +11,7 @@ import { UNISWAP_V3_QUOTER_V2_ABI } from '@/lib/abis/uniswap-v3-quoter'
 import { UNISWAP_V3_SWAP_ROUTER_ABI } from '@/lib/abis/uniswap-v3-swap-router'
 import { buildQuoteParams } from '@/services/dex/uniswap-v3'
 import { calculateMinOutput } from '@/services/launchpad'
-import { useLaunchpadStore } from '@/store/launchpad-store'
+import { useSwapStore } from '@/store/swap-store'
 
 interface UseV3PoolBuyParams {
     tokenAddr: Address | null
@@ -42,7 +42,8 @@ export function useV3PoolBuy({
     enabled = true,
 }: UseV3PoolBuyParams): UseV3PoolBuyResult {
     const { address } = useAccount()
-    const { settings } = useLaunchpadStore()
+    const { settings } = useSwapStore()
+    const slippageBps = Math.round(settings.slippage * 100)
     const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
     const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
 
@@ -76,8 +77,8 @@ export function useV3PoolBuy({
     }, [quoteData])
 
     const minTokenOut = useMemo(
-        () => calculateMinOutput(expectedOut, settings.slippageBps),
-        [expectedOut, settings.slippageBps]
+        () => calculateMinOutput(expectedOut, slippageBps),
+        [expectedOut, slippageBps]
     )
 
     // Simulate exactInputSingle on SwapRouter

@@ -11,19 +11,27 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useEarnStore, useSelectedStakedPosition } from '@/store/earn-store'
 import { useUnstakePosition } from '@/hooks/useStaking'
 import { usePendingRewards } from '@/hooks/useRewards'
 import { formatRewardAmount } from '@/lib/format'
 import { formatTimeRemaining } from '@/services/mining/incentives'
 import { toastSuccess, toastError } from '@/lib/toast'
 import { removeStakedTokenId } from '@/lib/staked-positions-storage'
+import type { StakedPosition } from '@/types/earn'
 
-export function UnstakeDialog() {
+interface UnstakeDialogProps {
+    open: boolean
+    stakedPosition: StakedPosition | null
+    onClose: () => void
+}
+
+export function UnstakeDialog({
+    open,
+    stakedPosition: selectedStakedPosition,
+    onClose,
+}: UnstakeDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
-    const { isUnstakeDialogOpen, closeUnstakeDialog } = useEarnStore()
-    const selectedStakedPosition = useSelectedStakedPosition()
     const { position, incentive } = selectedStakedPosition ?? { position: null, incentive: null }
     const { reward: pendingRewards, isLoading: isLoadingRewards } = usePendingRewards(
         incentive,
@@ -37,9 +45,9 @@ export function UnstakeDialog() {
                 removeStakedTokenId(chainId, address, position.tokenId)
             }
             toastSuccess('Position unstaked successfully!')
-            closeUnstakeDialog()
+            onClose()
         }
-    }, [isSuccess, hash, closeUnstakeDialog, address, chainId, position])
+    }, [isSuccess, hash, onClose, address, chainId, position])
     useEffect(() => {
         if (error) {
             toastError(error)
@@ -55,7 +63,7 @@ export function UnstakeDialog() {
     }
     const formattedRewards = formatRewardAmount(pendingRewards, incentive.rewardTokenInfo.decimals)
     return (
-        <Dialog open={isUnstakeDialogOpen} onOpenChange={closeUnstakeDialog}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Unstake Position</DialogTitle>

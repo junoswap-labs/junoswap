@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { useEarnStore } from '@/store/earn-store'
 import { useIncreaseLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
@@ -25,13 +24,23 @@ import {
 } from '@/lib/liquidity-helpers'
 import { toastError } from '@/lib/toast'
 import { toast } from 'sonner'
+import type { PositionWithTokens } from '@/types/earn'
 
-export function IncreaseLiquidityDialog() {
+interface IncreaseLiquidityDialogProps {
+    open: boolean
+    position: PositionWithTokens | null
+    onClose: () => void
+}
+
+export function IncreaseLiquidityDialog({
+    open,
+    position: selectedPosition,
+    onClose,
+}: IncreaseLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
     const { refetch: refetchPositions } = useUserPositions(address, chainId)
     const dexConfig = getV3Config(chainId)
-    const { isIncreaseLiquidityOpen, closeIncreaseLiquidity, selectedPosition } = useEarnStore()
     const [amount0, setAmount0] = useState('')
     const [amount1, setAmount1] = useState('')
     const [activeInput, setActiveInput] = useState<'token0' | 'token1' | null>(null)
@@ -160,12 +169,12 @@ export function IncreaseLiquidityDialog() {
                 },
             })
             refetchPositions()
-            closeIncreaseLiquidity()
+            onClose()
             setAmount0('')
             setAmount1('')
             setActiveInput(null)
         }
-    }, [isSuccess, hash, chainId, closeIncreaseLiquidity, refetchPositions])
+    }, [isSuccess, hash, chainId, onClose, refetchPositions])
     useEffect(() => {
         if (error) {
             toastError(error)
@@ -227,7 +236,7 @@ export function IncreaseLiquidityDialog() {
         ? isInRange(pool.tick, selectedPosition.tickLower, selectedPosition.tickUpper)
         : false
     return (
-        <Dialog open={isIncreaseLiquidityOpen} onOpenChange={closeIncreaseLiquidity}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Add Liquidity</DialogTitle>

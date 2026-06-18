@@ -29,14 +29,6 @@ export interface CreateTokenForm {
     upfrontBuyAmount: string
 }
 
-export interface LaunchpadSettings {
-    slippageBps: number // basis points, 100 = 1%
-}
-
-export const DEFAULT_LAUNCHPAD_SETTINGS: LaunchpadSettings = {
-    slippageBps: 100, // 1%
-}
-
 export interface EnrichedSwapEvent {
     blockNumber: bigint
     logIndex: number

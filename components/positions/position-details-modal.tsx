@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { useEarnStore, useSelectedPosition } from '@/store/earn-store'
 import { usePositionValue } from '@/hooks/usePositionValue'
+import type { PositionWithTokens } from '@/types/earn'
 
 /**
  * Calculate visual positions for the price range bar.
@@ -55,15 +55,23 @@ function useRangeBarLayout(
     }, [currentTick, tickLower, tickUpper])
 }
 
-export function PositionDetailsModal() {
-    const {
-        isPositionDetailsOpen,
-        closePositionDetails,
-        openCollectFees,
-        openRemoveLiquidity,
-        openIncreaseLiquidity,
-    } = useEarnStore()
-    const selectedPosition = useSelectedPosition()
+interface PositionDetailsModalProps {
+    open: boolean
+    position: PositionWithTokens | null
+    onClose: () => void
+    onCollectFees: (position: PositionWithTokens) => void
+    onRemoveLiquidity: (position: PositionWithTokens) => void
+    onIncreaseLiquidity: (position: PositionWithTokens) => void
+}
+
+export function PositionDetailsModal({
+    open,
+    position: selectedPosition,
+    onClose,
+    onCollectFees,
+    onRemoveLiquidity,
+    onIncreaseLiquidity,
+}: PositionDetailsModalProps) {
     const {
         amount0Formatted,
         amount1Formatted,
@@ -84,7 +92,7 @@ export function PositionDetailsModal() {
     const hasFees = selectedPosition.tokensOwed0 > 0n || selectedPosition.tokensOwed1 > 0n
     const isClosed = selectedPosition.liquidity === 0n
     return (
-        <Dialog open={isPositionDetailsOpen} onOpenChange={closePositionDetails}>
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <div className="flex items-center gap-2">
@@ -160,8 +168,8 @@ export function PositionDetailsModal() {
                                             variant="outline"
                                             className="h-7 text-xs transition-colors"
                                             onClick={() => {
-                                                closePositionDetails()
-                                                openCollectFees(selectedPosition)
+                                                onClose()
+                                                onCollectFees(selectedPosition)
                                             }}
                                         >
                                             Collect
@@ -251,8 +259,8 @@ export function PositionDetailsModal() {
                             <Button
                                 className="flex-1"
                                 onClick={() => {
-                                    closePositionDetails()
-                                    openIncreaseLiquidity(selectedPosition)
+                                    onClose()
+                                    onIncreaseLiquidity(selectedPosition)
                                 }}
                             >
                                 Add Liquidity
@@ -261,8 +269,8 @@ export function PositionDetailsModal() {
                                 className="flex-1"
                                 variant="outline"
                                 onClick={() => {
-                                    closePositionDetails()
-                                    openRemoveLiquidity(selectedPosition)
+                                    onClose()
+                                    onRemoveLiquidity(selectedPosition)
                                 }}
                             >
                                 Remove Liquidity

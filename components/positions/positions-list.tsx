@@ -12,26 +12,38 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { useUserPositions, usePositionsByTokenIds } from '@/hooks/useUserPositions'
 import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
-import { useEarnStore, useEarnSettings } from '@/store/earn-store'
 import { formatTokenAmount } from '@/services/tokens'
 import { formatLiquidityAmount } from '@/lib/format'
 import type { PositionWithTokens } from '@/types/earn'
 
+interface PositionActions {
+    onPositionDetails: (position: PositionWithTokens) => void
+    onCollectFees: (position: PositionWithTokens) => void
+    onRemoveLiquidity: (position: PositionWithTokens) => void
+    onIncreaseLiquidity: (position: PositionWithTokens) => void
+}
+
+interface PositionsListProps extends PositionActions {
+    onAddLiquidity: () => void
+}
+
 function PositionCard({
     position,
     isStaked = false,
+    onPositionDetails,
+    onCollectFees,
+    onRemoveLiquidity,
+    onIncreaseLiquidity,
 }: {
     position: PositionWithTokens
     isStaked?: boolean
-}) {
-    const { openPositionDetails, openCollectFees, openRemoveLiquidity, openIncreaseLiquidity } =
-        useEarnStore()
+} & PositionActions) {
     const hasFees = position.tokensOwed0 > 0n || position.tokensOwed1 > 0n
     const isClosed = position.liquidity === 0n
     return (
         <Card
             className="cursor-pointer position-card-hover"
-            onClick={() => openPositionDetails(position)}
+            onClick={() => onPositionDetails(position)}
         >
             <CardContent className="p-5">
                 {/* Header: Pair identity + status */}
@@ -179,7 +191,7 @@ function PositionCard({
                                     className="flex-1"
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        openCollectFees(position)
+                                        onCollectFees(position)
                                     }}
                                 >
                                     Collect Fees
@@ -192,7 +204,7 @@ function PositionCard({
                                     className="flex-1"
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        openIncreaseLiquidity(position)
+                                        onIncreaseLiquidity(position)
                                     }}
                                 >
                                     <Plus className="h-3.5 w-3.5" />
@@ -206,7 +218,7 @@ function PositionCard({
                                     className="flex-1"
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        openRemoveLiquidity(position)
+                                        onRemoveLiquidity(position)
                                     }}
                                 >
                                     <Minus className="h-3.5 w-3.5" />
@@ -272,7 +284,13 @@ function LoadingState() {
     )
 }
 
-export function PositionsList() {
+export function PositionsList({
+    onAddLiquidity,
+    onPositionDetails,
+    onCollectFees,
+    onRemoveLiquidity,
+    onIncreaseLiquidity,
+}: PositionsListProps) {
     const { address } = useAccount()
     const chainId = useChainId()
     const { positions: walletPositions, isLoading: isLoadingWallet } = useUserPositions(
@@ -283,8 +301,6 @@ export function PositionsList() {
         useDepositedTokenIds(address)
     const { positions: stakedPositions, isLoading: isLoadingStakedPositions } =
         usePositionsByTokenIds(stakedTokenIds, chainId)
-    const { openAddLiquidity } = useEarnStore()
-    const settings = useEarnSettings()
 
     const stakedTokenIdSet = useMemo(
         () => new Set(stakedTokenIds.map((id) => id.toString())),
@@ -298,11 +314,7 @@ export function PositionsList() {
         const merged = [...walletPositions, ...uniqueStaked]
         const staked = stakedTokenIdSet
 
-        const filtered = settings.hideClosedPositions
-            ? merged.filter((p) => p.liquidity > 0n || staked.has(p.tokenId.toString()))
-            : merged
-
-        filtered.sort((a, b) => {
+        merged.sort((a, b) => {
             const getPriority = (p: PositionWithTokens) => {
                 if (staked.has(p.tokenId.toString())) return 0 // Staking first
                 if (p.liquidity === 0n) return 3 // Closed last
@@ -311,8 +323,8 @@ export function PositionsList() {
             return getPriority(a) - getPriority(b)
         })
 
-        return { allPositions: filtered, stakedSet: staked }
-    }, [walletPositions, stakedPositions, stakedTokenIdSet, settings.hideClosedPositions])
+        return { allPositions: merged, stakedSet: staked }
+    }, [walletPositions, stakedPositions, stakedTokenIdSet])
 
     const isLoading = isLoadingWallet || isLoadingStakedIds || isLoadingStakedPositions
 
@@ -334,7 +346,7 @@ export function PositionsList() {
                 title="No liquidity positions"
                 description="You don't have any liquidity positions yet."
                 action={
-                    <Button onClick={() => openAddLiquidity()}>
+                    <Button onClick={() => onAddLiquidity()}>
                         <Plus />
                         Create Position
                     </Button>
@@ -349,6 +361,10 @@ export function PositionsList() {
                     key={position.tokenId.toString()}
                     position={position}
                     isStaked={stakedSet.has(position.tokenId.toString())}
+                    onPositionDetails={onPositionDetails}
+                    onCollectFees={onCollectFees}
+                    onRemoveLiquidity={onRemoveLiquidity}
+                    onIncreaseLiquidity={onIncreaseLiquidity}
                 />
             ))}
         </div>

@@ -24,7 +24,6 @@ import { useGraduatedPools } from '@/hooks/useGraduatedPools'
 import { useAllPools, PONDER_INDEXED_CHAINS } from '@/hooks/useAllPools'
 import { usePoolTvl } from '@/hooks/usePoolTvl'
 import { usePoolVolume } from '@/hooks/usePoolVolume'
-import { useEarnStore } from '@/store/earn-store'
 import { formatFeeTier } from '@/lib/liquidity-helpers'
 import { formatTvl, formatApr, calculateApr } from '@/lib/format'
 import type { V3PoolData } from '@/types/earn'
@@ -80,6 +79,7 @@ function PoolRow({
     apr,
     isLoadingApr,
     onConnect,
+    onAddLiquidity,
 }: {
     pool: V3PoolData
     tvlUsd: number | null
@@ -89,10 +89,10 @@ function PoolRow({
     apr: number | null
     isLoadingApr: boolean
     onConnect: () => void
+    onAddLiquidity: (pool: V3PoolData) => void
 }) {
     const { isConnected } = useAccount()
     const chainId = useChainId()
-    const { openAddLiquidity } = useEarnStore()
 
     const { stablecoin, nativeTokens } = getDefaultPairTokens(chainId)
     const eq = (a: Token, b: Token) => a.address.toLowerCase() === b.address.toLowerCase()
@@ -167,7 +167,7 @@ function PoolRow({
                             onConnect()
                             return
                         }
-                        openAddLiquidity(pool)
+                        onAddLiquidity(pool)
                     }}
                 >
                     {isConnected && <Plus />}
@@ -219,7 +219,15 @@ function LoadingState() {
     )
 }
 
-function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading: boolean }) {
+function PoolsListContent({
+    pools,
+    isLoading,
+    onAddLiquidity,
+}: {
+    pools: V3PoolData[]
+    isLoading: boolean
+    onAddLiquidity: (pool: V3PoolData) => void
+}) {
     const chainId = useChainId()
     const { tvlByAddress, isLoading: isLoadingTvl } = usePoolTvl(pools, chainId)
     const { volumeByAddress, isLoading: isLoadingVol } = usePoolVolume(pools, chainId)
@@ -354,6 +362,7 @@ function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading
                                 apr={aprByAddress[pool.address.toLowerCase()] ?? null}
                                 isLoadingApr={isLoadingApr}
                                 onConnect={() => setIsConnectModalOpen(true)}
+                                onAddLiquidity={onAddLiquidity}
                             />
                         ))}
                     </TableBody>
@@ -364,12 +373,24 @@ function PoolsListContent({ pools, isLoading }: { pools: V3PoolData[]; isLoading
     )
 }
 
-function PoolsListPonder({ chainId }: { chainId: number }) {
+function PoolsListPonder({
+    chainId,
+    onAddLiquidity,
+}: {
+    chainId: number
+    onAddLiquidity: (pool: V3PoolData) => void
+}) {
     const { pools, isLoading } = useAllPools(chainId)
-    return <PoolsListContent pools={pools} isLoading={isLoading} />
+    return <PoolsListContent pools={pools} isLoading={isLoading} onAddLiquidity={onAddLiquidity} />
 }
 
-function PoolsListLegacy({ chainId }: { chainId: number }) {
+function PoolsListLegacy({
+    chainId,
+    onAddLiquidity,
+}: {
+    chainId: number
+    onAddLiquidity: (pool: V3PoolData) => void
+}) {
     const { pools: commonPools, isLoading: isLoadingCommon } = useCommonPools(chainId)
     const { pools: graduatedPools, isLoading: isLoadingGraduated } = useGraduatedPools(chainId)
     const pools = useMemo(() => {
@@ -377,13 +398,19 @@ function PoolsListLegacy({ chainId }: { chainId: number }) {
         ;[...commonPools, ...graduatedPools].forEach((p) => unique.set(p.address, p))
         return Array.from(unique.values())
     }, [commonPools, graduatedPools])
-    return <PoolsListContent pools={pools} isLoading={isLoadingCommon || isLoadingGraduated} />
+    return (
+        <PoolsListContent
+            pools={pools}
+            isLoading={isLoadingCommon || isLoadingGraduated}
+            onAddLiquidity={onAddLiquidity}
+        />
+    )
 }
 
-export function PoolsList() {
+export function PoolsList({ onAddLiquidity }: { onAddLiquidity: (pool: V3PoolData) => void }) {
     const chainId = useChainId()
     if (PONDER_INDEXED_CHAINS.has(chainId)) {
-        return <PoolsListPonder chainId={chainId} />
+        return <PoolsListPonder chainId={chainId} onAddLiquidity={onAddLiquidity} />
     }
-    return <PoolsListLegacy chainId={chainId} />
+    return <PoolsListLegacy chainId={chainId} onAddLiquidity={onAddLiquidity} />
 }
