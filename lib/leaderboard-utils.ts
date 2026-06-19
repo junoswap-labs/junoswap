@@ -6,6 +6,7 @@ import {
     fetchV2Swaps,
     type ParsedSwap,
 } from '@/lib/swap-events'
+import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import type { LeaderboardTimePeriod } from '@/types/leaderboard'
 
 /** Chains that have indexed Ponder V3 swap data for the leaderboard/points/portfolio. */
@@ -22,6 +23,72 @@ export function isLeaderboardSupportedChain(chainId: number): boolean {
  */
 export function computePoints(junoVolumeNative: number, externalVolumeNative: number): number {
     return Math.floor(junoVolumeNative / 50 + externalVolumeNative / 500)
+}
+
+/**
+ * Referral reward: a referrer earns 10% of the points their referees earn. Floored to
+ * keep the same integer-points convention as computePoints (floor once, at the end).
+ */
+export function computeReferralPoints(refereePoints: number[]): number {
+    return Math.floor(refereePoints.reduce((sum, p) => sum + p, 0) * 0.1)
+}
+
+export interface TraderAgg {
+    volumeNative: number
+    points: number
+    tradeCount: number
+    buyCount: number
+    sellCount: number
+}
+
+/**
+ * Aggregate swap rows into per-address volume/points/trade counts. Native volume is split
+ * by source — junoswap (incl. bonding curve) full rate, external DEXes 10× discounted —
+ * but the returned volumeNative is the real (undiscounted) total; only points apply the
+ * discount via computePoints. Shared by the points leaderboard and referral rewards so
+ * both compute points identically.
+ */
+export function aggregatePointsByAddress(rows: SwapEventRow[]): Map<string, TraderAgg> {
+    interface Acc {
+        junoVolumeNative: number
+        externalVolumeNative: number
+        tradeCount: number
+        buyCount: number
+        sellCount: number
+    }
+    const acc = new Map<string, Acc>()
+    for (const e of rows) {
+        const sender = e.sender.toLowerCase()
+        const isBuy = e.isBuy === 1
+        const nativeAmount = safeFormatEther(isBuy ? e.amountIn : e.amountOut)
+        let a = acc.get(sender)
+        if (!a) {
+            a = {
+                junoVolumeNative: 0,
+                externalVolumeNative: 0,
+                tradeCount: 0,
+                buyCount: 0,
+                sellCount: 0,
+            }
+            acc.set(sender, a)
+        }
+        if (e.protocol === 'junoswap') a.junoVolumeNative += nativeAmount
+        else a.externalVolumeNative += nativeAmount
+        a.tradeCount++
+        if (isBuy) a.buyCount++
+        else a.sellCount++
+    }
+    const out = new Map<string, TraderAgg>()
+    for (const [addr, a] of acc) {
+        out.set(addr, {
+            volumeNative: a.junoVolumeNative + a.externalVolumeNative,
+            points: computePoints(a.junoVolumeNative, a.externalVolumeNative),
+            tradeCount: a.tradeCount,
+            buyCount: a.buyCount,
+            sellCount: a.sellCount,
+        })
+    }
+    return out
 }
 
 export function getTimeThreshold(period: LeaderboardTimePeriod): number {
@@ -79,6 +146,26 @@ export async function fetchV2SwapEvents(
     sinceTimestamp: number
 ): Promise<SwapEventRow[]> {
     return (await fetchV2Swaps(chainId, { since: sinceTimestamp })).map(toRow)
+}
+
+/**
+ * All-time swaps for a set of trader addresses (one `_in` query per source), used by the
+ * referral panel to total each referee's points. Mirrors the source selection of the
+ * points view: bonding curve only on the launchpad chain, V3/V2 everywhere supported.
+ */
+export async function fetchSwapEventsForSenders(
+    chainId: number,
+    senders: string[]
+): Promise<SwapEventRow[]> {
+    if (senders.length === 0) return []
+    const [bondingCurve, v3, v2] = await Promise.all([
+        isLaunchpadChain(chainId)
+            ? fetchBondingCurveSwaps({ senderIn: senders })
+            : Promise.resolve([]),
+        fetchV3Swaps(chainId, { senderIn: senders }),
+        fetchV2Swaps(chainId, { senderIn: senders }),
+    ])
+    return [...bondingCurve, ...v3, ...v2].map(toRow)
 }
 
 export function safeFormatEther(value: string): number {

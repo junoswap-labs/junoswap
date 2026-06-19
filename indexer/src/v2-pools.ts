@@ -1,6 +1,6 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
-import { parseTrackingTag } from './tracking.js'
+import { parseTrackingTag, resolveBinding } from './tracking.js'
 import { upsertToken } from './v3-pools.js'
 import { getSeedV2Pool } from './seed.js'
 
@@ -106,6 +106,20 @@ async function recordV2SwapEvent(context: any, chainId: number, event: any, dex:
             protocol: dex,
         })
         .onConflictDoNothing()
+
+    const binding = resolveBinding(event.transaction.from, tag.referrer)
+    if (binding) {
+        await context.db
+            .insert(schema.referralBinding)
+            .values({
+                referee: binding.referee,
+                referrer: binding.referrer,
+                boundAtBlock: Number(event.block.number),
+                boundAtTimestamp: Number(event.block.timestamp),
+                chainId,
+            })
+            .onConflictDoNothing() // first-touch wins
+    }
 }
 
 // Each DEX: Factory:PairCreated records pool metadata; both the Seeded (existing

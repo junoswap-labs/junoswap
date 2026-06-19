@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Jazzicon } from './jazzicon'
 import { SendDialog } from './send-dialog'
-import { Check, Copy, ExternalLink, LogOut, Sun, Moon, Send } from 'lucide-react'
+import { ReferralDialog } from './referral-dialog'
+import { Check, Copy, ExternalLink, LogOut, Sun, Moon, Send, Share2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useEffect } from 'react'
 import { toastSuccess } from '@/lib/toast'
@@ -26,6 +27,7 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
     const { setTheme, resolvedTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
     const [isSendOpen, setIsSendOpen] = useState(false)
+    const [isReferralOpen, setIsReferralOpen] = useState(false)
     const [copied, setCopied] = useState(false)
     useEffect(() => {
         setMounted(true)
@@ -120,6 +122,14 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
                             <Send className="h-4 w-4" aria-hidden="true" />
                             <span>Send</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => setIsReferralOpen(true)}
+                            className="flex items-center gap-3 cursor-pointer"
+                            aria-label="Share referral link"
+                        >
+                            <Share2 className="h-4 w-4" aria-hidden="true" />
+                            <span>Referral link</span>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {mounted && (
                             <div className="flex items-center justify-between px-2 py-1.5">
@@ -157,6 +167,7 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
                 </DropdownMenuContent>
             </DropdownMenu>
             <SendDialog open={isSendOpen} onOpenChange={setIsSendOpen} />
+            <ReferralDialog open={isReferralOpen} onOpenChange={setIsReferralOpen} />
         </>
     )
 }

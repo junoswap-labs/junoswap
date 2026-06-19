@@ -50,7 +50,8 @@ interface Connection<TRow> {
 async function paginate<TRow>(
     field: string,
     whereClause: string,
-    selection: string
+    selection: string,
+    orderBy = 'timestamp'
 ): Promise<TRow[]> {
     const rows: TRow[] = []
     let after: string | null = null
@@ -59,7 +60,7 @@ async function paginate<TRow>(
           query Page($after: String) {
             ${field}(
               ${whereClause}
-              orderBy: "timestamp",
+              orderBy: "${orderBy}",
               orderDirection: "asc",
               limit: ${PAGE_SIZE},
               after: $after
@@ -82,8 +83,15 @@ async function paginate<TRow>(
 interface SwapFilter {
     /** Lowercased trader address; omit to fetch across all traders. */
     sender?: string
+    /** Lowercased trader addresses; fetch swaps from any of them in one query. */
+    senderIn?: string[]
     /** Unix seconds lower bound; omit or 0 for all-time. */
     since?: number
+}
+
+/** Serialize an address list as a GraphQL string array for an `_in` filter. */
+function gqlList(addrs: string[]): string {
+    return `[${addrs.map((a) => `"${a}"`).join(', ')}]`
 }
 
 interface RawBondingCurveSwap {
@@ -194,6 +202,7 @@ function buildWhere(filters: string[]): string {
 export async function fetchBondingCurveSwaps(filter: SwapFilter): Promise<ParsedSwap[]> {
     const filters: string[] = []
     if (filter.sender) filters.push(`sender: "${filter.sender}"`)
+    if (filter.senderIn) filters.push(`sender_in: ${gqlList(filter.senderIn)}`)
     if (filter.since && filter.since > 0) filters.push(`timestamp_gte: ${filter.since}`)
     try {
         const rows = await paginate<RawBondingCurveSwap>(
@@ -222,6 +231,7 @@ export async function fetchV3Swaps(chainId: number, filter: SwapFilter): Promise
     if (!wn) return []
     const filters = [`chainId: ${chainId}`]
     if (filter.sender) filters.push(`txFrom: "${filter.sender}"`)
+    if (filter.senderIn) filters.push(`txFrom_in: ${gqlList(filter.senderIn)}`)
     if (filter.since && filter.since > 0) filters.push(`timestamp_gte: ${filter.since}`)
     try {
         const rows = await paginate<RawV3Swap>(
@@ -247,6 +257,7 @@ export async function fetchV2Swaps(chainId: number, filter: SwapFilter): Promise
     if (!wn) return []
     const filters = [`chainId: ${chainId}`]
     if (filter.sender) filters.push(`txFrom: "${filter.sender}"`)
+    if (filter.senderIn) filters.push(`txFrom_in: ${gqlList(filter.senderIn)}`)
     if (filter.since && filter.since > 0) filters.push(`timestamp_gte: ${filter.since}`)
     try {
         const rows = await paginate<RawV2Swap>(
@@ -260,6 +271,27 @@ export async function fetchV2Swaps(chainId: number, filter: SwapFilter): Promise
             if (p) out.push(p)
         }
         return out
+    } catch (e) {
+        if (isPonderError(e)) return []
+        throw e
+    }
+}
+
+interface RawReferralBinding {
+    referee: string
+}
+
+/** Wallets bound (sticky first-touch) to the given referrer. Cross-chain (binding is
+ *  keyed by referee globally). Returns lowercased referee addresses. */
+export async function fetchReferralBindings(referrer: string): Promise<string[]> {
+    try {
+        const rows = await paginate<RawReferralBinding>(
+            'referralBindings',
+            buildWhere([`referrer: "${referrer.toLowerCase()}"`]),
+            'referee',
+            'boundAtTimestamp'
+        )
+        return rows.map((r) => r.referee.toLowerCase())
     } catch (e) {
         if (isPonderError(e)) return []
         throw e

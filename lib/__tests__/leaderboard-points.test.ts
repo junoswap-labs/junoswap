@@ -6,7 +6,14 @@ vi.mock('@/lib/ponder-client', () => ({
     isPonderError: () => false,
 }))
 
-import { computePoints, fetchV2SwapEvents } from '@/lib/leaderboard-utils'
+import {
+    computePoints,
+    computeReferralPoints,
+    aggregatePointsByAddress,
+    fetchV2SwapEvents,
+    type SwapEventRow,
+} from '@/lib/leaderboard-utils'
+import { resolveBinding } from '@/indexer/src/tracking'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { bitkub } from '@/lib/wagmi'
 
@@ -31,6 +38,75 @@ describe('computePoints', () => {
         // 25/50 + 250/500 = 0.5 + 0.5 = 1, though each source alone floors to 0.
         expect(computePoints(25, 250)).toBe(1)
         expect(computePoints(50, 500)).toBe(2)
+    })
+})
+
+describe('computeReferralPoints', () => {
+    it('awards 10% of the summed referee points, floored once', () => {
+        expect(computeReferralPoints([1200, 340])).toBe(154) // floor(1540 * 0.1)
+    })
+
+    it('floors the aggregate, not per referee', () => {
+        // Each alone (5*0.1=0.5) floors to 0, but the sum (1) survives.
+        expect(computeReferralPoints([5, 5])).toBe(1)
+        expect(computeReferralPoints([])).toBe(0)
+    })
+})
+
+describe('aggregatePointsByAddress', () => {
+    const NATIVE_100 = '100000000000000000000' // 100e18
+    const NATIVE_500 = '500000000000000000000' // 500e18
+
+    it('splits volume by source, lowercases addresses, and floors points once', () => {
+        const rows: SwapEventRow[] = [
+            // junoswap buy: native paid is amountIn (100 native, full rate)
+            {
+                tokenAddr: TOKEN,
+                sender: '0xABC',
+                isBuy: 1,
+                amountIn: NATIVE_100,
+                amountOut: '5',
+                timestamp: 100,
+                protocol: 'junoswap',
+            },
+            // external sell: native received is amountOut (500 native, 10x discount)
+            {
+                tokenAddr: TOKEN,
+                sender: '0xabc',
+                isBuy: 0,
+                amountIn: '7',
+                amountOut: NATIVE_500,
+                timestamp: 200,
+                protocol: 'jibswap',
+            },
+        ]
+        const agg = aggregatePointsByAddress(rows).get('0xabc')!
+        // displayed volume is the real total (no discount): 100 + 500
+        expect(agg.volumeNative).toBe(600)
+        // points discount external: floor(100/50 + 500/500) = floor(2 + 1) = 3
+        expect(agg.points).toBe(computePoints(100, 500))
+        expect(agg.points).toBe(3)
+        expect(agg).toMatchObject({ tradeCount: 2, buyCount: 1, sellCount: 1 })
+    })
+})
+
+describe('resolveBinding', () => {
+    const A = '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+    const B = '0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+
+    it('binds a referee to a distinct referrer, lowercased', () => {
+        expect(resolveBinding(A, B)).toEqual({
+            referee: A.toLowerCase(),
+            referrer: B.toLowerCase(),
+        })
+    })
+
+    it('rejects a missing referrer', () => {
+        expect(resolveBinding(A, null)).toBeNull()
+    })
+
+    it('rejects self-referral regardless of case', () => {
+        expect(resolveBinding(A, A.toLowerCase())).toBeNull()
     })
 })
 

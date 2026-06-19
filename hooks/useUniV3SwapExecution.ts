@@ -30,7 +30,7 @@ import { isNativeToken, shouldSkipUnwrap } from '@/lib/wagmi'
 import { getWrapOperation, getWrappedNativeAddress } from '@/services/tokens'
 import { WETH9_ABI } from '@/lib/abis/weth9'
 import { useReferrer } from '@/hooks/useReferrer'
-import { appendTrackingTag, shouldTagDex } from '@/lib/swap-tracking'
+import { appendTrackingTag } from '@/lib/swap-tracking'
 
 interface UseUniV3SwapExecutionParams {
     tokenIn: Token
@@ -234,10 +234,11 @@ export function useUniV3SwapExecution({
                   },
               }) as any // eslint-disable-line @typescript-eslint/no-explicit-any -- complex conditional type union
     )
-    // Non-Junoswap router swaps carry a tracking suffix appended to the calldata,
-    // which requires a raw sendTransaction (writeContract re-encodes and would drop
-    // the suffix). Junoswap swaps keep the simulated writeContract path unchanged.
-    const shouldTag = !wrapOperation && shouldTagDex(selectedDex)
+    // Every router swap (including Junoswap's own) carries a tracking suffix appended
+    // to the calldata, which requires a raw sendTransaction — writeContract re-encodes
+    // from abi/args and would drop the suffix. Wrap/unwrap is not a swap, so it stays on
+    // the simulated writeContract path and is left untagged.
+    const shouldTag = !wrapOperation
     const {
         data: writeHash,
         writeContract: swap,

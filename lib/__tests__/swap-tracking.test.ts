@@ -3,7 +3,6 @@ import {
     appendTrackingTag,
     buildTrackingSuffix,
     normalizeReferrer,
-    shouldTagDex,
     DEFAULT_REFERRER,
     JUNOSWAP_CALLDATA_MARKER,
 } from '@/lib/swap-tracking'
@@ -19,14 +18,6 @@ describe('buildTrackingSuffix', () => {
         expect(suffix.startsWith(JUNOSWAP_CALLDATA_MARKER)).toBe(true)
         expect(suffix.length).toBe(2 + 48) // 0x + 24 bytes
         expect(suffix.toLowerCase().endsWith(REF.slice(2))).toBe(true)
-    })
-})
-
-describe('shouldTagDex', () => {
-    it('tags every router except junoswap', () => {
-        expect(shouldTagDex('junoswap')).toBe(false)
-        expect(shouldTagDex('jibswap')).toBe(true)
-        expect(shouldTagDex('pancakeswap')).toBe(true)
     })
 })
 

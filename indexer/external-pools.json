@@ -45,11 +45,6 @@
             "pair": "0x7bf51541208a70b784006ef7bd6f774f4012cd38",
             "token0": "0x7d984c24d2499d840eb3b7016077164e15e5faa6",
             "token1": "0x95013dcb6a561e6c003aed9c43fb8b64008aa361"
-        },
-        {
-            "pair": "0xd3ac3caa27edc61116d9587379dca9fa9ad50e62",
-            "token0": "0x7d984c24d2499d840eb3b7016077164e15e5faa6",
-            "token1": "0x9b005000a10ac871947d99001345b01c1cef2790"
         }
     ],
     "kublerx": [

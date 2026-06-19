@@ -8,8 +8,7 @@ import {
     fetchSwapEvents,
     fetchV3SwapEvents,
     fetchV2SwapEvents,
-    computePoints,
-    safeFormatEther,
+    aggregatePointsByAddress,
     isLeaderboardSupportedChain,
 } from '@/lib/leaderboard-utils'
 import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
@@ -105,53 +104,14 @@ export function usePointsData(
         // to 0 (points/volume render as 0) rather than hanging on "loading".
         const effectiveNativeUsdPrice = nativeUsdPrice ?? 0
 
-        interface SwapAgg {
-            // Native volume split by source: junoswap (incl. bonding curve) earns points
-            // at the full rate, external DEXes at a 10× discount (see computePoints).
-            junoVolumeNative: number
-            externalVolumeNative: number
-            tradeCount: number
-            buyCount: number
-            sellCount: number
-        }
-        const bySender = new Map<string, SwapAgg>()
-
-        for (const e of rawSwapEvents) {
-            const sender = e.sender.toLowerCase()
-            const isBuy = e.isBuy === 1
-            const nativeAmount = safeFormatEther(isBuy ? e.amountIn : e.amountOut)
-
-            let agg = bySender.get(sender)
-            if (!agg) {
-                agg = {
-                    junoVolumeNative: 0,
-                    externalVolumeNative: 0,
-                    tradeCount: 0,
-                    buyCount: 0,
-                    sellCount: 0,
-                }
-                bySender.set(sender, agg)
-            }
-
-            if (e.protocol === 'junoswap') agg.junoVolumeNative += nativeAmount
-            else agg.externalVolumeNative += nativeAmount
-            agg.tradeCount++
-            if (isBuy) agg.buyCount++
-            else agg.sellCount++
-        }
-
         const allTraders: PointsTrader[] = []
-        for (const [addr, agg] of bySender) {
-            // Displayed volume is the real total (junoswap full + external full); only
-            // points apply the external discount.
-            const volumeNative = agg.junoVolumeNative + agg.externalVolumeNative
-            const volumeUsd = volumeNative * effectiveNativeUsdPrice
+        for (const [addr, agg] of aggregatePointsByAddress(rawSwapEvents)) {
             allTraders.push({
                 rank: 0,
                 address: addr,
-                volumeNative,
-                volumeUsd,
-                points: computePoints(agg.junoVolumeNative, agg.externalVolumeNative),
+                volumeNative: agg.volumeNative,
+                volumeUsd: agg.volumeNative * effectiveNativeUsdPrice,
+                points: agg.points,
                 tradeCount: agg.tradeCount,
                 buyCount: agg.buyCount,
                 sellCount: agg.sellCount,

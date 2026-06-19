@@ -1,7 +1,7 @@
 import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { readERC20Metadata } from './erc20-read.js'
-import { parseTrackingTag } from './tracking.js'
+import { parseTrackingTag, resolveBinding } from './tracking.js'
 import { WRAPPED_NATIVE_ADDRESSES, STABLECOIN_ADDRESSES } from './chains.js'
 
 const Q96 = 2n ** 96n
@@ -19,8 +19,8 @@ function computePriceFromSqrtPriceX96(sqrtPriceX96: bigint, tokenIsToken0: boole
     return Number(priceRaw) / 1e18
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function upsertToken(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     context: any,
     chainId: number,
     address: string,
@@ -278,6 +278,20 @@ export async function recordV3SwapEvent(
             protocol,
         })
         .onConflictDoNothing()
+
+    const binding = resolveBinding(event.transaction.from, tag?.referrer ?? null)
+    if (binding) {
+        await context.db
+            .insert(schema.referralBinding)
+            .values({
+                referee: binding.referee,
+                referrer: binding.referrer,
+                boundAtBlock: Number(event.block.number),
+                boundAtTimestamp: Number(event.block.timestamp),
+                chainId,
+            })
+            .onConflictDoNothing() // first-touch wins
+    }
 }
 
 // kubTestnet (25925)

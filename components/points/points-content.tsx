@@ -8,6 +8,7 @@ import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-pric
 import { usePointsData } from '@/hooks/usePointsData'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ShareablePointsBanner } from './shareable-points-banner'
+import { ReferralRewardsPanel } from './referral-rewards-panel'
 import { PointsLeaderboardTable } from './points-leaderboard-table'
 import { Search } from 'lucide-react'
 import type { PointsSettings, PointsSortKey, SortDirection } from '@/types/points'
@@ -92,6 +93,8 @@ export function PointsContent() {
                     totalTraders={totalCount}
                     isConnected={!!address}
                 />
+
+                {address && <ReferralRewardsPanel nativeUsdPrice={nativeUsdPrice} />}
 
                 <Card>
                     <CardContent className="p-0">

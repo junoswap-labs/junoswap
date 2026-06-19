@@ -205,3 +205,17 @@ export const v3TokenSnapshot = onchainTable('v3_token_snapshot', (t) => ({
     lastSwapAt: t.integer(),
     updatedAt: t.integer().notNull(),
 }))
+
+// Sticky first-touch referral binding. Written the first time a wallet swaps through a
+// `?ref=` link (a tagged v2/v3 swap whose referrer != the swapper). Keyed by referee so
+// onConflictDoNothing makes the earliest-processed binding permanent — the referee then
+// credits this referrer 10% on all its future points, regardless of later links used.
+// referee/referrer are lowercased; keyed globally (not per-chain) so a wallet binds on
+// its first tagged swap on any chain.
+export const referralBinding = onchainTable('referral_binding', (t) => ({
+    referee: t.text().primaryKey(),
+    referrer: t.text().notNull(),
+    boundAtBlock: t.integer().notNull(),
+    boundAtTimestamp: t.integer().notNull(),
+    chainId: t.integer().notNull(),
+}))

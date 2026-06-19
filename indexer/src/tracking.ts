@@ -22,3 +22,16 @@ export function parseTrackingTag(
     const referrer = '0x' + suffix.slice(MARKER.length)
     return { referrer: referrer === ZERO ? null : referrer }
 }
+
+// First-touch eligibility for a referral binding: requires a real referrer tag that
+// isn't a self-referral. Returns the lowercased referee/referrer pair, or null when the
+// swap shouldn't bind (no referrer, or referrer == swapper).
+export function resolveBinding(
+    referee: string,
+    referrer: string | null
+): { referee: string; referrer: string } | null {
+    if (!referrer) return null
+    const a = referee.toLowerCase()
+    const b = referrer.toLowerCase()
+    return a === b ? null : { referee: a, referrer: b }
+}
