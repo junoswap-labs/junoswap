@@ -281,6 +281,35 @@ interface RawReferralBinding {
     referee: string
 }
 
+interface RawReferralBindingPair {
+    referrer: string
+    referee: string
+}
+
+/** Every referral binding (sticky first-touch), grouped by referrer. Cross-chain
+ *  (bindings are global). Returns lowercased referrer → lowercased referee addresses. */
+export async function fetchAllReferralBindings(): Promise<Map<string, string[]>> {
+    try {
+        const rows = await paginate<RawReferralBindingPair>(
+            'referralBindings',
+            '',
+            'referrer referee',
+            'boundAtTimestamp'
+        )
+        const map = new Map<string, string[]>()
+        for (const r of rows) {
+            const referrer = r.referrer.toLowerCase()
+            const list = map.get(referrer) ?? []
+            list.push(r.referee.toLowerCase())
+            map.set(referrer, list)
+        }
+        return map
+    } catch (e) {
+        if (isPonderError(e)) return new Map()
+        throw e
+    }
+}
+
 /** Wallets bound (sticky first-touch) to the given referrer. Cross-chain (binding is
  *  keyed by referee globally). Returns lowercased referee addresses. */
 export async function fetchReferralBindings(referrer: string): Promise<string[]> {

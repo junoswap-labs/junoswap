@@ -9,8 +9,10 @@ import {
     fetchV3SwapEvents,
     fetchV2SwapEvents,
     aggregatePointsByAddress,
+    computeReferralPoints,
     isLeaderboardSupportedChain,
 } from '@/lib/leaderboard-utils'
+import { fetchAllReferralBindings } from '@/lib/swap-events'
 import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
 import type { PointsTrader, PointsTimePeriod, PointsSortKey, SortDirection } from '@/types/points'
 
@@ -73,6 +75,14 @@ export function usePointsData(
         refetchInterval: 30_000,
     })
 
+    const { data: referralBindings } = useQuery({
+        queryKey: ['referral-bindings-all', chainId],
+        queryFn: fetchAllReferralBindings,
+        enabled: isSupportedChain,
+        staleTime: 30_000,
+        refetchInterval: 30_000,
+    })
+
     return useMemo(() => {
         if (!isSupportedChain) {
             return {
@@ -87,7 +97,7 @@ export function usePointsData(
             }
         }
 
-        if (!rawSwapEvents) {
+        if (!rawSwapEvents || !referralBindings) {
             return {
                 traders: [],
                 totalCount: 0,
@@ -104,14 +114,19 @@ export function usePointsData(
         // to 0 (points/volume render as 0) rather than hanging on "loading".
         const effectiveNativeUsdPrice = nativeUsdPrice ?? 0
 
+        const aggMap = aggregatePointsByAddress(rawSwapEvents)
         const allTraders: PointsTrader[] = []
-        for (const [addr, agg] of aggregatePointsByAddress(rawSwapEvents)) {
+        for (const [addr, agg] of aggMap) {
+            const referees = referralBindings.get(addr) ?? []
             allTraders.push({
                 rank: 0,
                 address: addr,
                 volumeNative: agg.volumeNative,
                 volumeUsd: agg.volumeNative * effectiveNativeUsdPrice,
                 points: agg.points,
+                referredPoints: computeReferralPoints(
+                    referees.map((a) => aggMap.get(a)?.points ?? 0)
+                ),
                 tradeCount: agg.tradeCount,
                 buyCount: agg.buyCount,
                 sellCount: agg.sellCount,
@@ -125,13 +140,9 @@ export function usePointsData(
                     aVal = a.points
                     bVal = b.points
                     break
-                case 'volume':
-                    aVal = a.volumeUsd
-                    bVal = b.volumeUsd
-                    break
-                case 'trades':
-                    aVal = a.tradeCount
-                    bVal = b.tradeCount
+                case 'referred':
+                    aVal = a.referredPoints
+                    bVal = b.referredPoints
                     break
             }
             return sortDirection === 'desc' ? bVal - aVal : aVal - bVal
@@ -189,6 +200,7 @@ export function usePointsData(
         }
     }, [
         rawSwapEvents,
+        referralBindings,
         nativeUsdPrice,
         sortKey,
         sortDirection,

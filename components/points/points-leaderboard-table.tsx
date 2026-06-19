@@ -1,7 +1,6 @@
 'use client'
 
 import { cn, formatAddress } from '@/lib/utils'
-import { formatCompact } from '@/services/launchpad'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
@@ -85,9 +84,6 @@ function LoadingState() {
                         <div className="h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
-                        <div className="h-5 w-20 animate-pulse rounded bg-muted" />
-                    </TableCell>
-                    <TableCell>
                         <div className="h-5 w-16 animate-pulse rounded bg-muted" />
                     </TableCell>
                     <TableCell>
@@ -118,13 +114,6 @@ export function PointsLeaderboardTable({
                 <TableHead className="text-muted-foreground whitespace-nowrap">Wallet</TableHead>
                 <TableHead className="text-muted-foreground whitespace-nowrap">Tier</TableHead>
                 <SortableHead
-                    label="Volume"
-                    sortKey="volume"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={onSort}
-                />
-                <SortableHead
                     label="Points"
                     sortKey="points"
                     activeSortKey={sortKey}
@@ -132,8 +121,8 @@ export function PointsLeaderboardTable({
                     onSort={onSort}
                 />
                 <SortableHead
-                    label="Trades"
-                    sortKey="trades"
+                    label="Referred Points"
+                    sortKey="referred"
                     activeSortKey={sortKey}
                     sortDirection={sortDirection}
                     onSort={onSort}
@@ -197,14 +186,11 @@ export function PointsLeaderboardTable({
                                 <TableCell className="py-2.5">
                                     {trader.points > 0 && <PointsTierBadge tier={tier.name} />}
                                 </TableCell>
-                                <TableCell className="py-2.5 font-mono tracking-tight text-sm text-muted-foreground">
-                                    ${formatCompact(trader.volumeUsd)}
-                                </TableCell>
                                 <TableCell className="py-2.5 font-mono font-bold tracking-tight text-sm">
                                     {trader.points.toLocaleString()}
                                 </TableCell>
-                                <TableCell className="py-2.5 font-mono tracking-tight text-sm">
-                                    {trader.tradeCount}
+                                <TableCell className="py-2.5 font-mono tracking-tight text-sm text-muted-foreground">
+                                    {trader.referredPoints.toLocaleString()}
                                 </TableCell>
                             </TableRow>
                         )

@@ -2,7 +2,7 @@ import type { LeaderboardTimePeriod, SortDirection } from './leaderboard'
 
 export type { SortDirection }
 export type PointsTimePeriod = LeaderboardTimePeriod
-export type PointsSortKey = 'points' | 'volume' | 'trades'
+export type PointsSortKey = 'points' | 'referred'
 
 export interface PointsTrader {
     rank: number
@@ -10,6 +10,7 @@ export interface PointsTrader {
     volumeNative: number
     volumeUsd: number
     points: number
+    referredPoints: number
     tradeCount: number
     buyCount: number
     sellCount: number
