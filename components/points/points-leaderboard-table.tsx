@@ -1,7 +1,7 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { cn, formatAddress } from '@/lib/utils'
-import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
     TableBody,
@@ -28,7 +28,6 @@ interface PointsLeaderboardTableProps {
     sortDirection: SortDirection
     onSort: (key: PointsSortKey) => void
     userAddress?: string
-    chainId: number
 }
 
 function SortableHead({
@@ -105,8 +104,9 @@ export function PointsLeaderboardTable({
     sortDirection,
     onSort,
     userAddress,
-    chainId,
 }: PointsLeaderboardTableProps) {
+    const router = useRouter()
+
     const header = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -168,12 +168,7 @@ export function PointsLeaderboardTable({
                                     i % 2 === 1 && 'bg-muted/10',
                                     isUser && 'bg-primary/5'
                                 )}
-                                onClick={() =>
-                                    window.open(
-                                        getExplorerAddressUrl(chainId, trader.address),
-                                        '_blank'
-                                    )
-                                }
+                                onClick={() => router.push(`/portfolio?address=${trader.address}`)}
                             >
                                 <TableCell className="py-2.5">
                                     <span className="font-mono text-muted-foreground">

@@ -169,7 +169,7 @@ export function ShareablePointsBanner({
                                             <span
                                                 className={`text-[11px] font-bold uppercase tracking-widest ${accent.text}`}
                                             >
-                                                {resolvedTier.label} Tier
+                                                {resolvedTier.label}
                                             </span>
                                         </div>
                                     ) : (

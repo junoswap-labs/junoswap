@@ -1,8 +1,8 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { cn, formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad'
-import { getExplorerAddressUrl } from '@/lib/explorer'
 import {
     Table,
     TableBody,
@@ -27,7 +27,6 @@ interface TraderLeaderboardTableProps {
     sortKey: TraderSortKey
     sortDirection: SortDirection
     onSort: (key: TraderSortKey) => void
-    chainId: number
 }
 
 function formatUsd(value: number, nativeUsdPrice: number | null): string {
@@ -128,8 +127,9 @@ export function TraderLeaderboardTable({
     sortKey,
     sortDirection,
     onSort,
-    chainId,
 }: TraderLeaderboardTableProps) {
+    const router = useRouter()
+
     const tableHeader = (
         <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -197,12 +197,7 @@ export function TraderLeaderboardTable({
                                 'cursor-pointer transition-colors hover:bg-muted/30',
                                 i % 2 === 1 && 'bg-muted/10'
                             )}
-                            onClick={() =>
-                                window.open(
-                                    getExplorerAddressUrl(chainId, trader.address),
-                                    '_blank'
-                                )
-                            }
+                            onClick={() => router.push(`/portfolio?address=${trader.address}`)}
                         >
                             <TableCell className="py-2.5">
                                 <RankCell rank={trader.rank} />

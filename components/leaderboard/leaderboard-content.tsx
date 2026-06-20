@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useChainId } from 'wagmi'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
@@ -24,7 +23,6 @@ const DEFAULT_SETTINGS: LeaderboardSettings = {
 }
 
 export function LeaderboardContent() {
-    const chainId = useChainId()
     const [settings, setSettings] = useState<LeaderboardSettings>(DEFAULT_SETTINGS)
     const [page, setPage] = useState(1)
     const [searchQuery, setSearchQueryState] = useState('')
@@ -99,7 +97,6 @@ export function LeaderboardContent() {
                             sortKey={settings.sortKey}
                             sortDirection={settings.sortDirection}
                             onSort={handleSort}
-                            chainId={chainId}
                         />
                     </CardContent>
                 </Card>

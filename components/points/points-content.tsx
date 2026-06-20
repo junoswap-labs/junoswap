@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useChainId } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
@@ -41,7 +41,6 @@ export function PointsContent() {
     const debouncedSearch = useDebounce(searchQuery, 300)
     const { nativeUsdPrice } = useNativeUsdPriceContext()
     const { address } = useAccount()
-    const chainId = useChainId()
 
     const {
         traders,
@@ -108,7 +107,6 @@ export function PointsContent() {
                             sortDirection={settings.sortDirection}
                             onSort={handleSort}
                             userAddress={address}
-                            chainId={chainId}
                         />
                     </CardContent>
                 </Card>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAccount } from 'wagmi'
 import { ConnectButton } from '@/components/web3/connect-button'
 import { NetworkSwitcher } from '@/components/web3/network-switcher'
 import {
@@ -68,7 +69,14 @@ const socialLinks = [
 export function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const pathname = usePathname()
+    const { address } = useAccount()
     const isLanding = pathname === '/'
+
+    // The Portfolio link points at the connected wallet so the page opens on the
+    // user's own portfolio; clicking a leaderboard row instead passes that trader's
+    // address. Active highlighting still matches on the bare /portfolio path.
+    const navHref = (href: string) =>
+        href === '/portfolio' && address ? `/portfolio?address=${address}` : href
 
     // On the landing page the hero renders behind this nav. Keep the nav
     // transparent while the hero is still under it, then restore the normal
@@ -147,7 +155,7 @@ export function Header() {
                                     <NavigationMenuItem key={link.href}>
                                         <NavigationMenuLink asChild>
                                             <Link
-                                                href={link.href}
+                                                href={navHref(link.href)}
                                                 className={`relative px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ease-out ${
                                                     isActive
                                                         ? 'text-foreground'
@@ -218,7 +226,7 @@ export function Header() {
                                     return (
                                         <Link
                                             key={link.href}
-                                            href={link.href}
+                                            href={navHref(link.href)}
                                             className={`flex items-center min-h-[48px] px-4 py-3 text-[15px] font-medium transition-all duration-150 ${
                                                 isActive
                                                     ? 'text-foreground'
