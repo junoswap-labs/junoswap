@@ -35,7 +35,11 @@ export function PortfolioContent() {
     const [activeTab, setActiveTab] = useState<'holdings' | 'activity'>('holdings')
 
     const { tokens, getTokenType } = usePortfolioTokens(chainId, address)
-    const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(tokens, chainId)
+    const { holdings, isLoading: isBalancesLoading } = usePortfolioBalances(
+        tokens,
+        chainId,
+        address
+    )
     const prices = usePortfolioPrices(holdings, nativeUsdPrice, chainId, getTokenType)
     const { data: swapEvents } = useUserSwapEvents(address, chainId)
     const { priceAt } = useNativeUsdPriceHistory(chainId, nativeUsdPrice)

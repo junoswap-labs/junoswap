@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useAccount, useBalance } from 'wagmi'
+import { useBalance } from 'wagmi'
+import type { Address } from 'viem'
 import { isNativeToken } from '@/lib/wagmi'
 import { formatTokenAmount } from '@/services/tokens'
 import type { Token } from '@/types/tokens'
@@ -9,8 +10,7 @@ import { useMultiBalances, type TokenHolding } from '@/hooks/use-multi-balances'
 
 export type { TokenHolding }
 
-export function usePortfolioBalances(tokens: Token[], chainId: number) {
-    const { address } = useAccount()
+export function usePortfolioBalances(tokens: Token[], chainId: number, address?: Address) {
     const nativeToken = useMemo(
         () => tokens.find((t) => isNativeToken(t.address)) ?? null,
         [tokens]
