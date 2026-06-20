@@ -62,12 +62,13 @@ export interface SwapState {
     isUpdatingFromUrl: boolean
 }
 
-/** URL format: /swap?input={address}&output={address}&amount={string}&chain={chainId} */
+/** URL format: /swap?input={address}&output={address}&amount={string}&chain={chainId}&ref={address} */
 export interface SwapUrlParams {
     input?: string // Token address
     output?: string // Token address
     amount?: string // Input amount as decimal string
     chain?: string // Chain ID as string
+    ref?: string // Referrer address for calldata tracking
 }
 
 export interface ParsedSwapUrlParams {

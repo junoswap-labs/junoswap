@@ -11,6 +11,7 @@ export function parseSwapSearchParams(searchParams: URLSearchParams): SwapUrlPar
         output: searchParams.get('output') || undefined,
         amount: searchParams.get('amount') || undefined,
         chain: searchParams.get('chain') || undefined,
+        ref: searchParams.get('ref') || undefined,
     }
 }
 
@@ -21,6 +22,8 @@ export function buildSwapSearchParams(params: SwapUrlParams): URLSearchParams {
     if (params.output) searchParams.set('output', params.output)
     if (params.amount) searchParams.set('amount', params.amount)
     if (params.chain) searchParams.set('chain', params.chain)
+    // Keep ref last so existing input/output/amount/chain ordering is unchanged
+    if (params.ref) searchParams.set('ref', params.ref)
 
     return searchParams
 }

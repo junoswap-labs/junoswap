@@ -95,6 +95,7 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
                                             input: urlParams.input,
                                             output: urlParams.output,
                                             amount: urlParams.amount,
+                                            ref: urlParams.ref,
                                         })
                                         const newUrl = `${window.location.pathname}${newParams.toString() ? `?${newParams.toString()}` : ''}`
                                         router.replace(newUrl, { scroll: false })
@@ -168,6 +169,7 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
             output: debouncedTokenOut?.address,
             amount: debouncedAmountIn || undefined,
             chain: chainId.toString(),
+            ref: searchParams.get('ref') || undefined,
         })
         const currentParams = new URLSearchParams(searchParams.toString())
         const newParamsStr = newParams.toString()
