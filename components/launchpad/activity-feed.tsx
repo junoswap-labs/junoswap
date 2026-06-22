@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { useAllSwapEvents } from '@/hooks/useAllSwapEvents'
 import { formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { formatAddress, cn, formatTimeAgo } from '@/lib/utils'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
@@ -47,7 +47,7 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
                     e.preventDefault()
                     e.stopPropagation()
                     window.open(
-                        getExplorerAddressUrl(PUMP_CORE_NATIVE_CHAIN_ID, event.sender),
+                        getExplorerAddressUrl(BONDING_CURVE_JUNOSWAP_CHAIN_ID, event.sender),
                         '_blank'
                     )
                 }}

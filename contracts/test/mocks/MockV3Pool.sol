@@ -4,6 +4,11 @@ pragma solidity 0.8.19;
 import "../../src/interfaces/v3-core/IUniswapV3Pool.sol";
 
 contract MockV3Pool is IUniswapV3Pool {
+    // Mirror Uniswap V3 TickMath bounds so initialize() rejects out-of-range prices (incl. 0)
+    // exactly as a real pool does — otherwise a zero/invalid sqrtPriceX96 is silently accepted.
+    uint160 internal constant MIN_SQRT_RATIO = 4295128739;
+    uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+
     uint160 public storedSqrtPriceX96;
     bool public initialized;
 
@@ -12,6 +17,7 @@ contract MockV3Pool is IUniswapV3Pool {
     }
 
     function initialize(uint160 sqrtPriceX96) external {
+        require(sqrtPriceX96 >= MIN_SQRT_RATIO && sqrtPriceX96 < MAX_SQRT_RATIO, "R");
         storedSqrtPriceX96 = sqrtPriceX96;
         initialized = true;
     }

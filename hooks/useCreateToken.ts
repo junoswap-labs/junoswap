@@ -6,10 +6,10 @@ import { useQuery } from '@tanstack/react-query'
 import { parseEther } from 'viem'
 import type { Address } from 'viem'
 import {
-    PUMP_CORE_NATIVE_ADDRESS,
-    PUMP_CORE_NATIVE_ABI,
-    PUMP_CORE_NATIVE_CHAIN_ID,
-} from '@/lib/abis/pump-core-native'
+    BONDING_CURVE_JUNOSWAP_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_ABI,
+    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+} from '@/lib/abis/bonding-curve-junoswap'
 import {
     calculateBuyOutput,
     calculateMinOutput,
@@ -44,7 +44,7 @@ interface UseCreateTokenResult {
 export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenResult {
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
-    const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
+    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
 
     const [phase, setPhase] = useState<CreatePhase>('idle')
     const [createdTokenAddress, setCreatedTokenAddress] = useState<Address | null>(null)
@@ -58,24 +58,24 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     } | null>(null)
 
     const { data: createFee } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
+        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'createFee',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
     })
 
     const { data: initialNative } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
+        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'initialNative',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
     })
 
     const { data: virtualAmount } = useReadContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
+        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'virtualAmount',
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
     })
 
     const upfrontBuyNative = useMemo(() => {
@@ -200,8 +200,8 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     return
                 }
                 const reserveData = await publicClient.readContract({
-                    address: PUMP_CORE_NATIVE_ADDRESS,
-                    abi: PUMP_CORE_NATIVE_ABI,
+                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'pumpReserve',
                     args: [tokenAddr],
                 })
@@ -227,12 +227,12 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     buyAmount: upfrontBuyNative,
                 }
                 writeBuy({
-                    address: PUMP_CORE_NATIVE_ADDRESS,
-                    abi: PUMP_CORE_NATIVE_ABI,
+                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'buy',
                     args: [tokenAddr, actualMinOut],
                     value: upfrontBuyNative,
-                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                 })
             })
         } else {
@@ -282,8 +282,8 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         didTriggerBuy.current = false
         buyParamsRef.current = null
         writeCreate({
-            address: PUMP_CORE_NATIVE_ADDRESS,
-            abi: PUMP_CORE_NATIVE_ABI,
+            address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+            abi: BONDING_CURVE_JUNOSWAP_ABI,
             functionName: 'createToken',
             args: [
                 form.name,
@@ -295,7 +295,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                 form.link3,
             ],
             value: createCost,
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+            chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
         })
     }
 

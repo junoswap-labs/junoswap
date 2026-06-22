@@ -5,10 +5,10 @@ import { useSimulateContract, useWriteContract, usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import {
-    PUMP_CORE_NATIVE_ADDRESS,
-    PUMP_CORE_NATIVE_ABI,
-    PUMP_CORE_NATIVE_CHAIN_ID,
-} from '@/lib/abis/pump-core-native'
+    BONDING_CURVE_JUNOSWAP_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_ABI,
+    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+} from '@/lib/abis/bonding-curve-junoswap'
 import { calculateSellOutput, calculateMinOutput } from '@/services/launchpad'
 import { useSwapStore } from '@/store/swap-store'
 
@@ -44,7 +44,7 @@ export function useBondingCurveSell({
 }: UseBondingCurveSellParams): UseBondingCurveSellResult {
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
-    const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
+    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
 
     const expectedOut = useMemo(
         () => calculateSellOutput(tokenAmount, nativeReserve, tokenReserve, virtualAmount),
@@ -57,11 +57,11 @@ export function useBondingCurveSell({
     )
 
     const { data: simulationData, isLoading: isPreparing } = useSimulateContract({
-        address: PUMP_CORE_NATIVE_ADDRESS,
-        abi: PUMP_CORE_NATIVE_ABI,
+        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'sell',
         args: tokenAddr ? [tokenAddr, tokenAmount, minNativeOut] : undefined,
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
         query: {
             enabled: !!tokenAddr && tokenAmount > 0n && enabled,
         },

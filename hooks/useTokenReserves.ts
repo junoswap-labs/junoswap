@@ -3,10 +3,10 @@
 import { useReadContracts } from 'wagmi'
 import type { Address } from 'viem'
 import {
-    PUMP_CORE_NATIVE_ADDRESS,
-    PUMP_CORE_NATIVE_ABI,
-    PUMP_CORE_NATIVE_CHAIN_ID,
-} from '@/lib/abis/pump-core-native'
+    BONDING_CURVE_JUNOSWAP_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_ABI,
+    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+} from '@/lib/abis/bonding-curve-junoswap'
 
 // Virtual amount is constant in the contract (3400 ether) — safe to hardcode.
 // graduationAmount is mutable via setCurveState(), so we read it from chain.
@@ -31,7 +31,7 @@ interface UseTokenReservesResult {
 export function useTokenReserves({
     tokenAddr,
     isGraduated: isGraduatedProp,
-    chainId = PUMP_CORE_NATIVE_CHAIN_ID,
+    chainId = BONDING_CURVE_JUNOSWAP_CHAIN_ID,
 }: UseTokenReservesParams): UseTokenReservesResult {
     // For graduated tokens, reserves are not meaningful (liquidity is in V3 pool)
     const skip = !tokenAddr || !!isGraduatedProp
@@ -45,15 +45,15 @@ export function useTokenReserves({
     const { data, isLoading, refetch } = useReadContracts({
         contracts: [
             {
-                address: PUMP_CORE_NATIVE_ADDRESS,
-                abi: PUMP_CORE_NATIVE_ABI,
+                address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                abi: BONDING_CURVE_JUNOSWAP_ABI,
                 functionName: 'pumpReserve',
                 args: reserveArgs,
                 chainId,
             },
             {
-                address: PUMP_CORE_NATIVE_ADDRESS,
-                abi: PUMP_CORE_NATIVE_ABI,
+                address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                abi: BONDING_CURVE_JUNOSWAP_ABI,
                 functionName: 'graduationAmount',
                 chainId,
             },

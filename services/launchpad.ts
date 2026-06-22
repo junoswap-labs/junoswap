@@ -1,6 +1,9 @@
 import { formatEther, decodeEventLog } from 'viem'
 import type { Address, Log } from 'viem'
-import { PUMP_CORE_NATIVE_ADDRESS, PUMP_CORE_NATIVE_ABI } from '@/lib/abis/pump-core-native'
+import {
+    BONDING_CURVE_JUNOSWAP_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_ABI,
+} from '@/lib/abis/bonding-curve-junoswap'
 
 const PUMP_FEE_BPS = 100n // 1%
 
@@ -41,7 +44,7 @@ export function calculateSellOutput(
 
 /**
  * Constant-product AMM formula with 1% fee baked in
- * Mirrors PumpCoreNative.getAmountOut
+ * Mirrors BondingCurveJunoswap.getAmountOut
  */
 function getAmountOut(inputAmount: bigint, inputReserve: bigint, outputReserve: bigint): bigint {
     if (inputReserve <= 0n || outputReserve <= 0n) return 0n
@@ -138,10 +141,10 @@ export function isReadyToGraduate(
  */
 export function parseTokenAddressFromLogs(logs: Log[]): Address | null {
     for (const log of logs) {
-        if (log.address.toLowerCase() !== PUMP_CORE_NATIVE_ADDRESS.toLowerCase()) continue
+        if (log.address.toLowerCase() !== BONDING_CURVE_JUNOSWAP_ADDRESS.toLowerCase()) continue
         try {
             const decoded = decodeEventLog({
-                abi: PUMP_CORE_NATIVE_ABI,
+                abi: BONDING_CURVE_JUNOSWAP_ABI,
                 data: log.data,
                 topics: log.topics,
             })

@@ -7,7 +7,7 @@ import "./interfaces/v3-core/IUniswapV3Pool.sol";
 import "./interfaces/v3-periphery/INonfungiblePositionManager.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract PumpCoreNative {
+contract BondingCurveJunoswap {
     struct PumpReserve {
         uint256 native;
         uint256 token;
@@ -57,6 +57,10 @@ contract PumpCoreNative {
         v3factory = IUniswapV3Factory(_v3factory);
         v3posManager = INonfungiblePositionManager(_v3posManager);
         feeCollector = msg.sender;
+    }
+
+    receive() external payable {
+        require(msg.sender == address(v3posManager), "only posManager");
     }
 
     function setCurveState(
@@ -116,24 +120,32 @@ contract PumpCoreNative {
 
     function graduate(address _tokenAddr) external returns (bool) {
         require(!isGraduate[_tokenAddr], "token already graduated");
-        require(pumpReserve[_tokenAddr].token / pumpReserve[_tokenAddr].native <= INITIALTOKEN / graduationAmount, "not reach graduation cap");
+        require(pumpReserve[_tokenAddr].token * graduationAmount <= pumpReserve[_tokenAddr].native * INITIALTOKEN, "not reach graduation cap");
 
         isGraduate[_tokenAddr] = true;
         (address _tkn0, address _tkn1) = _tokenAddr < address(wrappedNative) ? 
             (_tokenAddr, address(wrappedNative)) :
             (address(wrappedNative), _tokenAddr);
-        (uint256 _tkn0AmountToMint, uint256 _tkn1AmountToMint) = _tokenAddr < address(wrappedNative) ?
-            (pumpReserve[_tokenAddr].token, pumpReserve[_tokenAddr].native) :
-            (pumpReserve[_tokenAddr].native, pumpReserve[_tokenAddr].token);
+        uint256 _tkn0AmountToMint;
+        uint256 _tkn1AmountToMint;
+        {
+            uint256 nativeReserve = pumpReserve[_tokenAddr].native;
+            uint256 tokenLiquidity = Math.mulDiv(
+                pumpReserve[_tokenAddr].token, nativeReserve, virtualAmount + nativeReserve
+            );
+            (_tkn0AmountToMint, _tkn1AmountToMint) = _tokenAddr < address(wrappedNative)
+                ? (tokenLiquidity, nativeReserve)
+                : (nativeReserve, tokenLiquidity);
+        }
 
         address pool = v3factory.getPool(_tkn0, _tkn1, 10000);
         if (pool == address(0)) {
             pool = v3factory.createPool(_tkn0, _tkn1, 10000);
-            IUniswapV3Pool(pool).initialize(uint160(Math.sqrt((_tkn1AmountToMint / _tkn0AmountToMint) * (2**192))));
+            IUniswapV3Pool(pool).initialize(_encodeSqrtPriceX96(_tkn0AmountToMint, _tkn1AmountToMint));
         } else {
             (uint160 sqrtPriceX96,,,,,,) = IUniswapV3Pool(pool).slot0();
             if (sqrtPriceX96 == 0) {
-                IUniswapV3Pool(pool).initialize(uint160(Math.sqrt((_tkn1AmountToMint / _tkn0AmountToMint) * (2**192))));
+                IUniswapV3Pool(pool).initialize(_encodeSqrtPriceX96(_tkn0AmountToMint, _tkn1AmountToMint));
             }
         }
         ERC20(_tokenAddr).approve(address(v3posManager), 2**256 - 1);
@@ -151,12 +163,28 @@ contract PumpCoreNative {
                 recipient: address(0xdead),
                 deadline: block.timestamp + 1 hours
             });
-        v3posManager.mint{value: pumpReserve[_tokenAddr].native}(params);
+        uint256 nativeToSend = pumpReserve[_tokenAddr].native;
         delete pumpReserve[_tokenAddr].native;
         delete pumpReserve[_tokenAddr].token;
 
+        (, , uint256 amt0Used, uint256 amt1Used) = v3posManager.mint{value: nativeToSend}(params);
+        v3posManager.refundETH();
+
+        uint256 nativeUsed = _tokenAddr < address(wrappedNative) ? amt1Used : amt0Used;
+        if (nativeToSend > nativeUsed) {
+            payable(feeCollector).transfer(nativeToSend - nativeUsed);
+        }
+        uint256 tokenLeft = ERC20(_tokenAddr).balanceOf(address(this));
+        if (tokenLeft > 0) {
+            ERC20(_tokenAddr).transfer(feeCollector, tokenLeft);
+        }
+
         emit Graduation(msg.sender, _tokenAddr);
         return true;
+    }
+
+    function _encodeSqrtPriceX96(uint256 _tkn0Amount, uint256 _tkn1Amount) private pure returns (uint160) {
+        return uint160(Math.sqrt(Math.mulDiv(_tkn1Amount, 2**192, _tkn0Amount)));
     }
 
     function getAmountOut(

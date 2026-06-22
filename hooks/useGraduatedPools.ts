@@ -6,7 +6,7 @@ import type { Address } from 'viem'
 import { getV3Config } from '@/lib/dex-config'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { TOKEN_LISTS } from '@/lib/tokens'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { sortTokens, getTickSpacing } from '@/lib/liquidity-helpers'
@@ -17,10 +17,10 @@ import type { Token } from '@/types/tokens'
 const GRADUATED_FEE_TIER = 10000
 
 export function useGraduatedPools(chainId: number): { pools: V3PoolData[]; isLoading: boolean } {
-    const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
-    const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
-    const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
-    const wrappedNativeToken = TOKEN_LISTS[PUMP_CORE_NATIVE_CHAIN_ID]?.find(
+    const isLaunchpadChain = chainId === BONDING_CURVE_JUNOSWAP_CHAIN_ID
+    const v3Config = getV3Config(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+    const wrappedNative = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
+    const wrappedNativeToken = TOKEN_LISTS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.find(
         (t) => t.address.toLowerCase() === wrappedNative?.toLowerCase()
     )
 
@@ -33,7 +33,7 @@ export function useGraduatedPools(chainId: number): { pools: V3PoolData[]; isLoa
             abi: UNISWAP_V3_FACTORY_ABI,
             functionName: 'getPool' as const,
             args: [t.address as Address, wrappedNative as Address, GRADUATED_FEE_TIER],
-            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+            chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
         })),
         query: { enabled: enrichedTokens.length > 0 && isLaunchpadChain && !isLoadingTokens },
     })
@@ -56,13 +56,13 @@ export function useGraduatedPools(chainId: number): { pools: V3PoolData[]; isLoa
                 address: p.address as Address,
                 abi: UNISWAP_V3_POOL_ABI,
                 functionName: 'slot0' as const,
-                chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
             },
             {
                 address: p.address as Address,
                 abi: UNISWAP_V3_POOL_ABI,
                 functionName: 'liquidity' as const,
-                chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
             },
         ]),
         query: { enabled: validPools.length > 0 && isLaunchpadChain },
@@ -88,7 +88,7 @@ export function useGraduatedPools(chainId: number): { pools: V3PoolData[]; isLoa
                     symbol: tokenMeta.symbol,
                     name: tokenMeta.name,
                     decimals: 18,
-                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                     logo: tokenMeta.logo,
                 }
 

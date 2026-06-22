@@ -5,10 +5,10 @@ import { useWriteContract, usePublicClient, useAccount } from 'wagmi'
 import type { Address } from 'viem'
 import { maxUint256, maxUint128, decodeEventLog, parseEther } from 'viem'
 import {
-    PUMP_CORE_NATIVE_ADDRESS,
-    PUMP_CORE_NATIVE_ABI,
-    PUMP_CORE_NATIVE_CHAIN_ID,
-} from '@/lib/abis/pump-core-native'
+    BONDING_CURVE_JUNOSWAP_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_ABI,
+    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+} from '@/lib/abis/bonding-curve-junoswap'
 import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@/lib/abis/nonfungible-position-manager'
 import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
@@ -74,17 +74,17 @@ const STEP_LABELS: Record<GraduationStep, string> = {
 // Contract hardcodes 5% slippage. We allow 4% price deviation.
 const PRICE_TOLERANCE_BPS = 400n
 
-// Mirrors INITIALTOKEN in PumpCoreNative.sol (1B tokens, 18 decimals)
+// Mirrors INITIALTOKEN in BondingCurveJunoswap.sol (1B tokens, 18 decimals)
 const INITIAL_TOKEN = 1_000_000_000n * 10n ** 18n
 
 export function useGraduate({
     tokenAddr,
     enabled: _enabled = true,
 }: UseGraduateParams): UseGraduateResult {
-    const publicClient = usePublicClient({ chainId: PUMP_CORE_NATIVE_CHAIN_ID })
+    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
     const { address } = useAccount()
-    const v3Config = getV3Config(PUMP_CORE_NATIVE_CHAIN_ID)
-    const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative as
+    const v3Config = getV3Config(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+    const wrappedNative = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative as
         | Address
         | undefined
 
@@ -151,14 +151,14 @@ export function useGraduate({
             // 1. Read fresh reserves + cap from contract
             const [freshReserves, onChainCap] = await Promise.all([
                 publicClient.readContract({
-                    address: PUMP_CORE_NATIVE_ADDRESS,
-                    abi: PUMP_CORE_NATIVE_ABI,
+                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'pumpReserve',
                     args: [tokenAddr],
                 }),
                 publicClient.readContract({
-                    address: PUMP_CORE_NATIVE_ADDRESS,
-                    abi: PUMP_CORE_NATIVE_ABI,
+                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'graduationAmount',
                 }),
             ])
@@ -247,8 +247,8 @@ export function useGraduate({
                 if (tokenBalBefore === 0n) {
                     setStep('buying-tokens')
                     await sendTx({
-                        address: PUMP_CORE_NATIVE_ADDRESS,
-                        abi: PUMP_CORE_NATIVE_ABI,
+                        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                        abi: BONDING_CURVE_JUNOSWAP_ABI,
                         functionName: 'buy',
                         args: [tokenAddr, 0n],
                         value: parseEther('0.006'),
@@ -578,8 +578,8 @@ export function useGraduate({
             // 4. Graduate
             setStep('graduating')
             await sendTx({
-                address: PUMP_CORE_NATIVE_ADDRESS,
-                abi: PUMP_CORE_NATIVE_ABI,
+                address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                abi: BONDING_CURVE_JUNOSWAP_ABI,
                 functionName: 'graduate',
                 args: [tokenAddr],
             })

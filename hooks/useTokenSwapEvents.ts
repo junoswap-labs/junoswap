@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import { ponderRequest } from '@/lib/ponder-client'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import type { SwapEventData } from '@/lib/rpc/launchpad-queries'
 
 export type { SwapEventData }
@@ -150,7 +150,7 @@ export function useTokenSwapEvents(
                     tokenAddr: tokenAddr.toLowerCase(),
                     limit: fetchLimit,
                     offset,
-                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                 }
                 if (filters?.sender) {
                     v3Variables.txFrom = filters.sender.toLowerCase()

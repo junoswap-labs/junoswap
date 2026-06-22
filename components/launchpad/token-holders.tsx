@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { Address } from 'viem'
 import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,7 +49,7 @@ function HolderRow({
                     <ExplorerLink
                         value={holder.address}
                         type="address"
-                        chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                        chainId={BONDING_CURVE_JUNOSWAP_CHAIN_ID}
                         compact
                     />
                     {isCreator && (

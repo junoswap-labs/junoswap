@@ -2,7 +2,7 @@
 
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
@@ -46,7 +46,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
     } = useTokenReserves({ tokenAddr, isGraduated })
 
     // Resolve V3 pool address from Ponder for graduated tokens
-    const wrappedNative = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
+    const wrappedNative = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
     const { data: poolAddress } = useGraduatedPoolAddress(
         isGraduated ? tokenAddr : undefined,
         wrappedNative as Address | undefined
@@ -118,7 +118,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                         <ExplorerLink
                                             value={tokenInfo.creator}
                                             type="address"
-                                            chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                                            chainId={BONDING_CURVE_JUNOSWAP_CHAIN_ID}
                                             className="font-mono text-xs text-muted-foreground hover:text-foreground"
                                         />
                                         {tokenInfo.createdTime > 0 && (

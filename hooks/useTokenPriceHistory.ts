@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderRequest } from '@/lib/ponder-client'
 import {
@@ -14,7 +14,7 @@ import {
 import type { V3SwapEvent } from '@/services/chart'
 import type { Timeframe, ChartMode } from '@/types/chart'
 
-const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
+const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
 
 const TOKEN_PRICE_HISTORY_QUERY = `
   query TokenPriceHistory($tokenAddr: String!) {
@@ -121,7 +121,7 @@ export function useTokenPriceHistory(
             try {
                 const result = await ponderRequest<V3PriceHistoryResponse>(V3_SWAP_EVENTS_QUERY, {
                     tokenAddr: tokenAddr.toLowerCase(),
-                    chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                 })
 
                 return result.v3SwapEvents.items.map((e) => ({

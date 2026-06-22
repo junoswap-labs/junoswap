@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import type { Token } from '@/types/tokens'
 
@@ -33,7 +33,7 @@ interface GraduatedTokensResponse {
 }
 
 export function useGraduatedTokens(chainId: number): { tokens: Token[]; isLoading: boolean } {
-    const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
+    const isLaunchpadChain = chainId === BONDING_CURVE_JUNOSWAP_CHAIN_ID
 
     const { data: tokens, isLoading } = useQuery({
         queryKey: ['graduated-tokens'],
@@ -48,7 +48,7 @@ export function useGraduatedTokens(chainId: number): { tokens: Token[]; isLoadin
                             symbol: t.symbol || '???',
                             name: t.name || '',
                             decimals: 18,
-                            chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                            chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                             logo: t.logo ?? '',
                         })
                     )

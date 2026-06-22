@@ -1,8 +1,23 @@
-export const PUMP_CORE_NATIVE_ADDRESS = '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9' as const
+import type { Address } from 'viem'
 
-export const PUMP_CORE_NATIVE_CHAIN_ID = 25925
+export const BONDING_CURVE_JUNOSWAP_ADDRESS = '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9' as const
 
-export const PUMP_CORE_NATIVE_ABI = [
+export const BONDING_CURVE_JUNOSWAP_CHAIN_ID = 25925
+
+/** Per-chain configuration for the BondingCurveJunoswap launchpad contract. */
+export const LAUNCHPAD_CHAIN_CONFIG: Record<number, { address: Address }> = {
+    25925: { address: '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9' },
+}
+
+/** Set of chain IDs that have a supported launchpad deployment. */
+export const LAUNCHPAD_CHAINS = new Set(Object.keys(LAUNCHPAD_CHAIN_CONFIG).map(Number))
+
+/** Returns true if the given chain has a supported launchpad deployment. */
+export function isLaunchpadChain(chainId: number): boolean {
+    return LAUNCHPAD_CHAINS.has(chainId)
+}
+
+export const BONDING_CURVE_JUNOSWAP_ABI = [
     {
         type: 'function',
         name: 'createToken',
@@ -145,5 +160,3 @@ export const PUMP_CORE_NATIVE_ABI = [
         ],
     },
 ] as const
-
-export type PumpCoreNativeAbi = typeof PUMP_CORE_NATIVE_ABI

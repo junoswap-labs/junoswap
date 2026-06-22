@@ -10,7 +10,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { cn, formatTimeAgo } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { ExplorerLink } from '@/components/ui/explorer-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -92,7 +92,7 @@ function TradeRow({
             )}
             onClick={() =>
                 window.open(
-                    getExplorerTxUrl(PUMP_CORE_NATIVE_CHAIN_ID, trade.transactionHash),
+                    getExplorerTxUrl(BONDING_CURVE_JUNOSWAP_CHAIN_ID, trade.transactionHash),
                     '_blank'
                 )
             }
@@ -146,7 +146,7 @@ function TradeRow({
                 <ExplorerLink
                     value={trade.sender}
                     type="address"
-                    chainId={PUMP_CORE_NATIVE_CHAIN_ID}
+                    chainId={BONDING_CURVE_JUNOSWAP_CHAIN_ID}
                     compact
                 />
             </TableCell>

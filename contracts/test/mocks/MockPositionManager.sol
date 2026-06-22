@@ -3,10 +3,29 @@ pragma solidity 0.8.19;
 pragma abicoder v2;
 
 import "../../src/interfaces/v3-periphery/INonfungiblePositionManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockPositionManager is INonfungiblePositionManager {
     INonfungiblePositionManager.MintParams public lastMintParams;
     uint256 public mintCallCount;
+
+    // Test knobs to simulate a partial fill so the curve's refund/sweep logic can be exercised.
+    // Defaults (partialFill == false) consume everything desired, matching prior full-fill behavior.
+    address public wrappedNative;
+    bool public partialFill;
+    uint256 public nativeUsed;
+    uint256 public tokenUsed;
+    uint256 internal ethToRefund;
+
+    function setWrappedNative(address _wrappedNative) external {
+        wrappedNative = _wrappedNative;
+    }
+
+    function setPartialFill(uint256 _nativeUsed, uint256 _tokenUsed) external {
+        partialFill = true;
+        nativeUsed = _nativeUsed;
+        tokenUsed = _tokenUsed;
+    }
 
     function mint(INonfungiblePositionManager.MintParams calldata params)
         external
@@ -20,7 +39,25 @@ contract MockPositionManager is INonfungiblePositionManager {
     {
         lastMintParams = params;
         mintCallCount++;
-        return (1, 0, params.amount0Desired, params.amount1Desired);
+
+        bool token0IsNative = params.token0 == wrappedNative;
+        uint256 usedNative = partialFill
+            ? nativeUsed
+            : (token0IsNative ? params.amount0Desired : params.amount1Desired);
+        uint256 usedToken = partialFill
+            ? tokenUsed
+            : (token0IsNative ? params.amount1Desired : params.amount0Desired);
+
+        // Pull only the launch-token side like the real manager; the WETH side is funded by msg.value.
+        address launchToken = token0IsNative ? params.token1 : params.token0;
+        IERC20(launchToken).transferFrom(msg.sender, address(this), usedToken);
+
+        // Native the position didn't consume becomes refundable via refundETH().
+        ethToRefund = msg.value - usedNative;
+
+        amount0 = token0IsNative ? usedNative : usedToken;
+        amount1 = token0IsNative ? usedToken : usedNative;
+        return (1, 0, amount0, amount1);
     }
 
     // INonfungiblePositionManager
@@ -88,7 +125,14 @@ contract MockPositionManager is INonfungiblePositionManager {
     // IPeripheryPayments
     function unwrapWETH9(uint256, address) external payable {}
 
-    function refundETH() external payable {}
+    function refundETH() external payable {
+        uint256 amt = ethToRefund;
+        ethToRefund = 0;
+        if (amt > 0) {
+            (bool ok, ) = msg.sender.call{value: amt}("");
+            require(ok, "refund failed");
+        }
+    }
 
     function sweepToken(address, uint256, address) external payable {}
 

@@ -29,11 +29,11 @@ import { calculatePriceFromSqrtPrice, computeDailyMetrics } from '@/services/cha
 import type { DailyMetrics } from '@/services/chart'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
 import { formatCompact } from '@/services/launchpad'
 
-const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[PUMP_CORE_NATIVE_CHAIN_ID]?.wrappedNative
+const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
 
 interface TokenChartProps {
     tokenAddr: Address
@@ -115,7 +115,7 @@ export function TokenChart({
         address: poolAddress,
         abi: UNISWAP_V3_POOL_ABI,
         functionName: 'slot0' as const,
-        chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
         query: {
             enabled: !!isGraduated && !!poolAddress,
             refetchInterval: 15_000,

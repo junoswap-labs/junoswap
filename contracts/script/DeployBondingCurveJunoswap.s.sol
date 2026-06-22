@@ -2,9 +2,9 @@
 pragma solidity 0.8.19;
 
 import "forge-std/Script.sol";
-import "../src/PumpCoreNative.sol";
+import "../src/BondingCurveJunoswap.sol";
 
-contract DeployPumpCoreNative is Script {
+contract DeployBondingCurveJunoswap is Script {
     // KUB Testnet addresses
     address constant WRAPPED_NATIVE = 0x700D3ba307E1256e509eD3E45D6f9dff441d6907; // tKKUB
     address constant V3_FACTORY = 0xCBd41F872FD46964bD4Be4d72a8bEBA9D656565b;
@@ -23,7 +23,7 @@ contract DeployPumpCoreNative is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        PumpCoreNative pump = new PumpCoreNative(
+        BondingCurveJunoswap pump = new BondingCurveJunoswap(
             WRAPPED_NATIVE,
             V3_FACTORY,
             V3_POS_MANAGER
@@ -34,7 +34,7 @@ contract DeployPumpCoreNative is Script {
 
         vm.stopBroadcast();
 
-        console.log("PumpCoreNative deployed at:", address(pump));
+        console.log("BondingCurveJunoswap deployed at:", address(pump));
         console.log("feeCollector:", pump.feeCollector());
     }
 }

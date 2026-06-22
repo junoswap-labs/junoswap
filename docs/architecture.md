@@ -306,7 +306,7 @@ Graduation (automatic when threshold reached)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| Contract | `0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9` | PumpCoreNative on KUB Testnet (25925) |
+| Contract | `0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9` | BondingCurveJunoswap on KUB Testnet (25925) |
 | virtualAmount | 3,400 native | Virtual reserve for bonding curve math |
 | graduationAmount | 4,000 native | Native reserve threshold for graduation |
 | createFee | 0.1 native | Fee paid to feeCollector on token creation |
@@ -315,8 +315,8 @@ Graduation (automatic when threshold reached)
 | V3 Fee Tier | 10,000 (1%) | Pool fee tier on graduation |
 | LP Recipient | `0xdead` | Burn address for graduated LP NFT |
 
-**Contract**: `contracts/src/PumpCoreNative.sol` (Solidity 0.8.19)
-**ABI**: `lib/abis/pump-core-native.ts`
+**Contract**: `contracts/src/BondingCurveJunoswap.sol` (Solidity 0.8.19)
+**ABI**: `lib/abis/bonding-curve-junoswap.ts`
 
 ### Token Discovery
 

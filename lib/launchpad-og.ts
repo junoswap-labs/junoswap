@@ -3,7 +3,7 @@
  * Talks to Ponder directly via PONDER_URL (never imported client-side).
  */
 
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 
 interface LaunchTokenMeta {
     address: string
@@ -37,7 +37,7 @@ const TOKEN_META_QUERY = `
         priceChange1dPct
       }
     }
-    nativeUsdPrices(where: { chainId: ${PUMP_CORE_NATIVE_CHAIN_ID} }, limit: 1) {
+    nativeUsdPrices(where: { chainId: ${BONDING_CURVE_JUNOSWAP_CHAIN_ID} }, limit: 1) {
       items {
         price
       }

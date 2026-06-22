@@ -7,7 +7,7 @@ import { getTokensForChain } from '@/lib/tokens'
 import { isNativeToken } from '@/lib/wagmi'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import type { Token } from '@/types/tokens'
 import type { TokenType } from '@/types/portfolio'
@@ -55,7 +55,7 @@ const BONDING_CURVE_TOKENS_QUERY = `{
 export function useTokenDiscovery(chainId: number) {
     const staticTokens = useMemo(() => getTokensForChain(chainId), [chainId])
     const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
-    const isLaunchpadChain = chainId === PUMP_CORE_NATIVE_CHAIN_ID
+    const isLaunchpadChain = chainId === BONDING_CURVE_JUNOSWAP_CHAIN_ID
 
     const { data: v3Tokens } = useQuery({
         queryKey: ['v3-tokens', chainId],

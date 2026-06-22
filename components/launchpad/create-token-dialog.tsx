@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateToken } from '@/hooks/useCreateToken'
-import { PUMP_CORE_NATIVE_CHAIN_ID } from '@/lib/abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
 import { toastError, toastSuccess, toastWarning } from '@/lib/toast'
 import { uploadToPinata } from '@/app/actions/upload-to-pinata'
 import { getChainMetadata } from '@/lib/wagmi'
@@ -78,7 +78,7 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
 
     // Handle success
     const handleSuccess = useCallback(async () => {
-        const metadata = getChainMetadata(PUMP_CORE_NATIVE_CHAIN_ID)
+        const metadata = getChainMetadata(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
         toastSuccess('Token created!', {
             action: {
                 label: 'View Transaction',
@@ -144,7 +144,7 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
                 link3: form.link3,
                 creator: (address ?? '0x0') as Address,
                 createdTime: Math.floor(Date.now() / 1000),
-                chainId: PUMP_CORE_NATIVE_CHAIN_ID,
+                chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                 graduatedAt: null,
                 isGraduated: false,
             }

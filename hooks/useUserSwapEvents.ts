@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import { isPonderError } from '@/lib/ponder-client'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
-import { isLaunchpadChain } from '@/lib/abis/pump-core-native'
+import { isLaunchpadChain } from '@/lib/abis/bonding-curve-junoswap'
 import { fetchBondingCurveSwaps, fetchV3Swaps, fetchV2Swaps } from '@/lib/swap-events'
 
 export interface UserSwapEvent {

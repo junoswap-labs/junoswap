@@ -13,7 +13,7 @@ services/       Pure business logic (no React): dex/, liquidity/, mining/, bridg
 store/          Zustand stores (swap, bridge, earn, launchpad)
 lib/            Config & utilities: wagmi.ts, dex-config.ts, routing-config.ts, abis/, token lists
 types/          TypeScript type definitions by domain
-contracts/      Foundry Solidity project (PumpCoreNative bonding curve) — git submodule
+contracts/      Foundry Solidity project (BondingCurveJunoswap bonding curve) — git submodule
 
 ## Key conventions
 

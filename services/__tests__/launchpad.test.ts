@@ -9,9 +9,9 @@ import {
     isReadyToGraduate,
 } from '@/services/launchpad'
 
-vi.mock('@/lib/abis/pump-core-native', () => ({
-    PUMP_CORE_NATIVE_ADDRESS: '0xPumpCore',
-    PUMP_CORE_NATIVE_ABI: [],
+vi.mock('@/lib/abis/bonding-curve-junoswap', () => ({
+    BONDING_CURVE_JUNOSWAP_ADDRESS: '0xPumpCore',
+    BONDING_CURVE_JUNOSWAP_ABI: [],
 }))
 
 describe('calculateBuyOutput', () => {
@@ -147,7 +147,7 @@ describe('formatCompact', () => {
 })
 
 describe('isReadyToGraduate', () => {
-    // Mirrors PumpCoreNative.graduate's check:
+    // Mirrors BondingCurveJunoswap.graduate's check:
     //   floor(token/native) <= floor(INITIALTOKEN / graduationAmount)
     // Cross-multiplied (no float) as:
     //   token * graduationAmount <= INITIAL_TOKEN * native
@@ -202,7 +202,7 @@ describe('isReadyToGraduate', () => {
 
     it('returns true for the stuck-token scenario (past cap, contract sqrt-bug blocks init)', () => {
         // Real on-chain values from a token stuck at graduation because of the
-        // Math.sqrt integer-division bug in PumpCoreNative.initialize. The ratio
+        // Math.sqrt integer-division bug in BondingCurveJunoswap.initialize. The ratio
         // check passes (the rescue flow in useGraduate handles the init bug).
         // 4010 KUB / 461M tokens with 150-ether cap.
         const nativeReserve = 4009_500000000000000000n // 4009.5 KUB

@@ -2,7 +2,7 @@ import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { formatEther, zeroAddress } from 'viem'
 import { readERC20Metadata } from './erc20-read.js'
-import { PUMP_CORE_NATIVE_ADDRESS } from '../abis/pump-core-native'
+import { BONDING_CURVE_JUNOSWAP_ADDRESS } from '../abis/bonding-curve-junoswap'
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
 const _VIRTUAL_AMOUNT = 3400n * 10n ** 18n
@@ -54,7 +54,7 @@ function defaultSnapshot(tokenAddr: string) {
     }
 }
 
-ponder.on('PumpCoreNative:Creation', async ({ event, context }) => {
+ponder.on('BondingCurveJunoswap:Creation', async ({ event, context }) => {
     const { creator, tokenAddr, logo, description, link1, link2, link3, createdTime } = event.args
     const tokenAddrLower = tokenAddr.toLowerCase()
 
@@ -81,7 +81,7 @@ ponder.on('PumpCoreNative:Creation', async ({ event, context }) => {
         .onConflictDoNothing()
 })
 
-ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
+ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
     const { sender, isBuy, tokenAddr, amountIn, amountOut, reserveIn, reserveOut } = event.args
     const tokenAddrLower = tokenAddr.toLowerCase()
     const senderLower = sender.toLowerCase()
@@ -221,7 +221,7 @@ ponder.on('PumpCoreNative:Swap', async ({ event, context }) => {
     }
 })
 
-ponder.on('PumpCoreNative:Graduation', async ({ event, context }) => {
+ponder.on('BondingCurveJunoswap:Graduation', async ({ event, context }) => {
     const { tokenAddr } = event.args
 
     await context.db.update(schema.launchToken, { tokenAddr: tokenAddr.toLowerCase() }).set({
@@ -232,17 +232,18 @@ ponder.on('PumpCoreNative:Graduation', async ({ event, context }) => {
 
 // Launch-token ERC20 transfers. Feeds the Portfolio activity feed's transfer
 // rows. We exclude mints/burns (the zero address) and bonding-curve swaps
-// (counterparty is PumpCoreNative) — those are already captured as swapEvent,
+// (counterparty is BondingCurveJunoswap) — those are already captured as swapEvent,
 // so recording them here would duplicate trades as transfers. tokenHolder
 // balances are owned by the swap handlers and intentionally left untouched.
-const PUMP_CORE_NATIVE_LOWER = PUMP_CORE_NATIVE_ADDRESS.toLowerCase()
+const BONDING_CURVE_JUNOSWAP_LOWER = BONDING_CURVE_JUNOSWAP_ADDRESS.toLowerCase()
 ponder.on('LaunchToken:Transfer', async ({ event, context }) => {
     const { from, to, amount } = event.args
     const fromLower = from.toLowerCase()
     const toLower = to.toLowerCase()
 
     if (fromLower === zeroAddress || toLower === zeroAddress) return
-    if (fromLower === PUMP_CORE_NATIVE_LOWER || toLower === PUMP_CORE_NATIVE_LOWER) return
+    if (fromLower === BONDING_CURVE_JUNOSWAP_LOWER || toLower === BONDING_CURVE_JUNOSWAP_LOWER)
+        return
 
     await context.db
         .insert(schema.transferEvent)
