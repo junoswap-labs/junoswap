@@ -83,17 +83,19 @@ export function useTokenPriceMap(chainId: number) {
             map.set(wrappedNative, nativeUsdPrice)
         }
 
-        // 2. Stablecoins → $1.00
-        for (const stable of config?.stables ?? []) {
-            map.set(stable.toLowerCase(), 1.0)
-        }
-
-        // 3. All other tokens → lastPriceUsd from v3TokenSnapshots
+        // 2. Tokens → lastPriceUsd from v3TokenSnapshots
         for (const s of snapshots ?? []) {
             const price = parseFloat(s.lastPriceUsd)
             if (price > 0) {
                 map.set(s.tokenAddr.toLowerCase(), price)
             }
+        }
+
+        // 3. Stablecoins → $1.00. Applied last so a known stablecoin is always
+        // pinned to $1 and can never be overridden by a bad snapshot price (e.g. a
+        // decimals-mismatched snapshot that would otherwise read in the trillions).
+        for (const stable of config?.stables ?? []) {
+            map.set(stable.toLowerCase(), 1.0)
         }
 
         return map

@@ -2,7 +2,7 @@ import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { parseTrackingTag, resolveBinding } from './tracking.js'
 import { upsertToken } from './v3-pools.js'
-import { getSeedV2Pool } from './seed.js'
+import { getSeedV2Pool, getSeedV2Dex } from './seed.js'
 
 // Resolve a pool's tokens from the DB, or lazily seed it from external-pools.json the
 // first time a swap on a pre-existing pool is seen (no historical PairCreated scan).
@@ -28,13 +28,14 @@ async function getOrSeedV2Pool(context: any, chainId: number, poolAddress: strin
             token1: s.token1,
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: s.dex,
         })
         .onConflictDoNothing()
     return s
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function recordV2Pool(context: any, chainId: number, event: any) {
+async function recordV2Pool(context: any, chainId: number, event: any, dex: string) {
     const { token0, token1, pair } = event.args
     const address = pair.toLowerCase()
     const timestamp = Number(event.block.timestamp)
@@ -56,6 +57,7 @@ async function recordV2Pool(context: any, chainId: number, event: any) {
             token1: t1,
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: dex,
         })
         .onConflictDoNothing()
 }
@@ -77,6 +79,13 @@ async function recordV2SwapEvent(context: any, chainId: number, event: any, dex:
     const { sender, to, amount0In, amount1In, amount0Out, amount1Out } = event.args
     const timestamp = Number(event.block.timestamp)
     const id = `${chainId}-${event.block.number}-${event.log.logIndex}`
+
+    // Protocol is authoritative from the pool's seed entry (pool->dex), not whichever
+    // handler fired first. A seeded pool can be watched by multiple contract definitions;
+    // resolving from the pool address keeps the label deterministic under onConflictDoNothing.
+    // Pools created after rollout aren't seeded, so fall back to the firing handler's DEX
+    // (its factory is DEX-specific, so that's correct).
+    const protocol = getSeedV2Dex(chainId, poolAddress) ?? dex
 
     await context.db
         .insert(schema.v2SwapEvent)
@@ -103,7 +112,7 @@ async function recordV2SwapEvent(context: any, chainId: number, event: any, dex:
             transactionHash: event.transaction.hash,
             viaFrontend: 1,
             referrer: tag.referrer,
-            protocol: dex,
+            protocol,
         })
         .onConflictDoNothing()
 
@@ -127,7 +136,7 @@ async function recordV2SwapEvent(context: any, chainId: number, event: any, dex:
 //
 // jibswap (JBC, 8899)
 ponder.on('JibswapFactory:PairCreated', async ({ event, context }) => {
-    await recordV2Pool(context, 8899, event)
+    await recordV2Pool(context, 8899, event, 'jibswap')
 })
 ponder.on('JibswapPairSeeded:Swap', async ({ event, context }) => {
     await recordV2SwapEvent(context, 8899, event, 'jibswap')
@@ -138,7 +147,7 @@ ponder.on('JibswapPair:Swap', async ({ event, context }) => {
 
 // udonswap (bitkub, 96)
 ponder.on('UdonswapFactory:PairCreated', async ({ event, context }) => {
-    await recordV2Pool(context, 96, event)
+    await recordV2Pool(context, 96, event, 'udonswap')
 })
 ponder.on('UdonswapPairSeeded:Swap', async ({ event, context }) => {
     await recordV2SwapEvent(context, 96, event, 'udonswap')
@@ -149,7 +158,7 @@ ponder.on('UdonswapPair:Swap', async ({ event, context }) => {
 
 // ponder (bitkub, 96)
 ponder.on('PonderFactory:PairCreated', async ({ event, context }) => {
-    await recordV2Pool(context, 96, event)
+    await recordV2Pool(context, 96, event, 'ponder')
 })
 ponder.on('PonderPairSeeded:Swap', async ({ event, context }) => {
     await recordV2SwapEvent(context, 96, event, 'ponder')
@@ -160,7 +169,7 @@ ponder.on('PonderPair:Swap', async ({ event, context }) => {
 
 // diamon (bitkub, 96)
 ponder.on('DiamonFactory:PairCreated', async ({ event, context }) => {
-    await recordV2Pool(context, 96, event)
+    await recordV2Pool(context, 96, event, 'diamon')
 })
 ponder.on('DiamonPairSeeded:Swap', async ({ event, context }) => {
     await recordV2SwapEvent(context, 96, event, 'diamon')

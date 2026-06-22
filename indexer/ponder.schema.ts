@@ -143,6 +143,9 @@ export const v2Pool = onchainTable('v2_pool', (t) => ({
     token1: t.text().notNull(),
     createdAtBlock: t.integer().notNull(),
     createdAtTimestamp: t.integer().notNull(),
+    // External V2 DEX this pool belongs to (matches lib/dex-config dexIds):
+    // 'jibswap' | 'udonswap' | 'ponder' | 'diamon'.
+    protocol: t.text().notNull().default(''),
 }))
 
 export const v3Token = onchainTable('v3_token', (t) => ({
@@ -165,6 +168,10 @@ export const v3Pool = onchainTable('v3_pool', (t) => ({
     tickSpacing: t.integer().notNull(),
     createdAtBlock: t.integer().notNull(),
     createdAtTimestamp: t.integer().notNull(),
+    // Liquidity source (matches lib/dex-config dexIds): 'junoswap' for our own V3
+    // pools, 'kublerx' for the external V3 DEX. The earn liquidity table filters on
+    // this to exclude external pools from the shared v3_pool table.
+    protocol: t.text().notNull().default(''),
 }))
 
 export const v3PoolDayVolume = onchainTable('v3_pool_day_volume', (t) => ({

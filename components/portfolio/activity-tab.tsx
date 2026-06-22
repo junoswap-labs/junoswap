@@ -10,8 +10,10 @@ import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-pric
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
 import {
     formatTokenAmount as formatTokenAmountDecimals,
+    formatDisplayAmount,
     getWrappedNativeAddress,
 } from '@/services/tokens'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { NATIVE_USD_STABLE } from '@/lib/routing-config'
 import { cn, formatTimeAgo, formatAddress } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
@@ -149,6 +151,9 @@ function ActivityRow({
 }) {
     const txUrl = getExplorerTxUrl(chainId, event.transactionHash)
     const isTransfer = event.kind === 'transfer'
+    // Narrow mobile rows can't fit a token's full 18-decimal precision; cap the
+    // displayed fraction there while keeping full precision on wider screens.
+    const isMobile = useIsMobile()
 
     // Trade legs. Generalized external swaps (token/token) carry explicit sell/buy
     // legs; everything else uses the native-centric model (one leg is KUB).
@@ -158,8 +163,12 @@ function ActivityRow({
     let usdText: string | null
     if (event.sell && event.buy) {
         const { sell, buy } = event
-        outText = formatTokenAmountDecimals(BigInt(sell.amount), sell.decimals)
-        inText = formatTokenAmountDecimals(BigInt(buy.amount), buy.decimals)
+        const fmtLeg = (leg: ActivityLeg) =>
+            isMobile
+                ? formatDisplayAmount(BigInt(leg.amount), leg.decimals, 6)
+                : formatTokenAmountDecimals(BigInt(leg.amount), leg.decimals)
+        outText = fmtLeg(sell)
+        inText = fmtLeg(buy)
         outSrc = sell.logo
         outSymbol = sell.symbol
         inSrc = buy.logo

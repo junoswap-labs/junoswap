@@ -35,6 +35,7 @@ async function recordExternalV3Pool(context: any, chainId: number, event: any) {
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: 'kublerx',
         })
         .onConflictDoNothing()
 }
@@ -65,6 +66,7 @@ async function getOrSeedKublerxPool(context: any, poolAddress: string, event: an
             tickSpacing: s.tickSpacing,
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: 'kublerx',
         })
         .onConflictDoNothing()
     return s

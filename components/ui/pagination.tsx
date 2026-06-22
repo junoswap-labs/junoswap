@@ -4,6 +4,7 @@ import * as React from 'react'
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { Button, buttonVariants } from '@/components/ui/button'
 
 const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => (
@@ -126,20 +127,6 @@ function generatePageRange(currentPage: number, totalPages: number, siblingCount
         'ellipsis-right',
         totalPages,
     ]
-}
-
-function useIsMobile() {
-    const [isMobile, setIsMobile] = React.useState(false)
-
-    React.useEffect(() => {
-        const mql = window.matchMedia('(max-width: 640px)')
-        const update = () => setIsMobile(mql.matches)
-        update()
-        mql.addEventListener('change', update)
-        return () => mql.removeEventListener('change', update)
-    }, [])
-
-    return isMobile
 }
 
 interface PaginationControlsProps {

@@ -9,14 +9,31 @@ const WRAPPED_NATIVE = '0x700d3ba307e1256e509ed3e45d6f9dff441d6907'
 const GRADUATED_FEE_TIER = 10000
 const SECONDS_PER_DAY = 86400
 
-function computePriceFromSqrtPriceX96(sqrtPriceX96: bigint, tokenIsToken0: boolean): number {
-    let priceRaw: bigint
+// Human price of the token indicated by `tokenIsToken0`, denominated in the paired
+// token. sqrtPriceX96 encodes the ratio in RAW (smallest-unit) terms, so the human
+// price differs by 10^(tokenDecimals - pairedDecimals); without that adjustment a
+// token whose decimals differ from its pair (e.g. 6-decimal USDT vs 18-decimal
+// native) is mispriced by exactly that factor.
+function computePriceFromSqrtPriceX96(
+    sqrtPriceX96: bigint,
+    tokenIsToken0: boolean,
+    tokenDecimals: number,
+    pairedDecimals: number
+): number {
+    const SCALE = 10n ** 18n
+    let scaled: bigint
     if (tokenIsToken0) {
-        priceRaw = (sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / (Q96 * Q96)
+        scaled = (sqrtPriceX96 * sqrtPriceX96 * SCALE) / (Q96 * Q96)
     } else {
-        priceRaw = (Q96 * Q96 * 10n ** 18n) / (sqrtPriceX96 * sqrtPriceX96)
+        scaled = (Q96 * Q96 * SCALE) / (sqrtPriceX96 * sqrtPriceX96)
     }
-    return Number(priceRaw) / 1e18
+    const diff = tokenDecimals - pairedDecimals
+    if (diff > 0) {
+        scaled = scaled * 10n ** BigInt(diff)
+    } else if (diff < 0) {
+        scaled = scaled / 10n ** BigInt(-diff)
+    }
+    return Number(scaled) / 1e18
 }
 
 export async function upsertToken(
@@ -124,7 +141,12 @@ async function updateNativeUsdPrice(
 
     if (!isNativeStablePool) return
 
-    const price = computePriceFromSqrtPriceX96(sqrtPriceX96, nativeIsToken0)
+    // Native is priced against the stable; adjust for the stable's decimals (native
+    // is always 18 on these chains). Lets a 6-decimal stable pool yield a correct rate.
+    const stableAddr = nativeIsToken0 ? token1 : token0
+    const stableToken = await context.db.find(schema.v3Token, { id: `${chainId}-${stableAddr}` })
+    const stableDecimals = stableToken?.decimals ?? 18
+    const price = computePriceFromSqrtPriceX96(sqrtPriceX96, nativeIsToken0, 18, stableDecimals)
 
     await context.db
         .insert(schema.nativeUsdPrice)
@@ -179,7 +201,12 @@ async function updateV3TokenSnapshot(
 
     if (!tokenAddr) return
 
-    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, tokenIsToken0)
+    // Token is priced against wrapped native (always 18 decimals here); adjust for the
+    // token's own decimals so non-18-decimal tokens (e.g. 6-decimal USDT) aren't off
+    // by 10^(18 - tokenDecimals).
+    const tokenRecord = await context.db.find(schema.v3Token, { id: `${chainId}-${tokenAddr}` })
+    const tokenDecimals = tokenRecord?.decimals ?? 18
+    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, tokenIsToken0, tokenDecimals, 18)
 
     const nativePrice = await context.db.find(schema.nativeUsdPrice, { chainId })
     const nativeUsd = nativePrice ? parseFloat(nativePrice.price) : 0
@@ -319,6 +346,7 @@ ponder.on('V3Factory:PoolCreated', async ({ event, context }) => {
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: 'junoswap',
         })
         .onConflictDoNothing()
 })
@@ -379,8 +407,9 @@ ponder.on('V3Pool:Swap', async ({ event, context }) => {
 
     if (!launchTokenAddr) return
 
-    // Compute price and update token_snapshot
-    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, launchTokenIsToken0)
+    // Compute price and update token_snapshot. Launch tokens are always 18 decimals
+    // and paired with 18-decimal native, so no decimal adjustment is needed.
+    const priceNative = computePriceFromSqrtPriceX96(sqrtPriceX96, launchTokenIsToken0, 18, 18)
     const marketCap = priceNative * 1_000_000_000
 
     const nativePriceRecord = await context.db.find(schema.nativeUsdPrice, { chainId: 25925 })
@@ -469,6 +498,7 @@ ponder.on('V3FactoryBitkub:PoolCreated', async ({ event, context }) => {
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: 'junoswap',
         })
         .onConflictDoNothing()
 })
@@ -525,6 +555,7 @@ ponder.on('V3FactoryJbc:PoolCreated', async ({ event, context }) => {
             tickSpacing: Number(tickSpacing),
             createdAtBlock: Number(event.block.number),
             createdAtTimestamp: timestamp,
+            protocol: 'junoswap',
         })
         .onConflictDoNothing()
 })

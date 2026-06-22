@@ -61,7 +61,7 @@ export const chainMetadata = {
     [kubTestnet.id]: {
         name: 'KUB Testnet',
         symbol: 'KUB',
-        icon: '/chains/kubchain.png',
+        icon: '/chains/kubtestnet.svg',
         explorer: 'https://testnet.bkcscan.com',
     },
     [jbc.id]: {

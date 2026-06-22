@@ -5,8 +5,6 @@ import { useReadContracts } from 'wagmi'
 import type { Address } from 'viem'
 import { useQuery } from '@tanstack/react-query'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
-import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
-import { getV3Config } from '@/lib/dex-config'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import { getTokensForChain } from '@/lib/tokens'
 import { getTickSpacing } from '@/lib/liquidity-helpers'
@@ -42,7 +40,7 @@ interface V3TokenResponse {
 
 const V3_POOLS_QUERY = `
   query V3PoolsForChain($chainId: Int!) {
-    v3Pools(where: { chainId: $chainId }, limit: 500) {
+    v3Pools(where: { chainId: $chainId, protocol: "junoswap" }, limit: 500) {
       items {
         address
         token0
@@ -140,13 +138,9 @@ export function useAllPools(chainId: number): { pools: V3PoolData[]; isLoading: 
         [tokenLookup, chainId]
     )
 
-    // The v3_pool table is shared across DEXes (Junoswap + external like kublerx),
-    // with no DEX field to distinguish them. Verify each pool against the Junoswap
-    // factory: getPool(token0, token1, fee) returns the pool address only for
-    // Junoswap's own pools, so external pools get filtered out below.
-    const junoswapFactory = getV3Config(chainId, 'junoswap')?.factory
-
-    // Batch slot0 + liquidity (+ Junoswap factory getPool) for all discovered pools
+    // Batch slot0 + liquidity for all discovered pools. The v3_pool table is shared
+    // across DEXes, but the V3_POOLS_QUERY already filters to protocol: "junoswap",
+    // so external pools (e.g. kublerx) never reach here.
     const poolList = useMemo(() => ponderPools ?? [], [ponderPools])
     const { data: poolStateResults, isLoading: isLoadingState } = useReadContracts({
         contracts: poolList.flatMap((pool) => [
@@ -162,16 +156,9 @@ export function useAllPools(chainId: number): { pools: V3PoolData[]; isLoading: 
                 functionName: 'liquidity' as const,
                 chainId,
             },
-            {
-                address: junoswapFactory as Address,
-                abi: UNISWAP_V3_FACTORY_ABI,
-                functionName: 'getPool' as const,
-                args: [pool.token0 as Address, pool.token1 as Address, pool.fee],
-                chainId,
-            },
         ]),
         query: {
-            enabled: poolList.length > 0 && isIndexed && !!junoswapFactory,
+            enabled: poolList.length > 0 && isIndexed,
             staleTime: 10_000,
         },
     })
@@ -180,17 +167,11 @@ export function useAllPools(chainId: number): { pools: V3PoolData[]; isLoading: 
         if (!poolStateResults || poolList.length === 0) return []
         return poolList
             .map((pool, i) => {
-                const slot0 = poolStateResults[i * 3]?.result as
+                const slot0 = poolStateResults[i * 2]?.result as
                     | [bigint, number, number, number, number, number, boolean]
                     | undefined
-                const liquidity = poolStateResults[i * 3 + 1]?.result as bigint | undefined
+                const liquidity = poolStateResults[i * 2 + 1]?.result as bigint | undefined
                 if (!slot0 || liquidity === undefined || liquidity === 0n) return null
-
-                // Keep only pools the Junoswap factory recognizes (excludes external DEXes)
-                const factoryPool = poolStateResults[i * 3 + 2]?.result as Address | undefined
-                if (!factoryPool || factoryPool.toLowerCase() !== pool.address.toLowerCase()) {
-                    return null
-                }
 
                 const [sqrtPriceX96, tick] = slot0
                 return {
