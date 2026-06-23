@@ -46,7 +46,9 @@ export function GraduationProgress({
                 </div>
                 <div className="flex justify-between text-xs">
                     <span className="text-positive font-medium">Graduated</span>
-                    <span className="text-muted-foreground">{formatKub(targetKub)} KUB</span>
+                    {targetKub > 0n && (
+                        <span className="text-muted-foreground">{formatKub(targetKub)} KUB</span>
+                    )}
                 </div>
             </div>
         )
