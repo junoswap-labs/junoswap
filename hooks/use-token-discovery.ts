@@ -148,9 +148,11 @@ export function useTokenDiscovery(chainId: number) {
                 const key = token.address.toLowerCase()
                 if (staticAddresses.has(key)) return 'static'
                 if (graduatedAddresses.has(key)) return 'graduated'
-                return 'bonding_curve'
+                // The launchpad is only deployed on specific chains; off those
+                // chains an unrecognized token is never a bonding-curve token.
+                return isLaunchpadChain ? 'bonding_curve' : 'static'
             },
-        [staticAddresses, graduatedAddresses]
+        [staticAddresses, graduatedAddresses, isLaunchpadChain]
     )
 
     const erc20Tokens = useMemo(

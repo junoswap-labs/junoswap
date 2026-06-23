@@ -313,12 +313,17 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
         // clobber it (URL sync and this effect can run in the same passive-effect flush
         // with a stale `tokenIn === null` closure).
         if (isUpdatingFromUrl || urlTokensPending) return
-        if (!hasInitializedTokensRef.current && !tokenIn && tokens.length > 0 && tokens[0]) {
+        // Read live store state: the URL-sync backfill effect (registered earlier via
+        // useSwapUrlSync) runs before this one in the same flush and may have just
+        // setTokenIn synchronously. The closured tokenIn can still be a stale null, which
+        // would otherwise clobber an async-resolved URL token with the native default.
+        const { tokenIn: liveTokenIn, tokenOut: liveTokenOut } = useSwapStore.getState()
+        if (!hasInitializedTokensRef.current && !liveTokenIn && tokens.length > 0 && tokens[0]) {
             const { stablecoin, nativeTokens } = getDefaultPairTokens(chainId)
             const defaultIn = nativeTokens[0] ?? tokens[0]
             setTokenIn(defaultIn)
             if (
-                !tokenOut &&
+                !liveTokenOut &&
                 stablecoin &&
                 stablecoin.address.toLowerCase() !== defaultIn.address.toLowerCase()
             ) {

@@ -46,71 +46,67 @@ export function TokenCard({ portfolioToken }: TokenCardProps) {
         : `/swap?input=${token.address}&chain=${token.chainId}`
 
     return (
-        <Link
-            href={href}
-            className="block"
-            aria-label={isLaunchpad ? `Trade ${token.symbol}` : `Swap ${token.symbol}`}
-        >
-            <Card className="position-card-hover group">
-                <CardContent className="px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                        {/* Token identity + hover action button */}
-                        <div className="flex items-center gap-3 min-w-0">
-                            <TokenIcon src={token.logo} symbol={token.symbol} size="md" />
-                            <div className="relative min-w-0">
-                                <div className="flex items-center gap-1.5 transition-opacity duration-150 group-hover:opacity-0">
-                                    <span className="font-medium text-sm truncate">
-                                        {token.symbol}
-                                    </span>
-                                    {typeLabel && (
-                                        <Badge
-                                            variant="secondary"
-                                            className="text-[10px] px-1.5 py-0 h-4 font-mono shrink-0"
-                                        >
-                                            {typeLabel}
-                                        </Badge>
-                                    )}
-                                </div>
-                                <span className="text-xs text-muted-foreground truncate block transition-opacity duration-150 group-hover:opacity-0">
-                                    {formatBalanceShort(formattedBalance)}
-                                </span>
-
-                                {/* Action button — overlays the symbol & balance on hover */}
-                                <span
-                                    className={cn(
-                                        'pointer-events-none absolute inset-y-0 left-0 flex items-center whitespace-nowrap',
-                                        'rounded-md bg-foreground px-2.5 py-1',
-                                        'text-xs font-medium text-background shadow-sm',
-                                        'opacity-0 transition-opacity duration-150 group-hover:opacity-100'
-                                    )}
-                                >
-                                    {isLaunchpad ? 'Trade' : 'Swap'}
-                                    <ArrowUpRight className="ml-1 h-3 w-3" />
-                                </span>
+        <Card className="group">
+            <CardContent className="px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                    {/* Token identity + hover action button */}
+                    <div className="flex items-center gap-3 min-w-0">
+                        <TokenIcon src={token.logo} symbol={token.symbol} size="md" />
+                        <div className="relative min-w-0">
+                            <div className="flex items-center gap-1.5 transition-opacity duration-150 group-hover:opacity-0">
+                                <span className="font-medium text-sm truncate">{token.symbol}</span>
+                                {typeLabel && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-[10px] px-1.5 py-0 h-4 font-mono shrink-0"
+                                    >
+                                        {typeLabel}
+                                    </Badge>
+                                )}
                             </div>
-                        </div>
+                            <span className="text-xs text-muted-foreground truncate block transition-opacity duration-150 group-hover:opacity-0">
+                                {formatBalanceShort(formattedBalance)}
+                            </span>
 
-                        {/* Value & PNL */}
-                        <div className="text-right shrink-0">
-                            <div className="font-mono text-sm font-medium">
-                                {formatUsdShort(valueUsd)}
-                            </div>
-                            {pnlUsd !== null ? (
-                                <span
-                                    className={cn(
-                                        'font-mono text-xs font-medium',
-                                        isPnlPositive ? 'text-positive' : 'text-negative'
-                                    )}
-                                >
-                                    {isPnlPositive ? '+' : '-'}${Math.abs(pnlUsd).toFixed(2)}
-                                </span>
-                            ) : (
-                                <span className="font-mono text-xs text-muted-foreground">--</span>
-                            )}
+                            {/* Action button — overlays the symbol & balance on hover */}
+                            <Link
+                                href={href}
+                                aria-label={
+                                    isLaunchpad ? `Trade ${token.symbol}` : `Swap ${token.symbol}`
+                                }
+                                className={cn(
+                                    'absolute inset-y-0 left-0 flex items-center whitespace-nowrap',
+                                    'rounded-md bg-foreground px-2.5 py-1',
+                                    'text-xs font-medium text-background shadow-sm',
+                                    'opacity-0 transition-opacity duration-150 group-hover:opacity-100'
+                                )}
+                            >
+                                {isLaunchpad ? 'Trade' : 'Swap'}
+                                <ArrowUpRight className="ml-1 h-3 w-3" />
+                            </Link>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
-        </Link>
+
+                    {/* Value & PNL */}
+                    <div className="text-right shrink-0">
+                        <div className="font-mono text-sm font-medium">
+                            {formatUsdShort(valueUsd)}
+                        </div>
+                        {pnlUsd !== null ? (
+                            <span
+                                className={cn(
+                                    'font-mono text-xs font-medium',
+                                    isPnlPositive ? 'text-positive' : 'text-negative'
+                                )}
+                            >
+                                {isPnlPositive ? '+' : '-'}${Math.abs(pnlUsd).toFixed(2)}
+                            </span>
+                        ) : (
+                            <span className="font-mono text-xs text-muted-foreground">--</span>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     )
 }

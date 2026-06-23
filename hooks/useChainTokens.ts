@@ -38,7 +38,7 @@ const V3_TOKENS_QUERY = `
 
 export function useChainTokens(chainId: number): { tokens: Token[]; isLoading: boolean } {
     const staticTokens = useMemo(() => getTokensForChain(chainId), [chainId])
-    const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
+    const { tokens: graduatedTokens, isLoading: isLoadingGraduated } = useGraduatedTokens(chainId)
 
     const { data: v3Tokens, isLoading: isLoadingV3 } = useQuery({
         queryKey: ['v3-tokens', chainId],
@@ -83,5 +83,5 @@ export function useChainTokens(chainId: number): { tokens: Token[]; isLoading: b
         return merged
     }, [staticTokens, graduatedTokens, v3Tokens])
 
-    return { tokens, isLoading: isLoadingV3 }
+    return { tokens, isLoading: isLoadingV3 || isLoadingGraduated }
 }

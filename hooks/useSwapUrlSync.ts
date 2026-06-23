@@ -38,6 +38,11 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
         setAmountIn,
         setIsUpdatingFromUrl,
     } = useSwapStore()
+    // Mirror the latest token list in a ref so applyUrlParams can resolve dynamic
+    // (graduated / V3) tokens without forcing the main URL effect to depend on `tokens`
+    // (which would re-run the chain-switch toast logic on every list update).
+    const tokensRef = useRef(tokens)
+    tokensRef.current = tokens
     const hasInitializedRef = useRef(false)
     const isUpdatingFromUrlRef = useRef(false)
     const pendingUrlParamsRef = useRef<ReturnType<typeof parseSwapSearchParams> | null>(null)
@@ -46,7 +51,7 @@ export function useSwapUrlSync(tokens?: Token[], isTokensLoading = false) {
     const initialSearchParamsRef = useRef<string | null>(null)
     const applyUrlParams = useCallback(
         (urlParams: ReturnType<typeof parseSwapSearchParams>, targetChainId: number) => {
-            const parsed = parseAndValidateSwapParams(targetChainId, urlParams)
+            const parsed = parseAndValidateSwapParams(targetChainId, urlParams, tokensRef.current)
             isUpdatingFromUrlRef.current = true
             setIsUpdatingFromUrl(true)
             if (parsed.tokenIn) {
