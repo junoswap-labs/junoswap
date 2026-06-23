@@ -156,7 +156,7 @@ export function Header() {
                                         <NavigationMenuLink asChild>
                                             <Link
                                                 href={navHref(link.href)}
-                                                className={`relative px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 ease-out ${
+                                                className={`relative inline-flex items-center px-4 py-2 text-[13px] font-medium leading-none rounded-lg transition-all duration-200 ease-out ${
                                                     isActive
                                                         ? 'text-foreground'
                                                         : 'text-muted-foreground'
@@ -170,12 +170,12 @@ export function Header() {
                             })}
                             <NavigationMenuItem>
                                 <DropdownMenu>
-                                    <DropdownMenuTrigger className="group flex cursor-pointer items-center gap-1 px-4 py-2 text-[13px] font-medium rounded-lg text-muted-foreground outline-none transition-all duration-200 ease-out hover:text-foreground data-[state=open]:text-foreground">
+                                    <DropdownMenuTrigger className="group inline-flex cursor-pointer items-center gap-1 px-4 py-2 text-[13px] font-medium leading-none rounded-lg text-muted-foreground outline-none transition-all duration-200 ease-out hover:text-foreground data-[state=open]:text-foreground">
                                         More
                                         <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
-                                        align="end"
+                                        align="start"
                                         sideOffset={8}
                                         className="w-48 rounded-xl border-border/60 bg-popover/95 p-1.5 backdrop-blur"
                                     >
