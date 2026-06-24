@@ -3,10 +3,11 @@
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAccount, useChainId } from 'wagmi'
-import { ArrowDown, ArrowUp, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { TokenIconPair, TokenIconSkeleton } from '@/components/ui/token-icon'
 import {
     Table,
@@ -252,8 +253,18 @@ function PoolsListContent({
             setSortDir('desc')
         }
     }
+    const [search, setSearch] = useState('')
+    const filteredPools = useMemo(() => {
+        const q = search.trim().toLowerCase()
+        if (!q) return pools
+        return pools.filter((p) =>
+            [p.token0.symbol, p.token1.symbol, p.token0.name, p.token1.name].some((s) =>
+                s?.toLowerCase().includes(q)
+            )
+        )
+    }, [pools, search])
     const sortedPools = useMemo(() => {
-        return [...pools].sort((a, b) => {
+        return [...filteredPools].sort((a, b) => {
             const aAddr = a.address.toLowerCase()
             const bAddr = b.address.toLowerCase()
             let cmp = 0
@@ -277,38 +288,59 @@ function PoolsListContent({
             }
             return sortDir === 'asc' ? cmp : -cmp
         })
-    }, [pools, sortKey, sortDir, tvlByAddress, aprByAddress, volumeByAddress])
+    }, [filteredPools, sortKey, sortDir, tvlByAddress, aprByAddress, volumeByAddress])
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+    const header = (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold sm:text-xl">Liquidity Pools</h2>
+            <div className="relative w-full sm:max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    placeholder="Search by token"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9 rounded-2xl border border-input"
+                />
+            </div>
+        </div>
+    )
     if (isLoading) {
         return (
-            <Card>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="py-3 px-4">Pool</TableHead>
-                            <TableHead className="py-3 px-4">Fee Tier</TableHead>
-                            <TableHead className="py-3 px-4">TVL</TableHead>
-                            <TableHead className="py-3 px-4">APR</TableHead>
-                            <TableHead className="py-3 px-4">1D Vol</TableHead>
-                            <TableHead className="py-3 px-4">30D Vol</TableHead>
-                            <TableHead className="py-3 px-4 text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <LoadingState />
-                </Table>
-            </Card>
+            <div className="space-y-4">
+                {header}
+                <Card>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="py-3 px-4">Pool</TableHead>
+                                <TableHead className="py-3 px-4">Fee Tier</TableHead>
+                                <TableHead className="py-3 px-4">TVL</TableHead>
+                                <TableHead className="py-3 px-4">APR</TableHead>
+                                <TableHead className="py-3 px-4">1D Vol</TableHead>
+                                <TableHead className="py-3 px-4">30D Vol</TableHead>
+                                <TableHead className="py-3 px-4 text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <LoadingState />
+                    </Table>
+                </Card>
+            </div>
         )
     }
     if (pools.length === 0) {
         return (
-            <EmptyState
-                title="No pools available"
-                description="No pools available on this chain."
-            />
+            <div className="space-y-4">
+                {header}
+                <EmptyState
+                    title="No pools available"
+                    description="No pools available on this chain."
+                />
+            </div>
         )
     }
     return (
-        <>
+        <div className="space-y-4">
+            {header}
             <Card>
                 <Table>
                     <TableHeader>
@@ -351,25 +383,36 @@ function PoolsListContent({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sortedPools.map((pool) => (
-                            <PoolRow
-                                key={pool.address}
-                                pool={pool}
-                                tvlUsd={tvlByAddress[pool.address.toLowerCase()] ?? null}
-                                isLoadingTvl={isLoadingTvl}
-                                volume={volumeByAddress[pool.address.toLowerCase()] ?? null}
-                                isLoadingVolume={isLoadingVol}
-                                apr={aprByAddress[pool.address.toLowerCase()] ?? null}
-                                isLoadingApr={isLoadingApr}
-                                onConnect={() => setIsConnectModalOpen(true)}
-                                onAddLiquidity={onAddLiquidity}
-                            />
-                        ))}
+                        {sortedPools.length === 0 ? (
+                            <TableRow className="border-0">
+                                <TableCell
+                                    colSpan={7}
+                                    className="p-6 text-center text-sm text-muted-foreground"
+                                >
+                                    No pools match &ldquo;{search}&rdquo;
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            sortedPools.map((pool) => (
+                                <PoolRow
+                                    key={pool.address}
+                                    pool={pool}
+                                    tvlUsd={tvlByAddress[pool.address.toLowerCase()] ?? null}
+                                    isLoadingTvl={isLoadingTvl}
+                                    volume={volumeByAddress[pool.address.toLowerCase()] ?? null}
+                                    isLoadingVolume={isLoadingVol}
+                                    apr={aprByAddress[pool.address.toLowerCase()] ?? null}
+                                    isLoadingApr={isLoadingApr}
+                                    onConnect={() => setIsConnectModalOpen(true)}
+                                    onAddLiquidity={onAddLiquidity}
+                                />
+                            ))
+                        )}
                     </TableBody>
                 </Table>
             </Card>
             <ConnectModal open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen} />
-        </>
+        </div>
     )
 }
 
