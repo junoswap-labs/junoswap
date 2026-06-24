@@ -17,8 +17,82 @@ import { ReferralDialog } from './referral-dialog'
 import { Check, Copy, ExternalLink, LogOut, Sun, Moon, Send, Share2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { toastSuccess } from '@/lib/toast'
 import { Separator } from '@/components/ui/separator'
+
+function MultiSendIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className={className}
+            aria-hidden="true"
+        >
+            {/* trunk arrow */}
+            <line
+                x1="1"
+                y1="8"
+                x2="7"
+                y2="8"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+            />
+            {/* top branch */}
+            <polyline
+                points="7,8 10,3 15,3"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            {/* middle branch */}
+            <line
+                x1="7"
+                y1="8"
+                x2="15"
+                y2="8"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+            />
+            {/* bottom branch */}
+            <polyline
+                points="7,8 10,13 15,13"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            {/* arrowhead top */}
+            <polyline
+                points="12.5,1.5 15,3 12.5,4.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            {/* arrowhead middle */}
+            <polyline
+                points="12.5,6.5 15,8 12.5,9.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            {/* arrowhead bottom */}
+            <polyline
+                points="12.5,11.5 15,13 12.5,14.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    )
+}
 
 export function AccountDropdown({ children }: { children: React.ReactNode }) {
     const { disconnect } = useDisconnect()
@@ -29,6 +103,7 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
     const [isSendOpen, setIsSendOpen] = useState(false)
     const [isReferralOpen, setIsReferralOpen] = useState(false)
     const [copied, setCopied] = useState(false)
+    const router = useRouter()
     useEffect(() => {
         setMounted(true)
     }, [])
@@ -113,6 +188,14 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
                         >
                             <ExternalLink className="h-4 w-4" aria-hidden="true" />
                             <span>View on explorer</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => router.push('/multi-send')}
+                            className="flex items-center gap-3 cursor-pointer"
+                            aria-label="Multi-Send tokens to multiple addresses"
+                        >
+                            <MultiSendIcon className="h-4 w-4" />
+                            <span>Multi-Send</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             onClick={() => setIsSendOpen(true)}
