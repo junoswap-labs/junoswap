@@ -8,7 +8,6 @@ import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
 import { useGraduatedPoolAddress } from '@/hooks/useGraduatedPoolAddress'
 import { formatAddress, formatTimeAgo } from '@/lib/utils'
-import { ExplorerLink } from '@/components/ui/explorer-link'
 import { TokenIcon } from '@/components/ui/token-icon'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -115,12 +114,12 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                 <span className="text-sm text-muted-foreground">{symbol}</span>
                                 {tokenInfo?.creator && (
                                     <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <ExplorerLink
-                                            value={tokenInfo.creator}
-                                            type="address"
-                                            chainId={BONDING_CURVE_JUNOSWAP_CHAIN_ID}
+                                        <Link
+                                            href={`/portfolio?address=${tokenInfo.creator}`}
                                             className="font-mono text-xs text-muted-foreground hover:text-foreground"
-                                        />
+                                        >
+                                            {formatAddress(tokenInfo.creator)}
+                                        </Link>
                                         {tokenInfo.createdTime > 0 && (
                                             <>
                                                 <span>·</span>
