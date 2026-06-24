@@ -4,8 +4,7 @@ import { useState } from 'react'
 import type { Address } from 'viem'
 import { useTokenHolders } from '@/hooks/useTokenHolders'
 import type { HolderData } from '@/hooks/useTokenHolders'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
-import { ExplorerLink } from '@/components/ui/explorer-link'
+import { PortfolioLink } from '@/components/ui/portfolio-link'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,12 +45,7 @@ function HolderRow({
         >
             <TableCell className="py-2.5 font-mono text-xs">
                 <div className="flex items-center gap-1.5">
-                    <ExplorerLink
-                        value={holder.address}
-                        type="address"
-                        chainId={BONDING_CURVE_JUNOSWAP_CHAIN_ID}
-                        compact
-                    />
+                    <PortfolioLink address={holder.address} />
                     {isCreator && (
                         <Badge variant="outline" className="h-4 px-1 py-0 text-[9px] font-medium">
                             Creator

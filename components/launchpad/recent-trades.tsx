@@ -11,7 +11,7 @@ import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpa
 import { cn, formatTimeAgo } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
 import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
-import { ExplorerLink } from '@/components/ui/explorer-link'
+import { PortfolioLink } from '@/components/ui/portfolio-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -143,12 +143,7 @@ function TradeRow({
                 className="py-2.5 text-right font-mono text-xs text-muted-foreground"
                 onClick={(e) => e.stopPropagation()}
             >
-                <ExplorerLink
-                    value={trade.sender}
-                    type="address"
-                    chainId={BONDING_CURVE_JUNOSWAP_CHAIN_ID}
-                    compact
-                />
+                <PortfolioLink address={trade.sender} />
             </TableCell>
         </TableRow>
     )
