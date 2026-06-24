@@ -1,7 +1,8 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useCallback, useState } from 'react'
 import { useAccount } from 'wagmi'
+import { useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -10,7 +11,6 @@ import { PositionsList } from '@/components/positions/positions-list'
 import { AddLiquidityDialog } from '@/components/positions/add-liquidity-dialog'
 import { RemoveLiquidityDialog } from '@/components/positions/remove-liquidity-dialog'
 import { CollectFeesDialog } from '@/components/positions/collect-fees-dialog'
-import { PositionDetailsModal } from '@/components/positions/position-details-modal'
 import { IncreaseLiquidityDialog } from '@/components/positions/increase-liquidity-dialog'
 import { MiningFarms, StakeDialog, UnstakeDialog } from '@/components/mining'
 import { ConnectModal } from '@/components/web3/connect-modal'
@@ -31,10 +31,20 @@ function EarnContent() {
     const [addLiquidityPool, setAddLiquidityPool] = useState<V3PoolData | null>(null)
     const [isRemoveLiquidityOpen, setIsRemoveLiquidityOpen] = useState(false)
     const [isCollectFeesOpen, setIsCollectFeesOpen] = useState(false)
-    const [isPositionDetailsOpen, setIsPositionDetailsOpen] = useState(false)
     const [isIncreaseLiquidityOpen, setIsIncreaseLiquidityOpen] = useState(false)
     const [isStakeDialogOpen, setIsStakeDialogOpen] = useState(false)
     const [isUnstakeDialogOpen, setIsUnstakeDialogOpen] = useState(false)
+
+    // After a stake/unstake confirms, invalidate the query cache so every mounted
+    // reader (the stake dialog's eligible-positions list, the positions list, etc.)
+    // refetches instead of serving pre-tx cache. The nonce additionally drives the
+    // localStorage re-read in useDepositedTokenIds, which invalidation can't trigger.
+    const queryClient = useQueryClient()
+    const [refreshNonce, setRefreshNonce] = useState(0)
+    const bumpRefresh = useCallback(() => {
+        setRefreshNonce((n) => n + 1)
+        queryClient.invalidateQueries()
+    }, [queryClient])
 
     const openAddLiquidity = (pool?: V3PoolData) => {
         setAddLiquidityPool(pool ?? null)
@@ -47,10 +57,6 @@ function EarnContent() {
     const openCollectFees = (position: PositionWithTokens) => {
         setSelectedPosition(position)
         setIsCollectFeesOpen(true)
-    }
-    const openPositionDetails = (position: PositionWithTokens) => {
-        setSelectedPosition(position)
-        setIsPositionDetailsOpen(true)
     }
     const openIncreaseLiquidity = (position: PositionWithTokens) => {
         setSelectedPosition(position)
@@ -99,11 +105,11 @@ function EarnContent() {
                     <TabsContent value="positions" className="space-y-6">
                         <PositionsList
                             onAddLiquidity={openAddLiquidity}
-                            onPositionDetails={openPositionDetails}
                             onCollectFees={openCollectFees}
                             onRemoveLiquidity={openRemoveLiquidity}
                             onIncreaseLiquidity={openIncreaseLiquidity}
                             onUnstake={openUnstakeDialog}
+                            refreshNonce={refreshNonce}
                         />
                     </TabsContent>
                 </Tabs>
@@ -122,14 +128,6 @@ function EarnContent() {
                     position={selectedPosition}
                     onClose={() => setIsCollectFeesOpen(false)}
                 />
-                <PositionDetailsModal
-                    open={isPositionDetailsOpen}
-                    position={selectedPosition}
-                    onClose={() => setIsPositionDetailsOpen(false)}
-                    onCollectFees={openCollectFees}
-                    onRemoveLiquidity={openRemoveLiquidity}
-                    onIncreaseLiquidity={openIncreaseLiquidity}
-                />
                 <IncreaseLiquidityDialog
                     open={isIncreaseLiquidityOpen}
                     position={selectedPosition}
@@ -140,11 +138,13 @@ function EarnContent() {
                     incentive={selectedIncentive}
                     onClose={() => setIsStakeDialogOpen(false)}
                     onAddLiquidity={openAddLiquidity}
+                    onSuccess={bumpRefresh}
                 />
                 <UnstakeDialog
                     open={isUnstakeDialogOpen}
                     stakedPosition={selectedStakedPosition}
                     onClose={() => setIsUnstakeDialogOpen(false)}
+                    onSuccess={bumpRefresh}
                 />
                 <ConnectModal open={isConnectModalOpen} onOpenChange={setIsConnectModalOpen} />
             </div>

@@ -30,6 +30,7 @@ interface StakeDialogProps {
     incentive: Incentive | null
     onClose: () => void
     onAddLiquidity: (pool: V3PoolData) => void
+    onSuccess?: () => void
 }
 
 export function StakeDialog({
@@ -37,6 +38,7 @@ export function StakeDialog({
     incentive: selectedIncentive,
     onClose,
     onAddLiquidity,
+    onSuccess,
 }: StakeDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
@@ -84,6 +86,7 @@ export function StakeDialog({
                 }
                 toastSuccess('Position staked successfully!')
                 setProcessedTxHash(hash)
+                onSuccess?.()
                 onClose()
             } else if (pendingTxType === 'approval') {
                 toastSuccess('Approval successful! Please click again to stake.')
@@ -98,6 +101,7 @@ export function StakeDialog({
         pendingTxType,
         processedTxHash,
         onClose,
+        onSuccess,
         address,
         chainId,
         selectedPosition,

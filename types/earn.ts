@@ -26,6 +26,7 @@ export interface PositionWithTokens extends V3Position {
     token1Info: Token
     poolAddress: Address
     inRange: boolean
+    currentTick: number
     amount0: bigint
     amount1: bigint
     uncollectedFees0: bigint

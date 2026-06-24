@@ -394,9 +394,11 @@ export function useCollectFees(
     }
     return {
         collect,
-        hasFees: position ? position.tokensOwed0 > 0n || position.tokensOwed1 > 0n : false,
-        fees0: position?.tokensOwed0 ?? 0n,
-        fees1: position?.tokensOwed1 ?? 0n,
+        hasFees: position
+            ? position.uncollectedFees0 > 0n || position.uncollectedFees1 > 0n
+            : false,
+        fees0: position?.uncollectedFees0 ?? 0n,
+        fees1: position?.uncollectedFees1 ?? 0n,
         isPreparing: isSimulating,
         isExecuting,
         isConfirming,

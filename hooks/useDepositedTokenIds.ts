@@ -21,7 +21,10 @@ interface UseDepositedTokenIdsResult {
     refetch: () => void
 }
 
-export function useDepositedTokenIds(owner: Address | undefined): UseDepositedTokenIdsResult {
+export function useDepositedTokenIds(
+    owner: Address | undefined,
+    refreshKey?: number
+): UseDepositedTokenIdsResult {
     const chainId = useChainId()
     const publicClient = usePublicClient()
     const stakerAddress = getV3StakerAddress(chainId)
@@ -42,7 +45,8 @@ export function useDepositedTokenIds(owner: Address | undefined): UseDepositedTo
         if (!hasStoredTokenIds(chainId, owner)) {
             setNeedsEventFallback(true)
         }
-    }, [owner, chainId])
+        // refreshKey re-reads storage after a stake/unstake mutates it elsewhere.
+    }, [owner, chainId, refreshKey])
     useEffect(() => {
         if (!needsEventFallback || !owner || !stakerAddress || !publicClient) {
             return
@@ -143,6 +147,12 @@ export function useDepositedTokenIds(owner: Address | undefined): UseDepositedTo
     const refetch = useCallback(() => {
         refetchDeposits()
     }, [refetchDeposits])
+    // Re-validate on-chain when refreshKey bumps; the candidate set may be unchanged
+    // (e.g. unstake) yet the deposits() owner has flipped.
+    useEffect(() => {
+        if (refreshKey === undefined || refreshKey === 0) return
+        refetchDeposits()
+    }, [refreshKey, refetchDeposits])
     const isLoading = !hasCheckedStorage || isLoadingEvents || isLoadingDeposits
     return {
         tokenIds: validatedTokenIds,

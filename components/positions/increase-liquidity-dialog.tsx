@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
 import { useIncreaseLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
@@ -19,7 +18,6 @@ import {
     tickToSqrtPriceX96,
     calculateAmount1FromAmount0,
     calculateAmount0FromAmount1,
-    tickToPrice,
     isInRange,
 } from '@/lib/liquidity-helpers'
 import { toastError } from '@/lib/toast'
@@ -222,16 +220,6 @@ export function IncreaseLiquidityDialog({
         return false
     }
     if (!selectedPosition) return null
-    const priceLower = tickToPrice(
-        selectedPosition.tickLower,
-        selectedPosition.token0Info.decimals,
-        selectedPosition.token1Info.decimals
-    )
-    const priceUpper = tickToPrice(
-        selectedPosition.tickUpper,
-        selectedPosition.token0Info.decimals,
-        selectedPosition.token1Info.decimals
-    )
     const inRange = pool
         ? isInRange(pool.tick, selectedPosition.tickLower, selectedPosition.tickUpper)
         : false
@@ -256,82 +244,6 @@ export function IncreaseLiquidityDialog({
                             )}
                         </div>
                     </div>
-                    <Card>
-                        <CardContent className="p-4 space-y-3">
-                            <div className="text-sm text-muted-foreground">Price Range</div>
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                                <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">Min</div>
-                                    <div className="font-medium">{priceLower}</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">Current</div>
-                                    <div className="font-medium">
-                                        {pool
-                                            ? tickToPrice(
-                                                  pool.tick,
-                                                  selectedPosition.token0Info.decimals,
-                                                  selectedPosition.token1Info.decimals
-                                              )
-                                            : '-'}
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">Max</div>
-                                    <div className="font-medium">{priceUpper}</div>
-                                </div>
-                            </div>
-                            <div className="text-xs text-muted-foreground text-center">
-                                {selectedPosition.token1Info.symbol} per{' '}
-                                {selectedPosition.token0Info.symbol}
-                            </div>
-                            <div className="h-2 bg-muted rounded-full relative overflow-hidden">
-                                {(() => {
-                                    const tickLower = selectedPosition.tickLower
-                                    const tickUpper = selectedPosition.tickUpper
-                                    const curTick = pool?.tick ?? tickLower
-                                    const tickRange = tickUpper - tickLower
-                                    if (tickRange <= 0) return null
-                                    const normalizedCurrent = (curTick - tickLower) / tickRange
-                                    const padding = 0.1
-                                    const trackMin = -padding
-                                    const trackMax = 1 + padding
-                                    const trackSpan = trackMax - trackMin
-                                    const rangeLeftPct = ((0 - trackMin) / trackSpan) * 100
-                                    const rangeRightPct = ((1 - trackMin) / trackSpan) * 100
-                                    const markerPct = Math.max(
-                                        2,
-                                        Math.min(
-                                            98,
-                                            ((normalizedCurrent - trackMin) / trackSpan) * 100
-                                        )
-                                    )
-                                    return (
-                                        <>
-                                            <div
-                                                className={`absolute h-full rounded-full transition-colors ${
-                                                    inRange
-                                                        ? 'bg-positive'
-                                                        : 'bg-muted-foreground/30'
-                                                }`}
-                                                style={{
-                                                    left: `${rangeLeftPct}%`,
-                                                    right: `${100 - rangeRightPct}%`,
-                                                }}
-                                            />
-                                            <div
-                                                className="absolute w-1 h-4 bg-foreground rounded -top-1 z-10"
-                                                style={{
-                                                    left: `${markerPct}%`,
-                                                    transform: 'translateX(-50%)',
-                                                }}
-                                            />
-                                        </>
-                                    )
-                                })()}
-                            </div>
-                        </CardContent>
-                    </Card>
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <div className="flex justify-between">

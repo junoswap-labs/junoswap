@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { ChevronDown, ChevronRight, Minus, Plus, Zap } from 'lucide-react'
+import { ChevronDown, ChevronRight, Minus, Plus, Unlock, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,7 @@ import { TokenIconPair, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectButton } from '@/components/web3/connect-button'
+import { PriceRangeBar } from '@/components/positions/price-range-bar'
 import { useUserPositions, usePositionsByTokenIds } from '@/hooks/useUserPositions'
 import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
 import { useIncentives } from '@/hooks/useIncentives'
@@ -17,11 +18,18 @@ import { useStakedPositions } from '@/hooks/useStakedPositions'
 import { usePendingRewardsMultiple } from '@/hooks/useRewards'
 import { formatTokenAmount } from '@/services/tokens'
 import { formatLiquidityAmount, formatRewardAmount } from '@/lib/format'
+import { tickToPrice, MIN_TICK, MAX_TICK } from '@/lib/liquidity-helpers'
 import { KNOWN_INCENTIVES } from '@/lib/mining-constants'
 import type { PositionWithTokens, StakedPosition } from '@/types/earn'
 
+// Full-range positions land a few ticks inside MIN/MAX depending on the pool's tick
+// spacing (widest is 200), since the bounds are nearestUsableTick(MIN/MAX, spacing).
+// A fixed tolerance detects them regardless of the fee→spacing assumption; at this
+// many ticks from the extreme the price is still effectively 0 / ∞, so no genuinely
+// bounded position is misclassified.
+const FULL_RANGE_TICK_TOLERANCE = 256
+
 interface PositionActions {
-    onPositionDetails: (position: PositionWithTokens) => void
     onCollectFees: (position: PositionWithTokens) => void
     onRemoveLiquidity: (position: PositionWithTokens) => void
     onIncreaseLiquidity: (position: PositionWithTokens) => void
@@ -30,12 +38,12 @@ interface PositionActions {
 interface PositionsListProps extends PositionActions {
     onAddLiquidity: () => void
     onUnstake: (stakedPosition: StakedPosition) => void
+    refreshNonce: number
 }
 
 function PositionCard({
     position,
     stakedPosition,
-    onPositionDetails,
     onCollectFees,
     onRemoveLiquidity,
     onIncreaseLiquidity,
@@ -46,13 +54,24 @@ function PositionCard({
     onUnstake: (stakedPosition: StakedPosition) => void
 } & PositionActions) {
     const isStaked = !!stakedPosition
-    const hasFees = position.tokensOwed0 > 0n || position.tokensOwed1 > 0n
+    const hasFees = position.uncollectedFees0 > 0n || position.uncollectedFees1 > 0n
     const isClosed = position.liquidity === 0n
+    const priceLower = tickToPrice(
+        position.tickLower,
+        position.token0Info.decimals,
+        position.token1Info.decimals
+    )
+    const priceUpper = tickToPrice(
+        position.tickUpper,
+        position.token0Info.decimals,
+        position.token1Info.decimals
+    )
+    // Full-range positions span the entire min/max tick, so the range bar conveys nothing.
+    const isFullRange =
+        position.tickLower <= MIN_TICK + FULL_RANGE_TICK_TOLERANCE &&
+        position.tickUpper >= MAX_TICK - FULL_RANGE_TICK_TOLERANCE
     return (
-        <Card
-            className="cursor-pointer position-card-hover"
-            onClick={() => onPositionDetails(position)}
-        >
+        <Card>
             <CardContent className="p-5">
                 {/* Header: Pair identity + status */}
                 <div className="flex items-center justify-between">
@@ -75,7 +94,10 @@ function PositionCard({
                     </div>
                     <div className="flex items-center gap-1.5">
                         {isStaked && (
-                            <Badge className="border-transparent bg-primary text-primary-foreground">
+                            <Badge
+                                variant="outline"
+                                className="bg-primary/15 text-primary border-primary/30"
+                            >
                                 <Zap className="mr-1 h-3 w-3" />
                                 Staking
                             </Badge>
@@ -105,21 +127,50 @@ function PositionCard({
                 <Separator className="my-4" />
 
                 {/* Data section */}
-                {!isClosed && (
-                    <div
-                        className={`grid grid-cols-1 gap-4 ${
-                            isStaked ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
-                        }`}
-                    >
-                        <div className="space-y-2 min-w-0">
-                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Liquidity
+                <div
+                    className={`grid grid-cols-1 gap-4 ${
+                        isStaked ? 'sm:grid-cols-4' : 'sm:grid-cols-3'
+                    }`}
+                >
+                    <div className="space-y-2 min-w-0">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Liquidity
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex items-baseline gap-1 min-w-0">
+                                <span className="text-sm font-medium font-mono tracking-tight truncate">
+                                    {formatLiquidityAmount(
+                                        position.amount0,
+                                        position.token0Info.decimals
+                                    )}
+                                </span>
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                    {position.token0Info.symbol}
+                                </span>
                             </div>
+                            <div className="flex items-baseline gap-1 min-w-0">
+                                <span className="text-sm font-medium font-mono tracking-tight truncate">
+                                    {formatLiquidityAmount(
+                                        position.amount1,
+                                        position.token1Info.decimals
+                                    )}
+                                </span>
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                    {position.token1Info.symbol}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-2 min-w-0">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Unclaimed Fees
+                        </div>
+                        {hasFees ? (
                             <div className="space-y-1">
                                 <div className="flex items-baseline gap-1 min-w-0">
-                                    <span className="text-sm font-medium font-mono tracking-tight truncate">
-                                        {formatLiquidityAmount(
-                                            position.amount0,
+                                    <span className="text-sm font-bold font-mono tracking-tight truncate">
+                                        {formatTokenAmount(
+                                            position.uncollectedFees0,
                                             position.token0Info.decimals
                                         )}
                                     </span>
@@ -128,9 +179,9 @@ function PositionCard({
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-1 min-w-0">
-                                    <span className="text-sm font-medium font-mono tracking-tight truncate">
-                                        {formatLiquidityAmount(
-                                            position.amount1,
+                                    <span className="text-sm font-bold font-mono tracking-tight truncate">
+                                        {formatTokenAmount(
+                                            position.uncollectedFees1,
                                             position.token1Info.decimals
                                         )}
                                     </span>
@@ -139,68 +190,62 @@ function PositionCard({
                                     </span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Unclaimed Fees
-                            </div>
-                            {hasFees ? (
-                                <div className="space-y-1">
-                                    <div className="flex items-baseline gap-1 min-w-0">
-                                        <span className="text-sm font-bold font-mono tracking-tight truncate">
-                                            {formatTokenAmount(
-                                                position.tokensOwed0,
-                                                position.token0Info.decimals
-                                            )}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground shrink-0">
-                                            {position.token0Info.symbol}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-baseline gap-1 min-w-0">
-                                        <span className="text-sm font-bold font-mono tracking-tight truncate">
-                                            {formatTokenAmount(
-                                                position.tokensOwed1,
-                                                position.token1Info.decimals
-                                            )}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground shrink-0">
-                                            {position.token1Info.symbol}
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-xs text-muted-foreground">
-                                    No fees to collect
-                                </div>
-                            )}
-                        </div>
-                        {stakedPosition && (
-                            <div className="space-y-2 min-w-0">
-                                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Pending Rewards
-                                </div>
-                                <div className="flex items-baseline gap-1 min-w-0">
-                                    <span className="text-lg font-bold font-mono tracking-tight truncate">
-                                        {formatRewardAmount(
-                                            stakedPosition.pendingRewards,
-                                            stakedPosition.incentive.rewardTokenInfo.decimals
-                                        )}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground shrink-0">
-                                        {stakedPosition.incentive.rewardTokenInfo.symbol}
-                                    </span>
-                                </div>
-                            </div>
+                        ) : (
+                            <div className="text-xs text-muted-foreground">No fees to collect</div>
                         )}
                     </div>
-                )}
-
-                {isClosed && (
-                    <div className="text-sm text-muted-foreground">
-                        Position has been closed. You may still have unclaimed fees.
+                    {stakedPosition && (
+                        <div className="space-y-2 min-w-0">
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                Pending Rewards
+                            </div>
+                            <div className="flex items-baseline gap-1 min-w-0">
+                                <span className="text-lg font-bold font-mono tracking-tight truncate">
+                                    {formatRewardAmount(
+                                        stakedPosition.pendingRewards,
+                                        stakedPosition.incentive.rewardTokenInfo.decimals
+                                    )}
+                                </span>
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                    {stakedPosition.incentive.rewardTokenInfo.symbol}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                    <div className="space-y-2 min-w-0">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Price Range
+                        </div>
+                        {isFullRange ? (
+                            <div className="text-sm font-medium font-mono tracking-tight">
+                                Full Range
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-baseline justify-between gap-2 text-xs">
+                                    <span className="font-mono tracking-tight truncate">
+                                        {priceLower}
+                                    </span>
+                                    <span className="font-mono tracking-tight truncate text-muted-foreground">
+                                        {priceUpper}
+                                    </span>
+                                </div>
+                                <PriceRangeBar
+                                    tickLower={position.tickLower}
+                                    tickUpper={position.tickUpper}
+                                    currentTick={position.currentTick}
+                                    inRange={position.inRange}
+                                    segmentInRangeClassName={
+                                        isClosed ? 'bg-muted-foreground/30' : undefined
+                                    }
+                                    segmentOutRangeClassName={
+                                        isClosed ? 'bg-muted-foreground/30' : undefined
+                                    }
+                                />
+                            </>
+                        )}
                     </div>
-                )}
+                </div>
 
                 {/* Action buttons */}
                 <Separator className="my-4" />
@@ -215,7 +260,7 @@ function PositionCard({
                                 onUnstake(stakedPosition)
                             }}
                         >
-                            <Zap className="h-3.5 w-3.5" />
+                            <Unlock className="h-3.5 w-3.5" />
                             Unstake
                         </Button>
                     ) : (
@@ -321,11 +366,11 @@ function LoadingState() {
 
 export function PositionsList({
     onAddLiquidity,
-    onPositionDetails,
     onCollectFees,
     onRemoveLiquidity,
     onIncreaseLiquidity,
     onUnstake,
+    refreshNonce,
 }: PositionsListProps) {
     const { address } = useAccount()
     const chainId = useChainId()
@@ -333,8 +378,12 @@ export function PositionsList({
         address,
         chainId
     )
-    const { tokenIds: stakedTokenIds, isLoading: isLoadingStakedIds } =
-        useDepositedTokenIds(address)
+    // refreshNonce makes the hook re-read localStorage after a stake/unstake mutates it;
+    // the page invalidates the query cache to refresh the on-chain reads themselves.
+    const { tokenIds: stakedTokenIds, isLoading: isLoadingStakedIds } = useDepositedTokenIds(
+        address,
+        refreshNonce
+    )
     const { positions: stakedPositions, isLoading: isLoadingStakedPositions } =
         usePositionsByTokenIds(stakedTokenIds, chainId)
 
@@ -345,6 +394,7 @@ export function PositionsList({
         incentives,
         address
     )
+
     const { rewards: rewardsMap, isLoading: isLoadingRewards } =
         usePendingRewardsMultiple(stakedDetails)
 
@@ -428,7 +478,6 @@ export function PositionsList({
             key={position.tokenId.toString()}
             position={position}
             stakedPosition={stakedByTokenId.get(position.tokenId.toString())}
-            onPositionDetails={onPositionDetails}
             onCollectFees={onCollectFees}
             onRemoveLiquidity={onRemoveLiquidity}
             onIncreaseLiquidity={onIncreaseLiquidity}

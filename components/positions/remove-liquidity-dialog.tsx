@@ -123,7 +123,7 @@ export function RemoveLiquidityDialog({
                                 <Button
                                     key={p}
                                     type="button"
-                                    variant={percentage === p ? 'default' : 'outline'}
+                                    variant={percentage === p ? 'secondary' : 'outline'}
                                     onClick={() => setPercentage(p)}
                                 >
                                     {p}%

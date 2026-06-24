@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAccount, useChainId } from 'wagmi'
 import {
     Dialog,
@@ -23,12 +23,14 @@ interface UnstakeDialogProps {
     open: boolean
     stakedPosition: StakedPosition | null
     onClose: () => void
+    onSuccess?: () => void
 }
 
 export function UnstakeDialog({
     open,
     stakedPosition: selectedStakedPosition,
     onClose,
+    onSuccess,
 }: UnstakeDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
@@ -39,15 +41,23 @@ export function UnstakeDialog({
     )
     const { unstake, isPreparing, isExecuting, isConfirming, isSuccess, error, hash } =
         useUnstakePosition(position?.tokenId, incentive, address, true)
+    const [processedTxHash, setProcessedTxHash] = useState<`0x${string}` | null>(null)
     useEffect(() => {
-        if (isSuccess && hash) {
+        if (open) setProcessedTxHash(null)
+    }, [open])
+    // Guard on the tx hash: onClose/onSuccess have unstable identities, so without it
+    // this effect re-fires while isSuccess stays true and loops (onSuccess bumps state).
+    useEffect(() => {
+        if (isSuccess && hash && hash !== processedTxHash) {
             if (address && position) {
                 removeStakedTokenId(chainId, address, position.tokenId)
             }
             toastSuccess('Position unstaked successfully!')
+            setProcessedTxHash(hash)
+            onSuccess?.()
             onClose()
         }
-    }, [isSuccess, hash, onClose, address, chainId, position])
+    }, [isSuccess, hash, processedTxHash, onClose, onSuccess, address, chainId, position])
     useEffect(() => {
         if (error) {
             toastError(error)
@@ -120,20 +130,9 @@ export function UnstakeDialog({
                             Will be claimed automatically when you unstake
                         </div>
                     </div>
-                    {incentive.isActive && (
-                        <div className="text-sm text-yellow-600 bg-yellow-500/10 rounded-lg p-3">
-                            This incentive is still active. If you unstake now, you will stop
-                            earning rewards.
-                        </div>
-                    )}
                 </div>
                 <DialogFooter>
-                    <Button
-                        size="lg"
-                        onClick={unstake}
-                        disabled={isLoading}
-                        variant={incentive.isActive ? 'destructive' : 'default'}
-                    >
+                    <Button size="lg" onClick={unstake} disabled={isLoading}>
                         {getButtonText()}
                     </Button>
                 </DialogFooter>

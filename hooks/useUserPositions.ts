@@ -11,6 +11,7 @@ import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { TOKEN_LISTS } from '@/lib/tokens'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
+import { usePositionFees } from '@/hooks/usePositionFees'
 import {
     isInRange,
     tickToSqrtPriceX96,
@@ -171,6 +172,11 @@ export function useUserPositions(
             })
             .filter((p): p is V3Position => p !== null)
     }, [positionData, validTokenIds])
+    const {
+        feesMap,
+        isLoading: isLoadingFees,
+        refetch: refetchFees,
+    } = usePositionFees(rawPositions, owner, effectiveChainId)
     const uniquePoolKeys = useMemo(() => {
         const keys = new Set<string>()
         rawPositions.forEach((p) => {
@@ -266,6 +272,7 @@ export function useUserPositions(
             const poolAddress = poolAddresses?.[
                 uniquePoolKeys.findIndex((k) => `${k.token0}-${k.token1}-${k.fee}` === poolKey)
             ]?.result as Address | undefined
+            const fees = feesMap.get(position.tokenId.toString())
             return {
                 ...position,
                 token0Info,
@@ -273,19 +280,29 @@ export function useUserPositions(
                 poolAddress:
                     poolAddress ?? ('0x0000000000000000000000000000000000000000' as Address),
                 inRange: isInRange(currentTick, position.tickLower, position.tickUpper),
+                currentTick,
                 amount0,
                 amount1,
-                uncollectedFees0: position.tokensOwed0,
-                uncollectedFees1: position.tokensOwed1,
+                uncollectedFees0: fees?.fees0 ?? position.tokensOwed0,
+                uncollectedFees1: fees?.fees1 ?? position.tokensOwed1,
             }
         })
-    }, [rawPositions, effectiveChainId, tokenMap, poolStateMap, poolAddresses, uniquePoolKeys])
+    }, [
+        rawPositions,
+        effectiveChainId,
+        tokenMap,
+        poolStateMap,
+        poolAddresses,
+        uniquePoolKeys,
+        feesMap,
+    ])
     const refetch = () => {
         refetchBalance()
         refetchTokenIds()
         refetchPositionsData()
         refetchPoolAddresses()
         refetchPoolStates()
+        refetchFees()
     }
     return {
         positions,
@@ -294,7 +311,8 @@ export function useUserPositions(
             isLoadingTokenIds ||
             isLoadingPositions ||
             isLoadingPoolAddresses ||
-            isLoadingPoolStates,
+            isLoadingPoolStates ||
+            isLoadingFees,
         isError: false,
         refetch,
     }
@@ -650,6 +668,7 @@ export function usePositionsByTokenIds(
                 poolAddress:
                     poolAddress ?? ('0x0000000000000000000000000000000000000000' as Address),
                 inRange: isInRange(currentTick, position.tickLower, position.tickUpper),
+                currentTick,
                 amount0,
                 amount1,
                 uncollectedFees0: position.tokensOwed0,
