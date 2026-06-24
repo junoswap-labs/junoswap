@@ -12,7 +12,7 @@ import { RemoveLiquidityDialog } from '@/components/positions/remove-liquidity-d
 import { CollectFeesDialog } from '@/components/positions/collect-fees-dialog'
 import { PositionDetailsModal } from '@/components/positions/position-details-modal'
 import { IncreaseLiquidityDialog } from '@/components/positions/increase-liquidity-dialog'
-import { MiningFarms, StakedPositions, StakeDialog, UnstakeDialog } from '@/components/mining'
+import { MiningFarms, StakeDialog, UnstakeDialog } from '@/components/mining'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import type { PositionWithTokens, Incentive, StakedPosition, V3PoolData } from '@/types/earn'
 
@@ -103,8 +103,8 @@ function EarnContent() {
                             onCollectFees={openCollectFees}
                             onRemoveLiquidity={openRemoveLiquidity}
                             onIncreaseLiquidity={openIncreaseLiquidity}
+                            onUnstake={openUnstakeDialog}
                         />
-                        <StakedPositions onUnstake={openUnstakeDialog} />
                     </TabsContent>
                 </Tabs>
                 <AddLiquidityDialog
