@@ -20,6 +20,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { getDefaultPairTokens } from '@/lib/tokens'
+import { getDisplayToken } from '@/services/tokens'
 import { useCommonPools } from '@/hooks/usePools'
 import { useGraduatedPools } from '@/hooks/useGraduatedPools'
 import { useAllPools, PONDER_INDEXED_CHAINS } from '@/hooks/useAllPools'
@@ -112,19 +113,21 @@ function PoolRow({
     } else if (isToken0Stable || isToken0Native) {
         ;[display0, display1] = [pool.token1, pool.token0]
     }
+    const d0 = getDisplayToken(display0)
+    const d1 = getDisplayToken(display1)
     return (
         <TableRow className="border-0">
             <TableCell className="p-3">
                 <div className="flex items-center gap-3">
                     <TokenIconPair
-                        src0={display0.logo}
-                        symbol0={display0.symbol}
-                        src1={display1.logo}
-                        symbol1={display1.symbol}
+                        src0={d0.logo}
+                        symbol0={d0.symbol}
+                        src1={d1.logo}
+                        symbol1={d1.symbol}
                         size="sm"
                     />
                     <span className="font-medium">
-                        {display0.symbol} / {display1.symbol}
+                        {d0.symbol} / {d1.symbol}
                     </span>
                 </div>
             </TableCell>

@@ -2,7 +2,7 @@
 
 import { useDisconnect, useAccount, useBalance } from 'wagmi'
 import { useChainId } from 'wagmi'
-import { getChainMetadata } from '@/lib/wagmi'
+import { getChainMetadata, bitkub, kubTestnet } from '@/lib/wagmi'
 import { formatAddress } from '@/lib/utils'
 import {
     DropdownMenu,
@@ -14,7 +14,18 @@ import {
 import { Jazzicon } from './jazzicon'
 import { SendDialog } from './send-dialog'
 import { ReferralDialog } from './referral-dialog'
-import { Check, Copy, ExternalLink, LogOut, Sun, Moon, Send, Share2 } from 'lucide-react'
+import {
+    Check,
+    Copy,
+    ExternalLink,
+    LogOut,
+    Sun,
+    Moon,
+    Send,
+    Share2,
+    CreditCard,
+    Droplet,
+} from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useEffect } from 'react'
 import { toastSuccess } from '@/lib/toast'
@@ -54,6 +65,18 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
             const explorerUrl = `${chainMeta?.explorer || 'https://etherscan.io'}/address/${address}`
             window.open(explorerUrl, '_blank', 'noopener,noreferrer')
         }
+    }
+    const handleBuyKub = () => {
+        const url = new URL('https://checkout.banxa.com/')
+        url.searchParams.set('coinType', 'KUB')
+        url.searchParams.set('blockchain', 'KUB')
+        url.searchParams.set('fiatType', 'THB')
+        url.searchParams.set('fiatAmount', '400')
+        if (address) url.searchParams.set('walletAddress', address)
+        window.open(url.toString(), '_blank', 'noopener,noreferrer')
+    }
+    const handleFaucet = () => {
+        window.open('https://faucet.kubchain.com/', '_blank', 'noopener,noreferrer')
     }
     const handleDisconnect = () => {
         disconnect()
@@ -106,6 +129,32 @@ export function AccountDropdown({ children }: { children: React.ReactNode }) {
                     </div>
                     <Separator />
                     <div className="p-2">
+                        {chainId === bitkub.id && (
+                            <>
+                                <DropdownMenuItem
+                                    onClick={handleBuyKub}
+                                    className="flex items-center gap-3 cursor-pointer"
+                                    aria-label="Buy KUB"
+                                >
+                                    <CreditCard className="h-4 w-4" aria-hidden="true" />
+                                    <span>Buy KUB</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                            </>
+                        )}
+                        {chainId === kubTestnet.id && (
+                            <>
+                                <DropdownMenuItem
+                                    onClick={handleFaucet}
+                                    className="flex items-center gap-3 cursor-pointer"
+                                    aria-label="KUB testnet faucet"
+                                >
+                                    <Droplet className="h-4 w-4" aria-hidden="true" />
+                                    <span>Get tKUB</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                            </>
+                        )}
                         <DropdownMenuItem
                             onClick={handleViewOnExplorer}
                             className="flex items-center gap-3 cursor-pointer"

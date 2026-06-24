@@ -16,7 +16,7 @@ import { useDepositedTokenIds } from '@/hooks/useDepositedTokenIds'
 import { useIncentives } from '@/hooks/useIncentives'
 import { useStakedPositions } from '@/hooks/useStakedPositions'
 import { usePendingRewardsMultiple } from '@/hooks/useRewards'
-import { formatTokenAmount } from '@/services/tokens'
+import { formatTokenAmount, getDisplayToken } from '@/services/tokens'
 import { formatLiquidityAmount, formatRewardAmount } from '@/lib/format'
 import { tickToPrice, MIN_TICK, MAX_TICK } from '@/lib/liquidity-helpers'
 import { KNOWN_INCENTIVES } from '@/lib/mining-constants'
@@ -54,6 +54,8 @@ function PositionCard({
     onUnstake: (stakedPosition: StakedPosition) => void
 } & PositionActions) {
     const isStaked = !!stakedPosition
+    const t0 = getDisplayToken(position.token0Info)
+    const t1 = getDisplayToken(position.token1Info)
     const hasFees = position.uncollectedFees0 > 0n || position.uncollectedFees1 > 0n
     const isClosed = position.liquidity === 0n
     const priceLower = tickToPrice(
@@ -77,15 +79,15 @@ function PositionCard({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <TokenIconPair
-                            src0={position.token0Info.logo}
-                            symbol0={position.token0Info.symbol}
-                            src1={position.token1Info.logo}
-                            symbol1={position.token1Info.symbol}
+                            src0={t0.logo}
+                            symbol0={t0.symbol}
+                            src1={t1.logo}
+                            symbol1={t1.symbol}
                             size="md"
                         />
                         <div className="flex items-center gap-2">
                             <span className="text-base font-semibold">
-                                {position.token0Info.symbol} / {position.token1Info.symbol}
+                                {t0.symbol} / {t1.symbol}
                             </span>
                             <Badge variant="outline" className="text-xs">
                                 {(position.fee / 10000).toFixed(2)}%
@@ -145,7 +147,7 @@ function PositionCard({
                                     )}
                                 </span>
                                 <span className="text-xs text-muted-foreground shrink-0">
-                                    {position.token0Info.symbol}
+                                    {t0.symbol}
                                 </span>
                             </div>
                             <div className="flex items-baseline gap-1 min-w-0">
@@ -156,7 +158,7 @@ function PositionCard({
                                     )}
                                 </span>
                                 <span className="text-xs text-muted-foreground shrink-0">
-                                    {position.token1Info.symbol}
+                                    {t1.symbol}
                                 </span>
                             </div>
                         </div>
@@ -175,7 +177,7 @@ function PositionCard({
                                         )}
                                     </span>
                                     <span className="text-xs text-muted-foreground shrink-0">
-                                        {position.token0Info.symbol}
+                                        {t0.symbol}
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-1 min-w-0">
@@ -186,7 +188,7 @@ function PositionCard({
                                         )}
                                     </span>
                                     <span className="text-xs text-muted-foreground shrink-0">
-                                        {position.token1Info.symbol}
+                                        {t1.symbol}
                                     </span>
                                 </div>
                             </div>

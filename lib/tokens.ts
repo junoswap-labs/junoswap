@@ -15,8 +15,8 @@ export function getAllowanceFunctionName(tokenAddress: Address): 'allowance' | '
 const KUB_TESTNET_TOKENS: Token[] = [
     {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const,
-        symbol: 'KUB',
-        name: 'KUB',
+        symbol: 'tKUB',
+        name: 'tKUB',
         decimals: 18,
         chainId: kubTestnet.id,
         logo: 'https://cmswap.mypinata.cloud/ipfs/bafkreifelq2ktrxybwnkyabw7veqzec3p4v47aoco7acnzdwj34sn7q56u',

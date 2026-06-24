@@ -109,6 +109,20 @@ export function getWrappedNativeAddress(chainId: number): Address {
     return tokens[1]!.address as Address
 }
 
+/**
+ * Wrapped native shows under its native name on the UI (e.g. KKUB → KUB).
+ * Returns a copy with the native symbol/name; address, decimals, logo unchanged.
+ */
+export function getDisplayToken(token: Token): Token {
+    const tokens = TOKEN_LISTS[token.chainId]
+    const native = tokens?.find((t) => isNativeToken(t.address as Address))
+    const wrapped = tokens?.[1]
+    if (native && wrapped && token.address.toLowerCase() === wrapped.address.toLowerCase()) {
+        return { ...token, symbol: native.symbol, name: native.name }
+    }
+    return token
+}
+
 export function getSwapAddress(tokenAddress: Address, chainId: number, wnative?: Address): Address {
     if (isNativeToken(tokenAddress)) {
         return wnative || getWrappedNativeAddress(chainId)

@@ -8,7 +8,7 @@ export { bsc, bitkub, jbc, base, worldchain }
 export const kubTestnet = {
     id: 25925,
     name: 'KUB Testnet',
-    nativeCurrency: { name: 'KUB', symbol: 'KUB', decimals: 18 },
+    nativeCurrency: { name: 'tKUB', symbol: 'tKUB', decimals: 18 },
     rpcUrls: {
         default: { http: ['https://rpc-testnet.bitkubchain.io'] },
     },
@@ -60,7 +60,7 @@ export const chainMetadata = {
     },
     [kubTestnet.id]: {
         name: 'KUB Testnet',
-        symbol: 'KUB',
+        symbol: 'tKUB',
         icon: '/chains/kubtestnet.svg',
         explorer: 'https://testnet.bkcscan.com',
     },

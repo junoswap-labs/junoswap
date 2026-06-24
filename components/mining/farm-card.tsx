@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { TokenIcon, TokenIconPair } from '@/components/ui/token-icon'
 import { ConnectModal } from '@/components/web3/connect-modal'
-import { formatTokenAmount } from '@/services/tokens'
+import { formatTokenAmount, getDisplayToken } from '@/services/tokens'
 import { useTokenPriceMap } from '@/hooks/use-token-price-map'
 import {
     formatTimeRemaining,
@@ -32,6 +32,10 @@ function formatUsd(value: number): string {
 export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
     const { isConnected } = useAccount()
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+
+    const poolToken0 = getDisplayToken(incentive.poolToken0)
+    const poolToken1 = getDisplayToken(incentive.poolToken1)
+    const rewardToken = getDisplayToken(incentive.rewardTokenInfo)
 
     const status = getIncentiveStatus(incentive)
     const progress = getIncentiveProgress(incentive.startTime, incentive.endTime)
@@ -77,16 +81,16 @@ export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                         <TokenIconPair
-                            src0={incentive.poolToken0.logo}
-                            symbol0={incentive.poolToken0.symbol}
-                            src1={incentive.poolToken1.logo}
-                            symbol1={incentive.poolToken1.symbol}
+                            src0={poolToken0.logo}
+                            symbol0={poolToken0.symbol}
+                            src1={poolToken1.logo}
+                            symbol1={poolToken1.symbol}
                             size="md"
                         />
                         <div>
                             <div className="flex items-center gap-2">
                                 <span className="font-semibold">
-                                    {incentive.poolToken0.symbol} / {incentive.poolToken1.symbol}
+                                    {poolToken0.symbol} / {poolToken1.symbol}
                                 </span>
                                 <Badge variant="outline" className="text-xs">
                                     {(incentive.poolFee / 10000).toFixed(2)}%
@@ -95,11 +99,11 @@ export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
                             <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                                 <span>Earn</span>
                                 <TokenIcon
-                                    src={incentive.rewardTokenInfo.logo}
-                                    symbol={incentive.rewardTokenInfo.symbol}
+                                    src={rewardToken.logo}
+                                    symbol={rewardToken.symbol}
                                     size="xs"
                                 />
-                                <span>{incentive.rewardTokenInfo.symbol}</span>
+                                <span>{rewardToken.symbol}</span>
                             </div>
                         </div>
                     </div>
@@ -118,7 +122,7 @@ export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
                                 {rewardAmount}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                                {incentive.rewardTokenInfo.symbol}
+                                {rewardToken.symbol}
                             </span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5 font-mono">
