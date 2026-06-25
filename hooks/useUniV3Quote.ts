@@ -46,7 +46,7 @@ export function useUniV3Quote({
     enabled = true,
     dexId,
 }: UseUniV3QuoteParams): UseUniV3QuoteResult {
-    const chainId = tokenIn?.chainId ?? 1
+    const chainId = tokenIn?.chainId ?? tokenOut?.chainId ?? 1
     const requestedDexIds = useMemo(() => {
         if (!tokenIn) return []
         if (!dexId) {

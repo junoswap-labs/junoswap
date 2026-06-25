@@ -23,7 +23,7 @@ export function usePool(
     isError: boolean
     error: Error | null
 } {
-    const effectiveChainId = chainId ?? token0?.chainId ?? 1
+    const effectiveChainId = chainId ?? token0?.chainId ?? token1?.chainId ?? 1
     const dexConfig = getV3Config(effectiveChainId)
     const [sortedToken0, sortedToken1] = useMemo(() => {
         if (!token0 || !token1) return [null, null]
@@ -107,7 +107,7 @@ export function usePoolsForPair(
     pools: V3PoolData[]
     isLoading: boolean
 } {
-    const effectiveChainId = chainId ?? token0?.chainId ?? 1
+    const effectiveChainId = chainId ?? token0?.chainId ?? token1?.chainId ?? 1
     const dexConfig = getV3Config(effectiveChainId)
     const feeTiers = useMemo(() => dexConfig?.feeTiers ?? [100, 500, 3000, 10000], [dexConfig])
     const [sortedToken0, sortedToken1] = useMemo(() => {

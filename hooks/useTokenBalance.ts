@@ -93,18 +93,17 @@ export function useTokenBalances({
     const balances: Record<string, string> = {}
     const rawBalances: Record<string, bigint> = {}
     if (nativeToken && nativeBalance.data?.value !== undefined) {
-        rawBalances[nativeToken.address] = nativeBalance.data.value
-        balances[nativeToken.address] = formatTokenAmount(
-            nativeBalance.data.value,
-            nativeToken.decimals
-        )
+        const key = nativeToken.address.toLowerCase()
+        rawBalances[key] = nativeBalance.data.value
+        balances[key] = formatTokenAmount(nativeBalance.data.value, nativeToken.decimals)
     }
     erc20Tokens.forEach((token, index) => {
         const result = erc20Balances.data?.[index]
         const balance = result?.result as bigint | undefined
         if (balance !== undefined && typeof balance === 'bigint') {
-            rawBalances[token.address] = balance
-            balances[token.address] = formatTokenAmount(balance, token.decimals)
+            const key = token.address.toLowerCase()
+            rawBalances[key] = balance
+            balances[key] = formatTokenAmount(balance, token.decimals)
         }
     })
     const isLoading =

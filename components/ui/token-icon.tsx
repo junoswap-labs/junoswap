@@ -40,20 +40,32 @@ export function TokenIcon({
     className,
 }: TokenIconProps) {
     const { container, text } = SIZE_MAP[size]
+    const shape = variant === 'square' ? 'rounded-xl' : 'rounded-full'
+    const fallbackStyle = cn(text, 'bg-primary/15 text-primary font-semibold')
+
+    // No logo: render the initials badge directly rather than relying on Radix's
+    // image-fallback path, so logo-less tokens (imported / external V3) always show a
+    // legible icon instead of an empty circle.
+    if (!src) {
+        return (
+            <span
+                className={cn(
+                    container,
+                    shape,
+                    'flex shrink-0 items-center justify-center overflow-hidden',
+                    fallbackStyle,
+                    className
+                )}
+            >
+                {getInitials(symbol)}
+            </span>
+        )
+    }
 
     return (
-        <Avatar
-            className={cn(
-                container,
-                'shrink-0',
-                variant === 'square' ? 'rounded-xl' : 'rounded-full',
-                className
-            )}
-        >
-            {src && <AvatarImage src={src} alt={symbol ?? 'Token'} />}
-            <AvatarFallback className={cn(text, 'bg-primary/8 text-primary/60 font-semibold')}>
-                {getInitials(symbol)}
-            </AvatarFallback>
+        <Avatar className={cn(container, 'shrink-0', shape, className)}>
+            <AvatarImage src={src} alt={symbol ?? 'Token'} />
+            <AvatarFallback className={fallbackStyle}>{getInitials(symbol)}</AvatarFallback>
         </Avatar>
     )
 }

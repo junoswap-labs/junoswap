@@ -60,7 +60,7 @@ export function useUniV3MultiHopQuote({
     enabled = true,
     dexId,
 }: UseUniV3MultiHopQuoteParams): UseUniV3MultiHopQuoteResult {
-    const chainId = tokenIn?.chainId ?? 1
+    const chainId = tokenIn?.chainId ?? tokenOut?.chainId ?? 1
     const intermediaries = useMemo(() => {
         return getIntermediaryTokens(chainId)
     }, [chainId])
