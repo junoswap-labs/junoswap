@@ -41,7 +41,7 @@ export function useUniV2MultiHopQuote({
     enabled = true,
     dexId,
 }: UseUniV2MultiHopQuoteParams): UseUniV2MultiHopQuoteResult {
-    const chainId = tokenIn?.chainId ?? 1
+    const chainId = tokenIn?.chainId ?? tokenOut?.chainId ?? 1
     const intermediaries = useMemo(() => getIntermediaryTokens(chainId), [chainId])
     const targetDexId = useMemo(() => {
         if (dexId) return dexId

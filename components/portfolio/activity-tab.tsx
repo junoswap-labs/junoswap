@@ -11,7 +11,7 @@ import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpa
 import {
     formatTokenAmount as formatTokenAmountDecimals,
     formatDisplayAmount,
-    getWrappedNativeAddress,
+    findWrappedNativeAddress,
 } from '@/services/tokens'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { NATIVE_USD_STABLE } from '@/lib/routing-config'
@@ -115,12 +115,7 @@ function generalizedUsd(
     chainId: number,
     nativeUsdPrice: number | null
 ): string | null {
-    let wrapped: string | null = null
-    try {
-        wrapped = getWrappedNativeAddress(chainId).toLowerCase()
-    } catch {
-        wrapped = null
-    }
+    const wrapped = findWrappedNativeAddress(chainId)?.toLowerCase() ?? null
     const stable = NATIVE_USD_STABLE[chainId]
     const stableAddr = stable?.address.toLowerCase()
     for (const leg of [sell, buy]) {

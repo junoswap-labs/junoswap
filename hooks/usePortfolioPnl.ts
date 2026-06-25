@@ -38,6 +38,16 @@ export function usePortfolioPnl(
         return map
     }, [holdings])
 
+    // Token decimals so the PnL engine decodes swap amounts at the right scale;
+    // without this, 6-decimal tokens (e.g. USDT) get astronomical cost bases.
+    const decimalsByToken = useMemo(() => {
+        const map = new Map<string, number>()
+        for (const [key, holding] of holdings) {
+            map.set(key, holding.token.decimals)
+        }
+        return map
+    }, [holdings])
+
     return useMemo(() => {
         if (!swapEvents || swapEvents.length === 0) {
             return { pnlByToken: new Map<string, TokenPnl | null>(), totals: EMPTY_TOTALS }
@@ -47,7 +57,8 @@ export function usePortfolioPnl(
             swapEvents,
             balanceByToken,
             prices,
-            priceAt
+            priceAt,
+            decimalsByToken
         )
 
         // Expose only held tokens to the cards; null for tokens without history.
@@ -57,5 +68,5 @@ export function usePortfolioPnl(
         }
 
         return { pnlByToken, totals }
-    }, [swapEvents, balanceByToken, prices, priceAt, holdings])
+    }, [swapEvents, balanceByToken, decimalsByToken, prices, priceAt, holdings])
 }

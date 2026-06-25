@@ -100,13 +100,21 @@ export function isValidTokenAddress(address: string): boolean {
 
 /**
  * TOKEN_LISTS convention: index 0 = native, index 1 = wrapped native.
+ * Returns undefined for unsupported chains so render-time callers can fail soft.
  */
-export function getWrappedNativeAddress(chainId: number): Address {
+export function findWrappedNativeAddress(chainId: number): Address | undefined {
     const tokens = TOKEN_LISTS[chainId]
-    if (!tokens || tokens.length < 2) {
+    if (!tokens || tokens.length < 2) return undefined
+    return tokens[1]!.address as Address
+}
+
+/** Throwing variant for transaction-execution paths that require a wrapped native. */
+export function getWrappedNativeAddress(chainId: number): Address {
+    const address = findWrappedNativeAddress(chainId)
+    if (!address) {
         throw new Error(`No wrapped native token found for chain ${chainId}`)
     }
-    return tokens[1]!.address as Address
+    return address
 }
 
 /**
@@ -125,7 +133,9 @@ export function getDisplayToken(token: Token): Token {
 
 export function getSwapAddress(tokenAddress: Address, chainId: number, wnative?: Address): Address {
     if (isNativeToken(tokenAddress)) {
-        return wnative || getWrappedNativeAddress(chainId)
+        // Fall back to the native address (rather than throwing) on unsupported chains —
+        // this runs in render-time quote memos where chainId can transiently be unsupported.
+        return wnative || findWrappedNativeAddress(chainId) || tokenAddress
     }
     return tokenAddress
 }
@@ -156,7 +166,8 @@ function isNativeWrappedPair(tokenA: Token | null, tokenB: Token | null): boolea
     if (isANative && isBNative) return false
     if (!isANative && !isBNative) return false
 
-    const wrappedAddress = getWrappedNativeAddress(tokenA.chainId)
+    const wrappedAddress = findWrappedNativeAddress(tokenA.chainId)
+    if (!wrappedAddress) return false
     const nonNativeAddress = isANative ? tokenB.address : tokenA.address
 
     return nonNativeAddress.toLowerCase() === wrappedAddress.toLowerCase()

@@ -95,29 +95,32 @@ interface TokenListProps {
 
 function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
     const chainId = useChainId()
-    const {
-        balances: _balances,
-        rawBalances,
-        isLoading: isLoadingBalances,
-    } = useTokenBalances({
-        tokens,
-        limit: 10,
-    })
     const [searchQuery, setSearchQuery] = useState('')
-    const handleCopyAddress = (e: React.MouseEvent, address: string) => {
-        e.stopPropagation()
-        navigator.clipboard.writeText(address)
-        toastSuccess('Address copied to clipboard')
-    }
     const filteredTokens = tokens.filter(
         (token) =>
             token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
             token.address.toLowerCase().includes(searchQuery.toLowerCase())
     )
+    // Fetch balances for the visible (filtered) tokens, not a fixed prefix of the full list,
+    // so non-curated tokens (graduated / v3 / imported) — which sort after the curated ones —
+    // still resolve a balance once searched. Single multicall, so the wider set is one call.
+    const {
+        balances: _balances,
+        rawBalances,
+        isLoading: isLoadingBalances,
+    } = useTokenBalances({
+        tokens: filteredTokens,
+        limit: 30,
+    })
+    const handleCopyAddress = (e: React.MouseEvent, address: string) => {
+        e.stopPropagation()
+        navigator.clipboard.writeText(address)
+        toastSuccess('Address copied to clipboard')
+    }
     const getBalance = (tokenAddress: string) => {
         if (isLoadingBalances) return '...'
         const token = tokens.find((t) => t.address === tokenAddress)
-        const rawBalance = rawBalances?.[tokenAddress]
+        const rawBalance = rawBalances?.[tokenAddress.toLowerCase()]
         if (token && rawBalance !== undefined) {
             return formatBalance(rawBalance, token.decimals)
         }

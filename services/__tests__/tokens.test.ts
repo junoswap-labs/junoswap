@@ -143,6 +143,18 @@ describe('services/tokens', () => {
         })
     })
 
+    describe('findWrappedNativeAddress', () => {
+        it('returns index-1 token for a supported chain', async () => {
+            const { findWrappedNativeAddress } = await getModule()
+            expect(findWrappedNativeAddress(96)).toBe(mockWrappedToken.address)
+        })
+
+        it('returns undefined for an unsupported chain', async () => {
+            const { findWrappedNativeAddress } = await getModule()
+            expect(findWrappedNativeAddress(1)).toBeUndefined()
+        })
+    })
+
     describe('getWrappedNativeAddress', () => {
         it('returns index-1 token from TOKEN_LISTS', async () => {
             const { getWrappedNativeAddress } = await getModule()
@@ -160,6 +172,15 @@ describe('services/tokens', () => {
             const { getSwapAddress } = await getModule()
             expect(getSwapAddress(mockNativeToken.address as `0x${string}`, 96)).toBe(
                 mockWrappedToken.address
+            )
+        })
+
+        // Render-time quote memos can call this with an unsupported chain (e.g. while the
+        // input token is still resolving and chainId falls back). It must not throw.
+        it('falls back to the native address on an unsupported chain', async () => {
+            const { getSwapAddress } = await getModule()
+            expect(getSwapAddress(mockNativeToken.address as `0x${string}`, 1)).toBe(
+                mockNativeToken.address
             )
         })
     })
@@ -203,6 +224,14 @@ describe('services/tokens', () => {
         it('returns null when either token is null', async () => {
             const { getWrapOperation } = await getModule()
             expect(getWrapOperation(null, mockWrappedToken)).toBe(null)
+        })
+
+        // Regression: an unsupported chain (no wrapped native) must not throw during render.
+        it('returns null when the chain has no wrapped native', async () => {
+            const { getWrapOperation } = await getModule()
+            const nativeChain1 = { ...mockNativeToken, chainId: 1 }
+            const erc20Chain1 = { ...mockUsdc, chainId: 1 }
+            expect(getWrapOperation(nativeChain1, erc20Chain1)).toBe(null)
         })
     })
 })

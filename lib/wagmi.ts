@@ -32,12 +32,15 @@ const rpcUrls = {
 export const wagmiConfig = createConfig({
     chains: supportedChains,
     transports: {
-        [bsc.id]: http(rpcUrls[bsc.id]),
-        [bitkub.id]: http(rpcUrls[bitkub.id]),
-        [kubTestnet.id]: http(rpcUrls[kubTestnet.id]),
-        [jbc.id]: http(rpcUrls[jbc.id]),
-        [base.id]: http(rpcUrls[base.id]),
-        [worldchain.id]: http(rpcUrls[worldchain.id]),
+        // batch: true coalesces concurrent eth_calls into a single JSON-RPC batch
+        // POST, sharply cutting HTTP request volume — KUB's single public RPCs hit
+        // their rate limit after a few page loads without it.
+        [bsc.id]: http(rpcUrls[bsc.id], { batch: true }),
+        [bitkub.id]: http(rpcUrls[bitkub.id], { batch: true }),
+        [kubTestnet.id]: http(rpcUrls[kubTestnet.id], { batch: true }),
+        [jbc.id]: http(rpcUrls[jbc.id], { batch: true }),
+        [base.id]: http(rpcUrls[base.id], { batch: true }),
+        [worldchain.id]: http(rpcUrls[worldchain.id], { batch: true }),
     },
     ssr: true,
     storage: createStorage({
