@@ -12,6 +12,20 @@ export const metadata: Metadata = {
     title: 'Junoswap — Web3 Aggregation Platform',
     description:
         'Compare DEX rates across multiple chains. Swap tokens at the best price, bridge instantly, and launch your own memecoin — all on Junoswap.',
+    openGraph: {
+        type: 'website',
+        url: 'https://junoswap.trade',
+        siteName: 'Junoswap',
+        title: 'Junoswap — Web3 Aggregation Platform',
+        description:
+            'Compare DEX rates across multiple chains. Swap tokens at the best price, bridge instantly, and launch your own memecoin — all on Junoswap.',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Junoswap — Web3 Aggregation Platform',
+        description:
+            'Compare DEX rates across multiple chains. Swap tokens at the best price, bridge instantly, and launch your own memecoin — all on Junoswap.',
+    },
     keywords: [
         'DeFi',
         'DEX aggregator',
