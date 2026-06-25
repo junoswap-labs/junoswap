@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { useIncreaseLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
-import { useUserPositions } from '@/hooks/useUserPositions'
 import { usePool } from '@/hooks/usePools'
 import { getV3Config } from '@/lib/dex-config'
 import { getChainMetadata } from '@/lib/wagmi'
@@ -28,16 +27,17 @@ interface IncreaseLiquidityDialogProps {
     open: boolean
     position: PositionWithTokens | null
     onClose: () => void
+    onSuccess?: () => void
 }
 
 export function IncreaseLiquidityDialog({
     open,
     position: selectedPosition,
     onClose,
+    onSuccess,
 }: IncreaseLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
-    const { refetch: refetchPositions } = useUserPositions(address, chainId)
     const dexConfig = getV3Config(chainId)
     const [amount0, setAmount0] = useState('')
     const [amount1, setAmount1] = useState('')
@@ -166,13 +166,13 @@ export function IncreaseLiquidityDialog({
                     onClick: () => window.open(explorerUrl, '_blank', 'noopener,noreferrer'),
                 },
             })
-            refetchPositions()
+            onSuccess?.()
             onClose()
             setAmount0('')
             setAmount1('')
             setActiveInput(null)
         }
-    }, [isSuccess, hash, chainId, onClose, refetchPositions])
+    }, [isSuccess, hash, chainId, onClose, onSuccess])
     useEffect(() => {
         if (error) {
             toastError(error)

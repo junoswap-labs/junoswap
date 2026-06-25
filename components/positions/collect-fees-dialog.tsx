@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAccount } from 'wagmi'
 import {
     Dialog,
@@ -20,12 +20,14 @@ interface CollectFeesDialogProps {
     open: boolean
     position: PositionWithTokens | null
     onClose: () => void
+    onSuccess?: () => void
 }
 
 export function CollectFeesDialog({
     open,
     position: selectedPosition,
     onClose,
+    onSuccess,
 }: CollectFeesDialogProps) {
     const { address } = useAccount()
     const {
@@ -40,12 +42,18 @@ export function CollectFeesDialog({
         error,
         hash,
     } = useCollectFees(selectedPosition, address)
+    // Guard against re-firing: onSuccess bumps a refresh nonce on the page, which
+    // re-renders this dialog while isSuccess/hash stay true — without the ref the
+    // effect would loop.
+    const handledHashRef = useRef<string | null>(null)
     useEffect(() => {
-        if (isSuccess && hash) {
+        if (isSuccess && hash && hash !== handledHashRef.current) {
+            handledHashRef.current = hash
             toastSuccess('Fees collected successfully!')
+            onSuccess?.()
             onClose()
         }
-    }, [isSuccess, hash, onClose])
+    }, [isSuccess, hash, onClose, onSuccess])
     useEffect(() => {
         if (error) {
             toastError(error)

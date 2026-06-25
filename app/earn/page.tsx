@@ -35,10 +35,11 @@ function EarnContent() {
     const [isStakeDialogOpen, setIsStakeDialogOpen] = useState(false)
     const [isUnstakeDialogOpen, setIsUnstakeDialogOpen] = useState(false)
 
-    // After a stake/unstake confirms, invalidate the query cache so every mounted
-    // reader (the stake dialog's eligible-positions list, the positions list, etc.)
-    // refetches instead of serving pre-tx cache. The nonce additionally drives the
-    // localStorage re-read in useDepositedTokenIds, which invalidation can't trigger.
+    // After a position mutation confirms (stake/unstake, add/remove/collect),
+    // invalidate the query cache so every mounted reader (the stake dialog's
+    // eligible-positions list, the positions list, etc.) refetches instead of
+    // serving pre-tx cache. The nonce additionally drives the localStorage
+    // re-read in useDepositedTokenIds, which invalidation can't trigger.
     const queryClient = useQueryClient()
     const [refreshNonce, setRefreshNonce] = useState(0)
     const bumpRefresh = useCallback(() => {
@@ -117,21 +118,25 @@ function EarnContent() {
                     open={isAddLiquidityOpen}
                     initialPool={addLiquidityPool}
                     onClose={() => setIsAddLiquidityOpen(false)}
+                    onSuccess={bumpRefresh}
                 />
                 <RemoveLiquidityDialog
                     open={isRemoveLiquidityOpen}
                     position={selectedPosition}
                     onClose={() => setIsRemoveLiquidityOpen(false)}
+                    onSuccess={bumpRefresh}
                 />
                 <CollectFeesDialog
                     open={isCollectFeesOpen}
                     position={selectedPosition}
                     onClose={() => setIsCollectFeesOpen(false)}
+                    onSuccess={bumpRefresh}
                 />
                 <IncreaseLiquidityDialog
                     open={isIncreaseLiquidityOpen}
                     position={selectedPosition}
                     onClose={() => setIsIncreaseLiquidityOpen(false)}
+                    onSuccess={bumpRefresh}
                 />
                 <StakeDialog
                     open={isStakeDialogOpen}

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useRemoveLiquidity } from '@/hooks/useLiquidity'
-import { useUserPositions, usePositionDetails } from '@/hooks/useUserPositions'
+import { usePositionDetails } from '@/hooks/useUserPositions'
 import { formatTokenAmount } from '@/services/tokens'
 import { toastError } from '@/lib/toast'
 import { toast } from 'sonner'
@@ -24,17 +24,18 @@ interface RemoveLiquidityDialogProps {
     open: boolean
     position: PositionWithTokens | null
     onClose: () => void
+    onSuccess?: () => void
 }
 
 export function RemoveLiquidityDialog({
     open,
     position: storePosition,
     onClose,
+    onSuccess,
 }: RemoveLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
     const [percentage, setPercentage] = useState(100)
-    const { refetch: refetchPositions } = useUserPositions(address, undefined)
     const { position: selectedPosition } = usePositionDetails(storePosition?.tokenId, undefined)
     const handledHashRef = useRef<string | null>(null)
     const {
@@ -70,11 +71,11 @@ export function RemoveLiquidityDialog({
                     onClick: () => window.open(explorerUrl, '_blank', 'noopener,noreferrer'),
                 },
             })
-            refetchPositions()
+            onSuccess?.()
             onClose()
             setPercentage(100)
         }
-    }, [isSuccess, hash, chainId, onClose, refetchPositions])
+    }, [isSuccess, hash, chainId, onClose, onSuccess])
     useEffect(() => {
         if (error) {
             toastError(error)

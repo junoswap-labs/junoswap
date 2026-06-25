@@ -15,7 +15,6 @@ import { usePool } from '@/hooks/usePools'
 import { useAddLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
-import { useUserPositions } from '@/hooks/useUserPositions'
 import { getV3Config, FEE_TIERS } from '@/lib/dex-config'
 import { getChainMetadata } from '@/lib/wagmi'
 import { parseTokenAmount, formatBalance, formatTokenAmount } from '@/services/tokens'
@@ -48,13 +47,18 @@ interface AddLiquidityDialogProps {
     open: boolean
     initialPool: V3PoolData | null
     onClose: () => void
+    onSuccess?: () => void
 }
 
-export function AddLiquidityDialog({ open, initialPool, onClose }: AddLiquidityDialogProps) {
+export function AddLiquidityDialog({
+    open,
+    initialPool,
+    onClose,
+    onSuccess,
+}: AddLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
     const router = useRouter()
-    const { refetch: refetchPositions } = useUserPositions(address, chainId)
     const dexConfig = getV3Config(chainId)
     const { tokens: allTokens } = useChainTokens(chainId)
 
@@ -308,14 +312,14 @@ export function AddLiquidityDialog({ open, initialPool, onClose }: AddLiquidityD
                     onClick: () => window.open(explorerUrl, '_blank', 'noopener,noreferrer'),
                 },
             })
-            refetchPositions()
+            onSuccess?.()
             onClose()
             setAmount0('')
             setAmount1('')
             setActiveInput(null)
             setInitialPrice('')
         }
-    }, [isSuccess, hash, chainId, onClose, refetchPositions])
+    }, [isSuccess, hash, chainId, onClose, onSuccess])
     useEffect(() => {
         if (error) {
             toastError(error)

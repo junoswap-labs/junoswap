@@ -5,7 +5,7 @@ import { useReadContract, useReadContracts, useChainId } from 'wagmi'
 import type { Address } from 'viem'
 import type { V3Position, PositionWithTokens, PositionDetails } from '@/types/earn'
 import type { Token } from '@/types/tokens'
-import { getV3Config } from '@/lib/dex-config'
+import { getV3Config, getV3StakerAddress } from '@/lib/dex-config'
 import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@/lib/abis/nonfungible-position-manager'
 import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
@@ -566,6 +566,15 @@ export function usePositionsByTokenIds(
             })
             .filter((p): p is V3Position => p !== null)
     }, [positionData, tokenIds])
+    // Staked NFTs are held by the staker contract; simulate collect() from it
+    // (the authorized owner) to read live fees, same as useUserPositions does
+    // for wallet positions.
+    const stakerAddress = getV3StakerAddress(effectiveChainId)
+    const {
+        feesMap,
+        isLoading: isLoadingFees,
+        refetch: refetchFees,
+    } = usePositionFees(rawPositions, stakerAddress, effectiveChainId)
     const uniquePoolKeys = useMemo(() => {
         const keys = new Set<string>()
         rawPositions.forEach((p) => {
@@ -671,19 +680,31 @@ export function usePositionsByTokenIds(
                 currentTick,
                 amount0,
                 amount1,
-                uncollectedFees0: position.tokensOwed0,
-                uncollectedFees1: position.tokensOwed1,
+                uncollectedFees0:
+                    feesMap.get(position.tokenId.toString())?.fees0 ?? position.tokensOwed0,
+                uncollectedFees1:
+                    feesMap.get(position.tokenId.toString())?.fees1 ?? position.tokensOwed1,
             }
         })
-    }, [rawPositions, effectiveChainId, tokenMap, poolStateMap, poolAddresses, uniquePoolKeys])
+    }, [
+        rawPositions,
+        effectiveChainId,
+        tokenMap,
+        poolStateMap,
+        poolAddresses,
+        uniquePoolKeys,
+        feesMap,
+    ])
     const refetch = () => {
         refetchPositions()
         refetchPoolAddresses()
         refetchPoolStates()
+        refetchFees()
     }
     return {
         positions,
-        isLoading: isLoadingPositions || isLoadingPoolAddresses || isLoadingPoolStates,
+        isLoading:
+            isLoadingPositions || isLoadingPoolAddresses || isLoadingPoolStates || isLoadingFees,
         refetch,
     }
 }
