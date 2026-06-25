@@ -6,6 +6,7 @@ import type { Address } from 'viem'
 import { getTokensForChain } from '@/lib/tokens'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
+import { useCustomTokensStore } from '@/store/custom-tokens-store'
 import type { Token } from '@/types/tokens'
 
 interface V3TokenResponse {
@@ -39,6 +40,7 @@ const V3_TOKENS_QUERY = `
 export function useChainTokens(chainId: number): { tokens: Token[]; isLoading: boolean } {
     const staticTokens = useMemo(() => getTokensForChain(chainId), [chainId])
     const { tokens: graduatedTokens, isLoading: isLoadingGraduated } = useGraduatedTokens(chainId)
+    const customTokens = useCustomTokensStore((s) => s.customTokens)
 
     const { data: v3Tokens, isLoading: isLoadingV3 } = useQuery({
         queryKey: ['v3-tokens', chainId],
@@ -79,9 +81,10 @@ export function useChainTokens(chainId: number): { tokens: Token[]; isLoading: b
         for (const t of staticTokens) add(t)
         for (const t of graduatedTokens) add(t)
         for (const t of v3Tokens ?? []) add(t)
+        for (const t of customTokens) if (t.chainId === chainId) add(t)
 
         return merged
-    }, [staticTokens, graduatedTokens, v3Tokens])
+    }, [staticTokens, graduatedTokens, v3Tokens, customTokens, chainId])
 
     return { tokens, isLoading: isLoadingV3 || isLoadingGraduated }
 }

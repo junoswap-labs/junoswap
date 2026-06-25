@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useChainId } from 'wagmi'
 import type { Token } from '@/types/tokens'
 import { useTokenBalances } from '@/hooks/useTokenBalance'
+import { useTokenMetadata } from '@/hooks/useTokenMetadata'
+import { useCustomTokensStore } from '@/store/custom-tokens-store'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -13,16 +16,75 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
-import { TokenIcon } from '@/components/ui/token-icon'
+import { TokenIcon, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { EmptyState } from '@/components/ui/empty-state'
-import { ChevronDown, Search, Copy, Check } from 'lucide-react'
+import { ChevronDown, Search, Copy, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatBalance } from '@/services/tokens'
+import { formatBalance, isValidTokenAddress } from '@/services/tokens'
 import { toastSuccess } from '@/lib/toast'
 
 function truncateAddress(address: string): string {
     if (!address || address.length < 10) return address
     return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+interface ImportTokenRowProps {
+    address: string
+    chainId: number
+    onImport: (token: Token) => void
+}
+
+function ImportTokenRow({ address, chainId, onImport }: ImportTokenRowProps) {
+    const { token, isLoading, isError } = useTokenMetadata(address, chainId)
+    const addCustomToken = useCustomTokensStore((s) => s.addCustomToken)
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center gap-3 p-2">
+                <TokenIconSkeleton size="sm" />
+                <div className="flex-1 space-y-1.5">
+                    <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                    <div className="h-2.5 w-32 animate-pulse rounded bg-muted" />
+                </div>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
+
+    if (isError || !token) {
+        return (
+            <EmptyState
+                title="Couldn't load token"
+                description="No ERC-20 found at this address on the current network."
+            />
+        )
+    }
+
+    const handleImport = () => {
+        addCustomToken(token)
+        onImport(token)
+    }
+
+    return (
+        <div className="rounded-xl border border-border bg-muted/30 p-3">
+            <div className="flex items-center gap-3">
+                <TokenIcon src={token.logo} symbol={token.symbol} size="sm" />
+                <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-foreground">{token.symbol}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                        {token.name || truncateAddress(token.address)}
+                    </div>
+                </div>
+                <Button
+                    size="sm"
+                    onClick={handleImport}
+                    className="rounded-lg bg-gradient-to-r from-primary to-[#FF914D] text-primary-foreground"
+                >
+                    Import
+                </Button>
+            </div>
+        </div>
+    )
 }
 
 interface TokenListProps {
@@ -32,6 +94,7 @@ interface TokenListProps {
 }
 
 function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
+    const chainId = useChainId()
     const {
         balances: _balances,
         rawBalances,
@@ -76,7 +139,18 @@ function TokenList({ tokens, selectedToken, onSelect }: TokenListProps) {
             <ScrollArea className="h-96">
                 <div className="py-2 pr-4">
                     {filteredTokens.length === 0 ? (
-                        <EmptyState title="No tokens found" />
+                        isValidTokenAddress(searchQuery) ? (
+                            <ImportTokenRow
+                                address={searchQuery}
+                                chainId={chainId}
+                                onImport={(token) => {
+                                    onSelect(token)
+                                    setSearchQuery('')
+                                }}
+                            />
+                        ) : (
+                            <EmptyState title="No tokens found" />
+                        )
                     ) : (
                         <div className="space-y-1">
                             {filteredTokens.map((token) => {
