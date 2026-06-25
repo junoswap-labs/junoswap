@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseEther } from 'viem'
+import { parseEther, parseUnits } from 'viem'
 import {
     computePortfolioPnl,
     computeTraderStatsByAddress,
@@ -113,6 +113,36 @@ describe('services/dex/portfolio-pnl', () => {
         expect(pnl.realizedUsd).toBeCloseTo(60)
         expect(pnl.costBasisUsd).toBeCloseTo(0)
         expect(pnl.unrealizedUsd).toBeCloseTo(0)
+    })
+
+    it('decodes the token leg at its real decimals (6-dec USDT), not 18', () => {
+        // The token leg is 6-decimal (USDT); the native leg is always 18-decimal.
+        // Without decimalsByToken the accounting position is ~1e12 too small, so
+        // avgCost × current balance explodes and unrealized PnL goes to ~-$1e12.
+        const USDT = '0xusdt'
+        const buyUsdt: PnlSwapEvent = {
+            tokenAddr: USDT,
+            isBuy: true,
+            amountIn: parseEther('10').toString(), // 10 KUB paid
+            amountOut: parseUnits('1000', 6).toString(), // 1000 USDT received
+            timestamp: 1,
+        }
+        const balances = new Map([[USDT, 1000]]) // holds the 1000 USDT
+        const prices = new Map([[USDT, 1]]) // USDT pinned at $1 -> value $1000
+        const decimals = new Map([[USDT, 6]])
+
+        const { perToken } = computePortfolioPnl([buyUsdt], balances, prices, flatRate, decimals)
+        const pnl = perToken.get(USDT)!
+
+        // Paid 10 KUB * $2 = $20 for 1000 USDT now worth $1000 -> unrealized +$980.
+        expect(pnl.totalInvestedUsd).toBeCloseTo(20)
+        expect(pnl.costBasisUsd).toBeCloseTo(20)
+        expect(pnl.unrealizedUsd).toBeCloseTo(980)
+
+        // Regression guard: the old 18-decimal-everywhere path produced a wildly
+        // negative figure here. Confirm we're nowhere near that.
+        const broken = computePortfolioPnl([buyUsdt], balances, prices, flatRate)
+        expect(broken.perToken.get(USDT)!.unrealizedUsd).toBeLessThan(-1e9)
     })
 
     it('returns null pnlPercent base safely and unrealized 0 when price is missing', () => {

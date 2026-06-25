@@ -1,4 +1,4 @@
-import { formatEther } from 'viem'
+import { formatEther, formatUnits } from 'viem'
 
 /**
  * One swap as seen by a single user. Semantics match the indexer output:
@@ -56,12 +56,18 @@ interface PortfolioPnlResult {
  * @param balanceByToken    current on-chain balance per lowercased token address
  * @param priceUsdByToken   current USD price per lowercased token address
  * @param priceAt           KUB/USD rate at a given unix timestamp
+ * @param decimalsByToken   token decimals per lowercased token address (default 18).
+ *                          The token leg of each swap is decoded with these so the
+ *                          accounting position matches the externally-supplied
+ *                          balance; mismatches blow up unrealized PnL for non-18-dec
+ *                          tokens (e.g. 6-decimal USDT). The native leg is always 18.
  */
 export function computePortfolioPnl(
     events: PnlSwapEvent[],
     balanceByToken: Map<string, number>,
     priceUsdByToken: Map<string, number | null>,
-    priceAt: (timestamp: number) => number
+    priceAt: (timestamp: number) => number,
+    decimalsByToken?: Map<string, number>
 ): PortfolioPnlResult {
     // Group events by token, preserving chronological order.
     const eventsByToken = new Map<string, PnlSwapEvent[]>()
@@ -83,6 +89,7 @@ export function computePortfolioPnl(
 
     for (const [tokenAddr, tokenEvents] of eventsByToken) {
         const sorted = [...tokenEvents].sort((a, b) => a.timestamp - b.timestamp)
+        const decimals = decimalsByToken?.get(tokenAddr) ?? 18
 
         let position = 0 // tokens held per accounting
         let costPoolUsd = 0 // USD-at-trade-time cost of the held position
@@ -92,14 +99,14 @@ export function computePortfolioPnl(
         for (const event of sorted) {
             const nativeUsd = priceAt(event.timestamp)
             if (event.isBuy) {
-                const tokensIn = parseFloat(formatEther(BigInt(event.amountOut)))
+                const tokensIn = parseFloat(formatUnits(BigInt(event.amountOut), decimals))
                 const nativePaid = parseFloat(formatEther(BigInt(event.amountIn)))
                 const usdPaid = nativePaid * nativeUsd
                 position += tokensIn
                 costPoolUsd += usdPaid
                 totalInvestedUsd += usdPaid
             } else {
-                const tokensOut = parseFloat(formatEther(BigInt(event.amountIn)))
+                const tokensOut = parseFloat(formatUnits(BigInt(event.amountIn), decimals))
                 const nativeRecv = parseFloat(formatEther(BigInt(event.amountOut)))
                 const usdRecv = nativeRecv * nativeUsd
                 const avgCost = position > 0 ? costPoolUsd / position : 0
@@ -166,12 +173,14 @@ interface AddressTraderStats {
  *                          then lowercased token address
  * @param priceUsdByToken   current USD price per lowercased token address
  * @param priceAt           KUB/USD rate at a given unix timestamp
+ * @param decimalsByToken   token decimals per lowercased token address (default 18)
  */
 export function computeTraderStatsByAddress(
     events: LeaderboardSwapEvent[],
     balanceByAddress: Map<string, Map<string, number>>,
     priceUsdByToken: Map<string, number | null>,
-    priceAt: (timestamp: number) => number
+    priceAt: (timestamp: number) => number,
+    decimalsByToken?: Map<string, number>
 ): Map<string, AddressTraderStats> {
     const eventsByAddress = new Map<string, LeaderboardSwapEvent[]>()
     for (const event of events) {
@@ -200,7 +209,8 @@ export function computeTraderStatsByAddress(
             addrEvents,
             balanceByAddress.get(address) ?? new Map(),
             priceUsdByToken,
-            priceAt
+            priceAt,
+            decimalsByToken
         )
 
         statsByAddress.set(address, {

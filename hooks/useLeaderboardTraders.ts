@@ -161,6 +161,16 @@ export function useLeaderboardTraders(
         return map
     }, [holdings])
 
+    // Token decimals so the PnL engine decodes swap amounts at the right scale
+    // (6-decimal tokens like USDT otherwise produce astronomical cost bases).
+    const decimalsByToken = useMemo(() => {
+        const map = new Map<string, number>()
+        for (const token of erc20Tokens) {
+            map.set(token.address.toLowerCase(), token.decimals)
+        }
+        return map
+    }, [erc20Tokens])
+
     // Step 6: Per-trader PNL (same engine as the portfolio), volume & trade counts
     const perAddressStats = useMemo(() => {
         const events: LeaderboardSwapEvent[] =
@@ -172,8 +182,14 @@ export function useLeaderboardTraders(
                 amountOut: e.amountOut,
                 timestamp: e.timestamp,
             })) ?? []
-        return computeTraderStatsByAddress(events, numericHolderMap, priceMap, priceAt)
-    }, [raw, numericHolderMap, priceMap, priceAt])
+        return computeTraderStatsByAddress(
+            events,
+            numericHolderMap,
+            priceMap,
+            priceAt,
+            decimalsByToken
+        )
+    }, [raw, numericHolderMap, priceMap, priceAt, decimalsByToken])
 
     // Step 7: Compute net worth per address, merge with swap stats, sort & paginate
     const result = useMemo(() => {
