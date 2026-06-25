@@ -99,7 +99,7 @@ export function usePool(
     }
 }
 
-export function usePoolsForPair(
+function usePoolsForPair(
     token0: Token | null,
     token1: Token | null,
     chainId?: number

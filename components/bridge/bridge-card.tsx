@@ -52,7 +52,6 @@ export function BridgeCard() {
     const { tokens: fromTokens } = useChainTokens(fromChainId)
     const { tokens: toTokens } = useChainTokens(toChainId)
 
-    // On mount: set source chain to wallet's chain (if supported), clear destination
     const hasInitializedRef = useRef(false)
     useEffect(() => {
         if (hasInitializedRef.current) return
@@ -71,7 +70,6 @@ export function BridgeCard() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // Initialize source token when tokens load for the source chain
     useEffect(() => {
         if (fromTokens.length > 0 && !fromToken) {
             setFromToken(fromTokens[0]!)
@@ -157,7 +155,6 @@ export function BridgeCard() {
     return (
         <Card>
             <CardContent className="p-0">
-                {/* From section */}
                 <div className="space-y-2 p-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -210,7 +207,6 @@ export function BridgeCard() {
                     </div>
                 </div>
 
-                {/* Swap direction button */}
                 <div className="relative flex items-center justify-center py-1">
                     <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
                     <Button
@@ -223,7 +219,6 @@ export function BridgeCard() {
                     </Button>
                 </div>
 
-                {/* To section */}
                 <div className="space-y-2 p-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -252,7 +247,6 @@ export function BridgeCard() {
                     </div>
                 </div>
 
-                {/* Bottom section: quote, settings, button, status */}
                 <div className="space-y-4 p-6 pt-0">
                     {route && !isQuoteLoading && (
                         <Card className="bg-muted/50 p-1">
@@ -372,7 +366,6 @@ export function BridgeCard() {
                         </Card>
                     )}
 
-                    {/* Settings */}
                     <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <SettingsDialog
@@ -384,7 +377,6 @@ export function BridgeCard() {
                         </div>
                     </div>
 
-                    {/* Bridge button */}
                     <Button
                         className="w-full"
                         size="lg"
@@ -422,7 +414,6 @@ export function BridgeCard() {
                                             : 'Bridge'}
                     </Button>
 
-                    {/* Bridge status tracker */}
                     {showStatus && activeRoute && (
                         <BridgeStatus
                             route={activeRoute}

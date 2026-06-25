@@ -127,7 +127,6 @@ export default async function Image({ params }: { params: Promise<{ address: str
                     }}
                 />
 
-                {/* Card content */}
                 <div
                     style={{
                         position: 'relative',
@@ -140,9 +139,7 @@ export default async function Image({ params }: { params: Promise<{ address: str
                         gap: 48,
                     }}
                 >
-                    {/* Left column */}
                     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-                        {/* Logo + wordmark */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                             {brandLogo ? (
                                 <img src={brandLogo} width={40} height={40} alt="" />
@@ -162,7 +159,6 @@ export default async function Image({ params }: { params: Promise<{ address: str
                             </div>
                         </div>
 
-                        {/* Symbol */}
                         <div
                             style={{
                                 display: 'flex',
@@ -178,7 +174,6 @@ export default async function Image({ params }: { params: Promise<{ address: str
                             {symbol.slice(0, 14)}
                         </div>
 
-                        {/* Name */}
                         <div
                             style={{
                                 display: 'flex',
@@ -190,7 +185,6 @@ export default async function Image({ params }: { params: Promise<{ address: str
                             {name.slice(0, 38)}
                         </div>
 
-                        {/* Badge row */}
                         <div
                             style={{
                                 display: 'flex',
@@ -243,7 +237,6 @@ export default async function Image({ params }: { params: Promise<{ address: str
                             )}
                         </div>
 
-                        {/* BUY pill */}
                         <div
                             style={{
                                 display: 'flex',
@@ -277,7 +270,6 @@ export default async function Image({ params }: { params: Promise<{ address: str
                         </div>
                     </div>
 
-                    {/* Right — token image in bordered box */}
                     <div
                         style={{
                             display: 'flex',

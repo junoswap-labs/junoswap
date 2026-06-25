@@ -90,13 +90,6 @@ export interface RemoveLiquidityParams {
     collectFees: boolean
 }
 
-export interface CollectFeesParams {
-    tokenId: bigint
-    recipient: Address
-    amount0Max: bigint
-    amount1Max: bigint
-}
-
 export type RangePreset = 'full' | 'safe' | 'common' | 'narrow' | 'custom'
 
 export interface RangeConfig {

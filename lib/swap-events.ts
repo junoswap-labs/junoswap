@@ -11,7 +11,7 @@ import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 const PAGE_SIZE = 1000
 
 /** Lowercased wrapped-native address for a chain, or null if unknown. */
-export function wrappedNativeFor(chainId: number): string | null {
+function wrappedNativeFor(chainId: number): string | null {
     return INTERMEDIARY_TOKENS[chainId]?.wrappedNative.toLowerCase() ?? null
 }
 

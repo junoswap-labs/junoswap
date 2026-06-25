@@ -130,12 +130,10 @@ export function ShareablePointsBanner({
                         backgroundSize: '24px 24px',
                     }}
                 >
-                    {/* Brand glows */}
                     <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
                     <div className="pointer-events-none absolute -bottom-20 -right-12 h-48 w-48 rounded-full bg-[#FF914D]/15 blur-3xl" />
 
                     <div className="relative px-5 py-5 sm:px-7 sm:py-6">
-                        {/* Header: Logo + Share button */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <LogoMark size={20} />
@@ -156,9 +154,7 @@ export function ShareablePointsBanner({
                             )}
                         </div>
 
-                        {/* Body: identity + headline (left) / supporting stats (right) */}
                         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-                            {/* Left — tier + headline points */}
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2.5">
                                     {address && <AccountChip address={address} />}
@@ -191,7 +187,6 @@ export function ShareablePointsBanner({
                                 </div>
                             </div>
 
-                            {/* Right — supporting stats */}
                             <div className="grid grid-cols-3 gap-4 sm:gap-6 sm:text-right">
                                 <StatItem
                                     value={
@@ -212,7 +207,6 @@ export function ShareablePointsBanner({
                             </div>
                         </div>
 
-                        {/* Progress bar to next tier */}
                         {resolvedSummary.nextTierLabel && (
                             <div className="mt-6">
                                 <div className="mb-1.5 flex items-center justify-between text-[11px]">

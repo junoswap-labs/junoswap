@@ -20,7 +20,6 @@ export function Chains() {
 
     return (
         <section className="relative overflow-hidden border-y border-border/30">
-            {/* Decorative radial gradient */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(0_100%_60%_/_0.05),transparent)] pointer-events-none" />
 
             <div
@@ -30,7 +29,6 @@ export function Chains() {
                     isVisible && 'is-visible'
                 )}
             >
-                {/* Two-part heading — matches Features/CTA pattern */}
                 <div className="mx-auto max-w-2xl text-center">
                     <p
                         data-reveal
@@ -44,7 +42,6 @@ export function Chains() {
                     </p>
                 </div>
 
-                {/* Chain grid */}
                 <div className="mx-auto mt-16 grid max-w-2xl grid-cols-2 gap-8 sm:mt-20 sm:grid-cols-5 sm:gap-10">
                     {liveChains.map((chain, i) => (
                         <div

@@ -408,9 +408,7 @@ export function AddLiquidityDialog({
                     <DialogTitle className="text-lg">Add Liquidity</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 overflow-y-auto max-h-[calc(90vh-8rem)] pr-1">
-                    {/* Pair & Fee Panel */}
                     <div className="rounded-2xl bg-muted/20 border border-border/30 p-4 space-y-4">
-                        {/* Token Pair */}
                         <div className="flex items-center gap-3">
                             <div className="flex-1">
                                 <TokenSelect
@@ -437,7 +435,6 @@ export function AddLiquidityDialog({
                             </div>
                         </div>
 
-                        {/* Fee Tier */}
                         <div className="grid grid-cols-4 gap-2">
                             {FEE_OPTIONS.map((option) => (
                                 <button
@@ -467,7 +464,6 @@ export function AddLiquidityDialog({
                         </div>
                     </div>
 
-                    {/* Range Selector */}
                     {token0 && token1 && (pool || derivedTick !== null) && (
                         <>
                             <Separator />
@@ -494,12 +490,10 @@ export function AddLiquidityDialog({
                         </>
                     )}
 
-                    {/* Token Amount Inputs */}
                     {token0 && token1 && (
                         <>
                             <Separator />
                             <div className="space-y-3">
-                                {/* Token 0 */}
                                 <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -564,7 +558,6 @@ export function AddLiquidityDialog({
                                     </div>
                                 </div>
 
-                                {/* Token 1 */}
                                 <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -653,7 +646,6 @@ export function AddLiquidityDialog({
                         </div>
                     )}
 
-                    {/* Submit */}
                     <Button
                         className="w-full"
                         size="lg"

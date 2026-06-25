@@ -99,7 +99,6 @@ export const NONFUNGIBLE_POSITION_MANAGER_ABI = [
         ],
         outputs: [],
     },
-    // Position data
     {
         type: 'function',
         name: 'positions',
@@ -120,7 +119,6 @@ export const NONFUNGIBLE_POSITION_MANAGER_ABI = [
             { name: 'tokensOwed1', type: 'uint128' },
         ],
     },
-    // Liquidity operations
     {
         type: 'function',
         name: 'mint',
@@ -225,7 +223,6 @@ export const NONFUNGIBLE_POSITION_MANAGER_ABI = [
         inputs: [{ name: 'tokenId', type: 'uint256' }],
         outputs: [],
     },
-    // Multicall and helpers
     {
         type: 'function',
         name: 'multicall',
@@ -288,7 +285,6 @@ export const NONFUNGIBLE_POSITION_MANAGER_ABI = [
         inputs: [],
         outputs: [{ name: '', type: 'address' }],
     },
-    // Events
     {
         type: 'event',
         name: 'IncreaseLiquidity',

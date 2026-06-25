@@ -124,9 +124,7 @@ export function Header() {
             }`}
         >
             <div className="flex h-16 items-center px-4 lg:px-6">
-                {/* Left group: Logo + Desktop Nav */}
                 <div className="flex items-center gap-1 md:gap-6 lg:gap-8">
-                    {/* Logo */}
                     <Link href="/" className="flex items-center space-x-2">
                         <div
                             className="bg-gradient-to-br from-primary to-[#FF914D]"
@@ -146,7 +144,6 @@ export function Header() {
                         </span>
                     </Link>
 
-                    {/* Desktop navigation */}
                     <NavigationMenu className="hidden md:flex">
                         <NavigationMenuList className="!justify-start gap-1">
                             {navLinks.map((link) => {
@@ -201,11 +198,9 @@ export function Header() {
 
                 <div className="flex-1" />
 
-                {/* Right controls */}
                 <div className="flex items-center gap-2">
                     <NetworkSwitcher />
                     <ConnectButton />
-                    {/* Mobile hamburger - right edge */}
                     <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="md:hidden -mr-2 ml-1">
@@ -219,7 +214,6 @@ export function Header() {
                         >
                             <SheetTitle className="sr-only">Navigation menu</SheetTitle>
 
-                            {/* Nav links */}
                             <nav className="flex flex-col gap-1">
                                 {navLinks.map((link) => {
                                     const isActive = pathname === link.href
@@ -240,7 +234,6 @@ export function Header() {
                                 })}
                             </nav>
 
-                            {/* Social links */}
                             <div className="mt-3 border-t border-border/60 px-4 pt-4">
                                 <div className="flex items-center gap-2">
                                     {socialLinks.map((social) => (

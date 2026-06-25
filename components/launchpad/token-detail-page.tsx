@@ -86,7 +86,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
 
     return (
         <div className="space-y-3 md:space-y-4 overflow-hidden">
-            {/* Back button */}
             <Link
                 href="/launchpad"
                 className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -95,13 +94,9 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 Back to Launchpad
             </Link>
 
-            {/* Two-column grid */}
             <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12 items-start">
-                {/* Left column — token info, chart, stats, trades */}
                 <div className="order-2 min-w-0 space-y-3 md:space-y-4 lg:order-1 lg:col-span-8">
-                    {/* Price header */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                        {/* Token identity */}
                         <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
                             <TokenIcon
                                 src={tokenInfo?.logo}
@@ -131,7 +126,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                             </div>
                         </div>
 
-                        {/* CA badge + share */}
                         <div className="flex shrink-0 items-center gap-2">
                             <button
                                 onClick={copyAddress}
@@ -176,7 +170,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         isGraduated={isGraduated}
                     />
 
-                    {/* Inline market stats */}
                     <TokenStats
                         marketCap={marketCap}
                         isGraduated={isGraduated}
@@ -186,7 +179,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         }
                     />
 
-                    {/* Chart */}
                     <TokenChartWrapper
                         tokenAddr={tokenAddr}
                         nativeReserve={nativeReserve}
@@ -197,7 +189,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         graduatedAt={tokenInfo?.graduatedAt ?? null}
                     />
 
-                    {/* About token */}
                     {(tokenInfo?.description ||
                         tokenInfo?.link1 ||
                         tokenInfo?.link2 ||
@@ -273,7 +264,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                         </div>
                     )}
 
-                    {/* Recent trades */}
                     <RecentTrades
                         tokenAddr={tokenAddr}
                         tokenSymbol={symbol}
@@ -283,7 +273,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                     />
                 </div>
 
-                {/* Right column — trade panel + holders */}
                 <div className="order-1 min-w-0 lg:order-2 lg:col-span-4">
                     <div className="space-y-3 md:space-y-4 lg:sticky lg:top-20">
                         <TokenTradeCard
@@ -319,7 +308,6 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                 </div>
             </div>
 
-            {/* Holders — full width at bottom on mobile/tablet */}
             <div className="lg:hidden">
                 <TokenHolders
                     tokenAddr={tokenAddr}

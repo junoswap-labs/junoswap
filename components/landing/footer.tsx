@@ -13,15 +13,12 @@ export function Footer() {
 
     return (
         <footer className="relative overflow-hidden border-t border-border/30">
-            {/* ── Layer 1: Big Name ── */}
             <section
                 ref={brandReveal.ref as React.RefObject<HTMLElement>}
                 className={cn('relative py-16 sm:py-24', brandReveal.isVisible && 'is-visible')}
             >
-                {/* Radial glow backdrop */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,hsl(0_100%_60%_/_0.06),transparent)] pointer-events-none" />
 
-                {/* Massive brand name */}
                 <div
                     data-reveal
                     className={cn(
@@ -36,7 +33,6 @@ export function Footer() {
                 </div>
             </section>
 
-            {/* ── Layer 2: Bottom Bar ── */}
             <div
                 ref={bottomReveal.ref as React.RefObject<HTMLDivElement>}
                 data-reveal
@@ -47,12 +43,10 @@ export function Footer() {
                 )}
             >
                 <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 sm:flex-row sm:justify-between sm:gap-6 sm:px-6 lg:px-8">
-                    {/* wordmark */}
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground/50">Junoswap Labs</span>
                     </div>
 
-                    {/* Social icons */}
                     <div className="flex gap-4 sm:gap-6">
                         <a
                             href="https://x.com/junoswaptrade"
@@ -104,7 +98,6 @@ export function Footer() {
                         </a>
                     </div>
 
-                    {/* Copyright */}
                     <p className="text-xs text-muted-foreground/50">&copy; {year}</p>
                 </div>
             </div>

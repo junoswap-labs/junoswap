@@ -25,7 +25,6 @@ export function TokenStats({
 
     return (
         <div className={cn('flex items-center justify-between gap-6', className)}>
-            {/* Left — mcap */}
             <div className="shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="text-2xl font-bold tabular-nums tracking-tight md:text-3xl">
@@ -50,7 +49,6 @@ export function TokenStats({
                 <div className="text-xs text-muted-foreground uppercase">mcap</div>
             </div>
 
-            {/* Right — ATH progress bar */}
             {athNum > 0 ? (
                 <div className="w-1/3 space-y-1.5">
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">

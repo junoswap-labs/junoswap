@@ -4,8 +4,6 @@
  * https://github.com/Uniswap/v3-staker
  */
 export const UNISWAP_V3_STAKER_ABI = [
-    // ============ Write Functions ============
-
     // Stake a deposited NFT into an incentive
     {
         type: 'function',
@@ -140,8 +138,6 @@ export const UNISWAP_V3_STAKER_ABI = [
         outputs: [{ name: 'results', type: 'bytes[]' }],
     },
 
-    // ============ View Functions ============
-
     // Get reward info for a staked position
     {
         type: 'function',
@@ -256,8 +252,6 @@ export const UNISWAP_V3_STAKER_ABI = [
         inputs: [],
         outputs: [{ name: '', type: 'uint256' }],
     },
-
-    // ============ Events ============
 
     {
         type: 'event',

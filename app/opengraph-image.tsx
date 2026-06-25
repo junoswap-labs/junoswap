@@ -107,7 +107,6 @@ export default async function Image() {
                 }}
             />
 
-            {/* Top hairline accent */}
             <div
                 style={{
                     position: 'absolute',
@@ -119,7 +118,6 @@ export default async function Image() {
                 }}
             />
 
-            {/* Centered brandmark column */}
             <div
                 style={{
                     position: 'relative',
@@ -164,7 +162,6 @@ export default async function Image() {
                 </div>
             </div>
 
-            {/* Domain */}
             <div
                 style={{
                     position: 'absolute',

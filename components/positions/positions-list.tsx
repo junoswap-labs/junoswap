@@ -75,7 +75,6 @@ function PositionCard({
     return (
         <Card>
             <CardContent className="p-5">
-                {/* Header: Pair identity + status */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <TokenIconPair
@@ -128,7 +127,6 @@ function PositionCard({
 
                 <Separator className="my-4" />
 
-                {/* Data section */}
                 <div
                     className={`grid grid-cols-1 gap-4 ${
                         isStaked ? 'sm:grid-cols-4' : 'sm:grid-cols-3'
@@ -249,7 +247,6 @@ function PositionCard({
                     </div>
                 </div>
 
-                {/* Action buttons */}
                 <Separator className="my-4" />
                 <div className="flex gap-2">
                     {stakedPosition ? (
@@ -322,7 +319,6 @@ function LoadingState() {
                 <Card key={i}>
                     <CardContent className="p-5">
                         <div className="animate-pulse space-y-4">
-                            {/* Header skeleton */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="flex -space-x-2">
@@ -335,9 +331,7 @@ function LoadingState() {
                                 </div>
                                 <div className="h-5 w-20 bg-muted rounded-full" />
                             </div>
-                            {/* Separator */}
                             <div className="h-[1px] bg-muted" />
-                            {/* Data skeleton */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <div className="h-3 w-16 bg-muted rounded" />
@@ -350,10 +344,7 @@ function LoadingState() {
                                     <div className="h-4 w-20 bg-muted rounded" />
                                 </div>
                             </div>
-                            {/* Range bar skeleton */}
-                            {/* Separator */}
                             <div className="h-[1px] bg-muted" />
-                            {/* Buttons skeleton */}
                             <div className="flex gap-2">
                                 <div className="h-8 flex-1 bg-muted rounded" />
                                 <div className="h-8 flex-1 bg-muted rounded" />

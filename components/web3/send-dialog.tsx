@@ -91,7 +91,6 @@ export function SendDialog({ open, onOpenChange }: SendDialogProps) {
         }
     }, [isSuccess, hash, chainId, refetch, reset, onOpenChange])
 
-    // Errors during the write/send.
     useEffect(() => {
         if (isError && error) {
             toastError(error, 'Send failed')
@@ -121,7 +120,6 @@ export function SendDialog({ open, onOpenChange }: SendDialogProps) {
                 </p>
 
                 <div className="space-y-3">
-                    {/* Recipient */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Recipient</span>
@@ -145,7 +143,6 @@ export function SendDialog({ open, onOpenChange }: SendDialogProps) {
                         />
                     </div>
 
-                    {/* Amount */}
                     <div className="rounded-xl border bg-card p-4 space-y-3">
                         <div className="flex items-center justify-between">
                             <span

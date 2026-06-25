@@ -92,7 +92,6 @@ export function Hero() {
                 </div>
             </div>
 
-            {/* Subtle scroll cue */}
             <div
                 className="pointer-events-none absolute inset-x-0 bottom-8 z-10 flex justify-center motion-safe:animate-reveal-up"
                 style={{ animationDelay: '1.6s', animationDuration: '1.1s' }}

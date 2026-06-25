@@ -43,7 +43,6 @@ export function useAddLiquidity(params: AddLiquidityParams | null, skipSimulatio
     const { callData, value } = useMemo(() => {
         if (!params) return { callData: null, value: 0n }
 
-        // Pool creation path: bundle createAndInitializePoolIfNecessary + mint
         if (params.createPool && params.initialSqrtPriceX96) {
             const { data, value } = buildPoolCreationMulticall(
                 params,
@@ -59,7 +58,6 @@ export function useAddLiquidity(params: AddLiquidityParams | null, skipSimulatio
             }
         }
 
-        // Existing path: pool already exists
         const { data, value } = buildMintWithNativeMulticall(params, chainId)
         if (data.length === 1) {
             const mintParams = buildMintParams(params)

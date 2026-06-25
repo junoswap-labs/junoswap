@@ -205,10 +205,8 @@ function ActivityRow({
                 {isTransfer ? (isSent ? 'Send' : 'Receive') : 'Swap'}
             </TypeChip>
 
-            {/* Protocol the swap executed on — trades only */}
             {!isTransfer && event.protocol && <ProtocolBadge protocol={event.protocol} />}
 
-            {/* Token icon(s) sit directly in front of each amount */}
             <div
                 className={cn(
                     'flex min-w-0 flex-1 gap-x-3 gap-y-1',
@@ -254,7 +252,6 @@ function ActivityRow({
                 )}
             </div>
 
-            {/* Right: USD value (trades only) + time + explorer link */}
             <div className="shrink-0 text-right">
                 {!isTransfer && usdText && (
                     <div className="font-mono text-xs tracking-tight text-muted-foreground sm:text-sm">
@@ -343,7 +340,6 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
                     <div className="space-y-1">
                         {dateGroups.map((group) => (
                             <div key={group.label}>
-                                {/* Date header */}
                                 <div className="flex items-center gap-3 px-3 py-2 sm:px-4">
                                     <span className="shrink-0 text-xs font-medium text-muted-foreground">
                                         {group.label}
@@ -351,7 +347,6 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
                                     <Separator className="flex-1 bg-border/40" />
                                 </div>
 
-                                {/* Activity rows */}
                                 {group.events.map((event) => (
                                     <ActivityRow
                                         key={event.id}
@@ -366,7 +361,6 @@ export function ActivityTab({ address, chainId }: ActivityTabProps) {
                         ))}
                     </div>
 
-                    {/* Pagination */}
                     {totalPages > 1 && (
                         <div className="mt-2 flex items-center justify-center border-t border-border/40 px-3 py-3">
                             <PaginationControls

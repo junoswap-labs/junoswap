@@ -163,17 +163,3 @@ export function useIncentives(incentiveKeys: IncentiveKey[]): {
         refetch: refetchIncentives,
     }
 }
-
-export function useIncentive(incentiveKey: IncentiveKey | null): {
-    incentive: Incentive | null
-    isLoading: boolean
-    refetch: () => void
-} {
-    const keys = useMemo(() => (incentiveKey ? [incentiveKey] : []), [incentiveKey])
-    const { incentives, isLoading, refetch } = useIncentives(keys)
-    return {
-        incentive: incentives[0] ?? null,
-        isLoading,
-        refetch,
-    }
-}

@@ -198,7 +198,6 @@ function InteractiveRangeBar({
 
     return (
         <div className="space-y-2">
-            {/* Current Price Header */}
             <div className="flex justify-between items-baseline">
                 <span className="text-xs text-muted-foreground">Current Price</span>
                 <span className="text-sm font-semibold font-mono tracking-tight">
@@ -209,7 +208,6 @@ function InteractiveRangeBar({
                 </span>
             </div>
 
-            {/* Interactive Range Slider */}
             <div className="relative h-10 bg-muted/30 rounded-xl border border-border/30 px-3 flex items-center">
                 <div className="relative w-full">
                     <Slider
@@ -220,7 +218,6 @@ function InteractiveRangeBar({
                         max={SLIDER_RESOLUTION}
                         step={1}
                     />
-                    {/* Current Price Marker */}
                     <div
                         className="absolute w-3 h-3 bg-primary rounded-full -top-[3px] shadow-sm ring-2 ring-primary/20 pointer-events-none z-10"
                         style={{
@@ -231,7 +228,6 @@ function InteractiveRangeBar({
                 </div>
             </div>
 
-            {/* Editable Price Boundaries */}
             <div className="flex justify-between">
                 <EditablePrice
                     label="Min"
@@ -299,7 +295,6 @@ export function RangeSelector({
 
     return (
         <div className="space-y-4">
-            {/* Strategy Presets */}
             <div>
                 <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-2">
                     Price Range
@@ -334,7 +329,6 @@ export function RangeSelector({
                 </div>
             </div>
 
-            {/* Range Visualization */}
             {config.tickLower < config.tickUpper && (
                 <InteractiveRangeBar
                     currentTick={currentTick}

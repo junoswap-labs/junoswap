@@ -113,7 +113,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
 
     const totalCost = useMemo(() => createCost + upfrontBuyNative, [createCost, upfrontBuyNative])
 
-    // Transaction 1: Create Token
     const {
         data: createHash,
         writeContract: writeCreate,
@@ -138,7 +137,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     const isCreateConfirming = !!createHash && !createReceipt
     const isCreateSuccess = !!createReceipt && createReceipt.status === 'success'
 
-    // Transaction 2: Buy
     const {
         data: buyHash,
         writeContract: writeBuy,
@@ -174,7 +172,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }
 
-    // Effect: When create succeeds, trigger buy or mark success
     const didTriggerBuy = useRef(false)
 
     useEffect(() => {
@@ -236,7 +233,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                 })
             })
         } else {
-            // No upfront buy — extract address and mark success
             parseTokenAddress(createHash).then((tokenAddr) => {
                 setCreatedTokenAddress(tokenAddr)
             })
@@ -244,14 +240,12 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }, [isCreateSuccess, createHash, upfrontBuyNative, minTokenOut, writeBuy])
 
-    // Effect: When buy succeeds
     useEffect(() => {
         if (isBuySuccess) {
             setPhase('success')
         }
     }, [isBuySuccess])
 
-    // Effect: Handle errors
     useEffect(() => {
         if (
             phase === 'creating' &&
@@ -273,7 +267,6 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         }
     }, [phase, isBuyWriteError, buyWriteError, buyReceipt])
 
-    // Reset on new create call
     const create = (logoOverride?: string) => {
         if (!form || createCost === 0n) return
         setPhase('creating')

@@ -475,9 +475,7 @@ export function TokenChart({
 
     return (
         <div className={cn('relative rounded-lg border border-border/60 bg-card', className)}>
-            {/* Enhanced toolbar */}
             <div className="flex min-h-11 flex-wrap items-center gap-1.5 border-b border-border/50 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-0">
-                {/* Mcap / Price toggle */}
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => setChartMode('mcap')}
@@ -505,7 +503,6 @@ export function TokenChart({
 
                 <div className="mx-0.5 h-5 w-px bg-border/50" />
 
-                {/* Timeframe buttons */}
                 <div className="flex items-center gap-0.5">
                     {TIMEFRAMES.map((tf) => (
                         <button
@@ -523,7 +520,6 @@ export function TokenChart({
                     ))}
                 </div>
 
-                {/* Right side */}
                 <div className="ml-auto flex items-center gap-2">
                     {vol1d !== null && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -542,7 +538,6 @@ export function TokenChart({
                 </div>
             </div>
 
-            {/* Chart area with OHLCV overlay */}
             <div className="relative">
                 {/* OHLCV overlay - updated via DOM to avoid re-render loops */}
                 <div
@@ -557,7 +552,6 @@ export function TokenChart({
                 />
             </div>
 
-            {/* Empty state overlay */}
             {!isLoading && displayData.length === 0 && (
                 <EmptyState
                     title="No trading data yet"

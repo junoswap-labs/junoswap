@@ -156,12 +156,10 @@ export function ShareTokenDialog({
                             backgroundSize: '24px 24px',
                         }}
                     >
-                        {/* Brand glows */}
                         <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
                         <div className="pointer-events-none absolute -bottom-20 -right-12 h-48 w-48 rounded-full bg-[#FF914D]/15 blur-3xl" />
 
                         <div className="relative flex flex-row items-start justify-between gap-4 p-5">
-                            {/* Left — platform + token identity */}
                             <div className="min-w-0 flex-1 text-left">
                                 <div className="flex items-center justify-start gap-1.5">
                                     <LogoMark size={16} />
@@ -233,7 +231,6 @@ export function ShareTokenDialog({
                     </div>
                 </div>
 
-                {/* Actions */}
                 <div className="space-y-2">
                     <Button onClick={copyLink} className="h-11 w-full rounded-xl sm:h-12" size="lg">
                         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

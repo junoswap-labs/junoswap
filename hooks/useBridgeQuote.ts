@@ -136,7 +136,6 @@ export function useBridgeQuote(): UseBridgeQuoteResult {
 
     const bestRoute = routes[0] ?? null
 
-    // Extract estimated output
     const estimatedOutput =
         bestRoute && toToken
             ? (() => {
@@ -148,10 +147,8 @@ export function useBridgeQuote(): UseBridgeQuoteResult {
               })()
             : '0'
 
-    // Extract gas cost
     const gasCostUSD = bestRoute?.gasCostUSD ?? null
 
-    // Extract fee costs from the first step
     const feeCosts: UseBridgeQuoteResult['feeCosts'] = []
     if (bestRoute?.steps[0]?.estimate?.feeCosts) {
         for (const fee of bestRoute.steps[0].estimate.feeCosts) {
@@ -163,7 +160,6 @@ export function useBridgeQuote(): UseBridgeQuoteResult {
         }
     }
 
-    // Extract estimated duration (sum of all steps)
     const estimatedDuration =
         bestRoute?.steps.reduce((sum, step) => sum + (step.estimate?.executionDuration ?? 0), 0) ??
         null

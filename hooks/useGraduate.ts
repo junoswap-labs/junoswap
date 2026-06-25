@@ -21,7 +21,7 @@ import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 
 type PoolStatus = 'no_pool' | 'not_initialized' | 'correct' | 'wrong'
 
-export type GraduationStep =
+type GraduationStep =
     | 'idle'
     | 'checking-pool'
     | 'initializing-pool'
@@ -97,7 +97,6 @@ export function useGraduate({
     const [isSuccess, setIsSuccess] = useState(false)
     const isRunning = useRef(false)
 
-    // Helper: send a tx, wait for receipt, return hash
     const sendTx = useCallback(
         async (params: {
             address: Address
@@ -127,7 +126,6 @@ export function useGraduate({
         [publicClient, address, writeContractAsync]
     )
 
-    // Main graduation flow
     const graduate = useCallback(async () => {
         if (
             !tokenAddr ||
@@ -148,7 +146,6 @@ export function useGraduate({
             const positionManager = v3Config.positionManager!
             const swapRouter = v3Config.swapRouter!
 
-            // 1. Read fresh reserves + cap from contract
             const [freshReserves, onChainCap] = await Promise.all([
                 publicClient.readContract({
                     address: BONDING_CURVE_JUNOSWAP_ADDRESS,
@@ -171,7 +168,6 @@ export function useGraduate({
                 throw new Error('Not ready to graduate — bonding curve has not reached the cap')
             }
 
-            // 2. Compute correct sqrtPriceX96 from fresh reserves
             const correctSqrtPrice = calculateGraduationSqrtPriceX96(
                 tokenAddr,
                 wrappedNative,
@@ -184,7 +180,6 @@ export function useGraduate({
             const token0: Address = tokenIsToken0 ? tokenAddr : wrappedNative
             const token1: Address = tokenIsToken0 ? wrappedNative : tokenAddr
 
-            // 2. Check pool state
             const poolAddress = (await publicClient.readContract({
                 address: factory,
                 abi: UNISWAP_V3_FACTORY_ABI,
@@ -575,7 +570,6 @@ export function useGraduate({
                 })
             }
 
-            // 4. Graduate
             setStep('graduating')
             await sendTx({
                 address: BONDING_CURVE_JUNOSWAP_ADDRESS,
@@ -584,7 +578,6 @@ export function useGraduate({
                 args: [tokenAddr],
             })
 
-            // 5. Unwrap remaining tKKUB
             if (rescue) {
                 setStep('unwrapping')
                 const remainingWkub = (await publicClient.readContract({

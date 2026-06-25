@@ -4,13 +4,12 @@ import { useEffect, useRef, useCallback } from 'react'
 import warpVert from '@/shaders/warp.vert'
 import warpFrag from '@/shaders/warp.frag'
 
-// Cool void canvas + single warm focal accent (orange → gold)
 const BG_COLOR = { r: 0.016, g: 0.02, b: 0.043 } // near-black void #04050B
 const ACCENT1 = { r: 1.0, g: 0.302, b: 0.0 } // #FF4D00 — unused, kept for uniform plumbing
 const ACCENT2 = { r: 1.0, g: 0.569, b: 0.302 } // #FF914D — orange (glow halo)
 const ACCENT3 = { r: 1.0, g: 0.843, b: 0.0 } // #FFD700 — gold (glow core)
 
-const ENTRANCE_DURATION = 3.0 // seconds
+const ENTRANCE_DURATION = 3.0
 const MOUSE_LERP = 0.05
 
 interface Vec2 {
@@ -105,7 +104,6 @@ export function HeroBackground() {
         }
         programRef.current = program
 
-        // Fullscreen quad (two triangles)
         const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1])
         const buffer = gl.createBuffer()!
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
@@ -114,12 +112,10 @@ export function HeroBackground() {
 
         gl.useProgram(program)
 
-        // Attribute
         const aPosition = gl.getAttribLocation(program, 'aPosition')
         gl.enableVertexAttribArray(aPosition)
         gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0)
 
-        // Cache uniform locations
         const u = uniformsRef.current
         u.uTime = gl.getUniformLocation(program, 'uTime')
         u.uResolution = gl.getUniformLocation(program, 'uResolution')
@@ -130,7 +126,6 @@ export function HeroBackground() {
         u.uAccentColor3 = gl.getUniformLocation(program, 'uAccentColor3')
         u.uBgColor = gl.getUniformLocation(program, 'uBgColor')
 
-        // Set static color uniforms
         gl.uniform3f(u.uBgColor, BG_COLOR.r, BG_COLOR.g, BG_COLOR.b)
         gl.uniform3f(u.uAccentColor1, ACCENT1.r, ACCENT1.g, ACCENT1.b)
         gl.uniform3f(u.uAccentColor2, ACCENT2.r, ACCENT2.g, ACCENT2.b)
@@ -225,28 +220,23 @@ export function HeroBackground() {
             const now = performance.now() / 1000
             const elapsed = now - startTimeRef.current
 
-            // Smooth mouse with lerp
             const sm = smoothMouseRef.current
             const rm = mouseRef.current
             sm.x += (rm.x - sm.x) * MOUSE_LERP
             sm.y += (rm.y - sm.y) * MOUSE_LERP
 
-            // Auto-oscillate on mobile when idle
             if (mobile) {
                 sm.x += Math.sin(elapsed * 0.3) * 0.002
                 sm.y += Math.cos(elapsed * 0.25) * 0.002
             }
 
-            // Entrance animation: ease-out cubic
             const progress = Math.min(elapsed / ENTRANCE_DURATION, 1.0)
             const intensity = 1.0 - Math.pow(1.0 - progress, 3)
 
-            // Update uniforms
             gl.uniform1f(u.uTime, elapsed)
             gl.uniform2f(u.uMouse, sm.x, sm.y)
             gl.uniform1f(u.uIntensity, intensity)
 
-            // Draw fullscreen quad
             gl.drawArrays(gl.TRIANGLES, 0, 6)
         }
 

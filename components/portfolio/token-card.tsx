@@ -49,7 +49,6 @@ export function TokenCard({ portfolioToken }: TokenCardProps) {
         <Card className="group">
             <CardContent className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                    {/* Token identity + hover action button */}
                     <div className="flex items-center gap-3 min-w-0">
                         <TokenIcon src={token.logo} symbol={token.symbol} size="md" />
                         <div className="relative min-w-0">
@@ -87,7 +86,6 @@ export function TokenCard({ portfolioToken }: TokenCardProps) {
                         </div>
                     </div>
 
-                    {/* Value & PNL */}
                     <div className="text-right shrink-0">
                         <div className="font-mono text-sm font-medium">
                             {formatUsdShort(valueUsd)}

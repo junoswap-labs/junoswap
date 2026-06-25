@@ -501,7 +501,6 @@ export function TokenTradeCard({
                             </TabsTrigger>
                         </TabsList>
 
-                        {/* Slippage settings */}
                         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                             <span>Slippage: {settings.slippage.toFixed(1)}%</span>
                             <SettingsDialog
@@ -511,7 +510,6 @@ export function TokenTradeCard({
                             />
                         </div>
 
-                        {/* Buy Tab */}
                         <TabsContent value="buy" className="mt-4 space-y-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm min-w-0">
@@ -591,7 +589,6 @@ export function TokenTradeCard({
                             </Button>
                         </TabsContent>
 
-                        {/* Sell Tab */}
                         <TabsContent value="sell" className="mt-4 space-y-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm min-w-0">

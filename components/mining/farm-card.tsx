@@ -77,7 +77,6 @@ export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
     return (
         <Card className="position-card-hover flex flex-col">
             <CardContent className="p-5 flex flex-col flex-1">
-                {/* Header: pair identity + status */}
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                         <TokenIconPair
@@ -111,7 +110,6 @@ export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
 
                 <Separator className="my-4" />
 
-                {/* Reward + unified time/progress bar */}
                 <div className="flex flex-col flex-1 gap-4">
                     <div>
                         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -146,7 +144,6 @@ export function MiningFarmCard({ incentive, onStake }: MiningFarmCardProps) {
                     </div>
                 </div>
 
-                {/* CTA */}
                 <Button
                     className="w-full mt-4"
                     variant={isDisabled ? 'outline' : 'default'}

@@ -63,7 +63,6 @@ function LaunchpadContent() {
 
     return (
         <div className="mx-auto px-4 max-w-[1700px] py-6 sm:px-6 lg:px-8">
-            {/* Live trade ticker */}
             <ActivityTicker />
 
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -87,10 +86,8 @@ function LaunchpadContent() {
                 </Button>
             </div>
 
-            {/* Token list */}
             <TokenList searchQuery={searchQuery} />
 
-            {/* Create token dialog */}
             <CreateTokenDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
         </div>
     )

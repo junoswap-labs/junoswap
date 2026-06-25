@@ -97,7 +97,6 @@ function TradeRow({
                 )
             }
         >
-            {/* Type */}
             <TableCell className="py-2.5">
                 <span
                     className={cn(
@@ -111,12 +110,10 @@ function TradeRow({
                 </span>
             </TableCell>
 
-            {/* Amount (KUB) */}
             <TableCell className="py-2.5 font-mono tracking-tight">
                 {formatKub(nativeAmount)}
             </TableCell>
 
-            {/* Token Amount */}
             <TableCell
                 className={cn(
                     'py-2.5 font-mono tracking-tight',
@@ -126,19 +123,16 @@ function TradeRow({
                 {formatTokenAmount(tokenAmount)}
             </TableCell>
 
-            {/* Value */}
             <TableCell className="py-2.5 text-right font-mono tracking-tight text-muted-foreground">
                 {nativeUsdPrice !== null
                     ? `$${formatCompact(displayValue)}`
                     : `${formatCompact(displayValue)} KUB`}
             </TableCell>
 
-            {/* Time */}
             <TableCell className="py-2.5 text-right text-xs text-muted-foreground">
                 {formatTimeAgo(trade.timestamp)}
             </TableCell>
 
-            {/* Wallet */}
             <TableCell
                 className="py-2.5 text-right font-mono text-xs text-muted-foreground"
                 onClick={(e) => e.stopPropagation()}
@@ -286,9 +280,7 @@ export function RecentTrades({
                 <CardTitle className="text-sm font-semibold">Recent Trades</CardTitle>
             </CardHeader>
 
-            {/* Filter Bar */}
             <div className="flex flex-wrap items-center gap-2 border-b border-border/40 px-4 pb-3">
-                {/* Type Filter Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -321,7 +313,6 @@ export function RecentTrades({
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Account Filter Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -360,7 +351,6 @@ export function RecentTrades({
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Size Filter Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -393,7 +383,6 @@ export function RecentTrades({
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Address search input */}
                 <div className="relative min-w-0 basis-full sm:basis-auto sm:flex-1">
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input

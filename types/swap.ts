@@ -41,7 +41,7 @@ export interface SwapResult {
     error?: string
 }
 
-export type SlippagePreset = '0.1' | '0.5' | '1' | 'custom'
+type SlippagePreset = '0.1' | '0.5' | '1' | 'custom'
 
 export interface SwapSettings {
     slippage: number // in percentage (0.1, 0.5, 1, etc.)

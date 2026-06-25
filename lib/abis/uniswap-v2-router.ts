@@ -3,7 +3,6 @@
  * Used for swaps and quote calculations
  */
 export const UNISWAP_V2_ROUTER_ABI = [
-    // Quote functions
     {
         type: 'function',
         name: 'getAmountsOut',
@@ -65,7 +64,6 @@ export const UNISWAP_V2_ROUTER_ABI = [
         ],
         outputs: [{ name: 'amounts', type: 'uint256[]' }],
     },
-    // Getter functions
     {
         type: 'function',
         name: 'factory',

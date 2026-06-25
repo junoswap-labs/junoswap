@@ -213,7 +213,6 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
                 </DialogHeader>
 
                 <div className="space-y-3.5 overflow-y-auto max-h-[calc(90vh-6rem)] pr-1 sm:max-h-none sm:pr-0">
-                    {/* Logo + Name/Symbol row */}
                     <div className="flex gap-3">
                         <LogoUpload onFileSelect={setPendingLogoFile} compact />
                         <div className="flex-1 space-y-2">
@@ -234,14 +233,12 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
                         </div>
                     </div>
 
-                    {/* Description */}
                     <Textarea
                         placeholder="Description (optional)"
                         value={form.description}
                         onChange={(e) => updateField('description', e.target.value)}
                     />
 
-                    {/* Social links */}
                     <div className="space-y-1.5">
                         <div className="relative">
                             <Globe className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -272,7 +269,6 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
                         </div>
                     </div>
 
-                    {/* Upfront buy */}
                     <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                         <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                             <Coins className="h-3.5 w-3.5" />
@@ -299,7 +295,6 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
                         )}
                     </div>
 
-                    {/* Summary */}
                     <div className="flex items-center justify-between text-sm px-1">
                         <span className="text-muted-foreground">
                             Total{hasUpfrontBuy ? ' (fee + buy)' : ''}

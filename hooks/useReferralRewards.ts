@@ -11,7 +11,7 @@ import {
 } from '@/lib/leaderboard-utils'
 import { fetchReferralBindings } from '@/lib/swap-events'
 
-export interface ReferredTrader {
+interface ReferredTrader {
     address: string
     points: number
     volumeUsd: number

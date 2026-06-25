@@ -165,7 +165,6 @@ export function usePoolTvl(
                     }
                 }
             } else {
-                // Non-native pools: use price-map from Ponder token snapshots
                 const price0 = priceMap.get(pool.token0.address.toLowerCase())
                 const price1 = priceMap.get(pool.token1.address.toLowerCase())
 

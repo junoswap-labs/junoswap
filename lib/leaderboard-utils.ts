@@ -168,7 +168,7 @@ export async function fetchSwapEventsForSenders(
     return [...bondingCurve, ...v3, ...v2].map(toRow)
 }
 
-export function safeFormatEther(value: string): number {
+function safeFormatEther(value: string): number {
     try {
         return parseFloat(formatEther(BigInt(value)))
     } catch {
