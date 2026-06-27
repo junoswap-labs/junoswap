@@ -16,9 +16,15 @@ import type { Timeframe, ChartMode } from '@/types/chart'
 
 const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
 
+// Page through the full event history: Ponder caps a list response at 50 items
+// without an explicit limit, which would truncate the chart to a token's first
+// 50 swaps and forward-fill a flat line for the rest of its life.
+const PAGE_SIZE = 1000
+
 const TOKEN_PRICE_HISTORY_QUERY = `
-  query TokenPriceHistory($tokenAddr: String!) {
-    swapEvents(where: { tokenAddr: $tokenAddr }, orderBy: "timestamp", orderDirection: "asc") {
+  query TokenPriceHistory($tokenAddr: String!, $after: String) {
+    swapEvents(where: { tokenAddr: $tokenAddr }, orderBy: "timestamp", orderDirection: "asc", limit: ${PAGE_SIZE}, after: $after) {
+      pageInfo { hasNextPage endCursor }
       items {
         timestamp
         isBuy
@@ -32,8 +38,9 @@ const TOKEN_PRICE_HISTORY_QUERY = `
 `
 
 const V3_SWAP_EVENTS_QUERY = `
-  query V3SwapEvents($tokenAddr: String!, $chainId: Int!) {
-    v3SwapEvents(where: { tokenAddr: $tokenAddr, chainId: $chainId }, orderBy: "timestamp", orderDirection: "asc") {
+  query V3SwapEvents($tokenAddr: String!, $chainId: Int!, $after: String) {
+    v3SwapEvents(where: { tokenAddr: $tokenAddr, chainId: $chainId }, orderBy: "timestamp", orderDirection: "asc", limit: ${PAGE_SIZE}, after: $after) {
+      pageInfo { hasNextPage endCursor }
       items {
         timestamp
         amount0
@@ -45,8 +52,14 @@ const V3_SWAP_EVENTS_QUERY = `
   }
 `
 
+interface PageInfo {
+    hasNextPage: boolean
+    endCursor: string | null
+}
+
 interface PriceHistoryResponse {
     swapEvents: {
+        pageInfo: PageInfo
         items: Array<{
             timestamp: number
             isBuy: number
@@ -60,6 +73,7 @@ interface PriceHistoryResponse {
 
 interface V3PriceHistoryResponse {
     v3SwapEvents: {
+        pageInfo: PageInfo
         items: Array<{
             timestamp: number
             amount0: string
@@ -68,6 +82,25 @@ interface V3PriceHistoryResponse {
             tick: number
         }>
     }
+}
+
+// Walk every page via opaque cursor; the cursor must be pageInfo.endCursor (a raw
+// row id is rejected server-side).
+async function fetchAllPages<TResponse, TItem>(
+    query: string,
+    variables: Record<string, unknown>,
+    select: (r: TResponse) => { pageInfo: PageInfo; items: TItem[] }
+): Promise<TItem[]> {
+    const items: TItem[] = []
+    let after: string | null = null
+    for (;;) {
+        const result = await ponderRequest<TResponse>(query, { ...variables, after })
+        const conn = select(result)
+        items.push(...conn.items)
+        if (!conn.pageInfo.hasNextPage || !conn.pageInfo.endCursor) break
+        after = conn.pageInfo.endCursor
+    }
+    return items
 }
 
 export const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1d']
@@ -94,11 +127,16 @@ export function useTokenPriceHistory(
         queryFn: async () => {
             if (!tokenAddr) return []
 
-            const result = await ponderRequest<PriceHistoryResponse>(TOKEN_PRICE_HISTORY_QUERY, {
-                tokenAddr: tokenAddr.toLowerCase(),
-            })
+            const items = await fetchAllPages<
+                PriceHistoryResponse,
+                PriceHistoryResponse['swapEvents']['items'][number]
+            >(
+                TOKEN_PRICE_HISTORY_QUERY,
+                { tokenAddr: tokenAddr.toLowerCase() },
+                (r) => r.swapEvents
+            )
 
-            return result.swapEvents.items.map((e) => ({
+            return items.map((e) => ({
                 timestamp: e.timestamp,
                 isBuy: e.isBuy === 1,
                 amountIn: BigInt(e.amountIn),
@@ -119,12 +157,19 @@ export function useTokenPriceHistory(
             if (!tokenAddr) return []
 
             try {
-                const result = await ponderRequest<V3PriceHistoryResponse>(V3_SWAP_EVENTS_QUERY, {
-                    tokenAddr: tokenAddr.toLowerCase(),
-                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
-                })
+                const items = await fetchAllPages<
+                    V3PriceHistoryResponse,
+                    V3PriceHistoryResponse['v3SwapEvents']['items'][number]
+                >(
+                    V3_SWAP_EVENTS_QUERY,
+                    {
+                        tokenAddr: tokenAddr.toLowerCase(),
+                        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+                    },
+                    (r) => r.v3SwapEvents
+                )
 
-                return result.v3SwapEvents.items.map((e) => ({
+                return items.map((e) => ({
                     timestamp: e.timestamp,
                     amount0: e.amount0,
                     amount1: e.amount1,

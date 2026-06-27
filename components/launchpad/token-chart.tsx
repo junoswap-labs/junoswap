@@ -47,6 +47,22 @@ interface TokenChartProps {
     className?: string
 }
 
+// Re-encode a UTC unix time so lightweight-charts (which always formats as UTC)
+// renders the user's local wall-clock time on the axis and crosshair.
+function toLocalChartTime(time: number): number {
+    const d = new Date(time * 1000)
+    return (
+        Date.UTC(
+            d.getFullYear(),
+            d.getMonth(),
+            d.getDate(),
+            d.getHours(),
+            d.getMinutes(),
+            d.getSeconds()
+        ) / 1000
+    )
+}
+
 function formatPrice(value: number): string {
     if (value < 0.0001) return '<0.0001'
     if (value < 1) return value.toFixed(6)
@@ -414,9 +430,19 @@ export function TokenChart({
             },
         })
 
+        // Shift to local wall-clock time, kept strictly ascending so the DST
+        // "fall back" hour can't produce duplicate times and trip lightweight-charts.
+        let lastT = -Infinity
+        const localTimes = displayData.map((d) => {
+            let t = toLocalChartTime(d.time)
+            if (t <= lastT) t = lastT + 1
+            lastT = t
+            return t
+        })
+
         candleSeriesRef.current.setData(
-            displayData.map((d) => ({
-                time: d.time as LWTime,
+            displayData.map((d, i) => ({
+                time: localTimes[i] as LWTime,
                 open: d.open,
                 high: d.high,
                 low: d.low,
@@ -425,8 +451,8 @@ export function TokenChart({
         )
 
         volumeSeriesRef.current.setData(
-            displayData.map((d) => ({
-                time: d.time as LWTime,
+            displayData.map((d, i) => ({
+                time: localTimes[i] as LWTime,
                 value: d.volume,
                 color: d.close >= d.open ? chartColors.volumeUp : chartColors.volumeDown,
             })) as LWHistogramData<LWTime>[]
