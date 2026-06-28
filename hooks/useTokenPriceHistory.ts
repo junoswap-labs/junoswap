@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderRequest } from '@/lib/ponder-client'
 import {
@@ -13,8 +13,6 @@ import {
 } from '@/services/chart'
 import type { V3SwapEvent } from '@/services/chart'
 import type { Timeframe, ChartMode } from '@/types/chart'
-
-const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
 
 // Page through the full event history: Ponder caps a list response at 50 items
 // without an explicit limit, which would truncate the chart to a token's first
@@ -112,9 +110,11 @@ export function useTokenPriceHistory(
 ) {
     const [timeframe, setTimeframe] = useState<Timeframe>('15m')
     const [chartMode, setChartMode] = useState<ChartMode>('mcap')
+    const chainId = useLaunchpadChainId()
+    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
 
     const tokenIsToken0 = tokenAddr
-        ? tokenAddr.toLowerCase() < (WRAPPED_NATIVE?.toLowerCase() ?? '')
+        ? tokenAddr.toLowerCase() < (wrappedNative?.toLowerCase() ?? '')
         : false
 
     // Bonding curve events (always fetched)
@@ -152,7 +152,7 @@ export function useTokenPriceHistory(
 
     // V3 events (only fetched when graduated)
     const { data: rawV3Events, isLoading: isLoadingV3 } = useQuery({
-        queryKey: ['token-v3-price-history', tokenAddr?.toLowerCase()],
+        queryKey: ['token-v3-price-history', tokenAddr?.toLowerCase(), chainId],
         queryFn: async () => {
             if (!tokenAddr) return []
 
@@ -164,7 +164,7 @@ export function useTokenPriceHistory(
                     V3_SWAP_EVENTS_QUERY,
                     {
                         tokenAddr: tokenAddr.toLowerCase(),
-                        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+                        chainId,
                     },
                     (r) => r.v3SwapEvents
                 )

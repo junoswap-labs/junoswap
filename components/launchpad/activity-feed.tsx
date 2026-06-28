@@ -7,11 +7,11 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { useAllSwapEvents } from '@/hooks/useAllSwapEvents'
 import { formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { formatAddress, cn, formatTimeAgo } from '@/lib/utils'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { getExplorerAddressUrl } from '@/lib/explorer'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
-function TradeChip({ event }: { event: EnrichedSwapEvent }) {
+function TradeChip({ event, chainId }: { event: EnrichedSwapEvent; chainId: number }) {
     const valueKub = event.isBuy
         ? parseFloat(formatEther(event.amountIn))
         : parseFloat(formatEther(event.amountOut))
@@ -46,10 +46,7 @@ function TradeChip({ event }: { event: EnrichedSwapEvent }) {
                 onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    window.open(
-                        getExplorerAddressUrl(BONDING_CURVE_JUNOSWAP_CHAIN_ID, event.sender),
-                        '_blank'
-                    )
+                    window.open(getExplorerAddressUrl(chainId, event.sender), '_blank')
                 }}
             >
                 {formatAddress(event.sender)}
@@ -80,6 +77,7 @@ function SkeletonTicker() {
 
 export function ActivityTicker() {
     const { data: events, isLoading } = useAllSwapEvents()
+    const chainId = useLaunchpadChainId()
 
     if (isLoading) {
         return (
@@ -102,7 +100,11 @@ export function ActivityTicker() {
                 <div className="min-w-0 flex-1 overflow-hidden py-2 pl-3">
                     <div className="ticker-scroll flex items-center gap-2">
                         {tickerItems.map((event, i) => (
-                            <TradeChip key={`${event.transactionHash}-${i}`} event={event} />
+                            <TradeChip
+                                key={`${event.transactionHash}-${i}`}
+                                event={event}
+                                chainId={chainId}
+                            />
                         ))}
                     </div>
                 </div>

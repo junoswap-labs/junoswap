@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { isLaunchpadChain as isLaunchpadChainFn } from '@/lib/abis/bonding-curve-junoswap'
 import type { Token } from '@/types/tokens'
 import type { TokenType } from '@/types/portfolio'
 
@@ -45,7 +45,7 @@ export function useTokenPrices(
     nativeUsdPrice: number | null,
     getTokenType: (token: Token) => TokenType
 ) {
-    const isLaunchpadChain = chainId === BONDING_CURVE_JUNOSWAP_CHAIN_ID
+    const isLaunchpadChain = isLaunchpadChainFn(chainId)
 
     const bondingCurveAddresses = useMemo(
         () =>

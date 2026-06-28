@@ -2,7 +2,20 @@ import { ponder } from 'ponder:registry'
 import schema from 'ponder:schema'
 import { formatEther, zeroAddress } from 'viem'
 import { readERC20Metadata } from './erc20-read.js'
-import { BONDING_CURVE_JUNOSWAP_ADDRESS } from '../abis/bonding-curve-junoswap'
+import {
+    BONDING_CURVE_ADDRESS_BY_CHAIN,
+    BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS,
+} from '../abis/bonding-curve-junoswap'
+
+// Mainnet (chain 96) handlers are only wired up once the contract is deployed and
+// its address filled in; until then ponder.config omits the Bitkub contracts, so
+// registering their handlers would error. Keep this flag in sync with that config.
+const MAINNET_ENABLED = BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS.toLowerCase() !== zeroAddress
+
+// Ponder's event/context types are deep generics; the other indexer handlers
+// (v2-pools/v3-pools) use the same loose typing for shared helper functions.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type HandlerArgs = { event: any; context: any }
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10n ** 18n
 const _VIRTUAL_AMOUNT = 3400n * 10n ** 18n
@@ -35,9 +48,10 @@ function calculateVolume(isBuy: boolean, amountIn: bigint, amountOut: bigint): b
 }
 
 // Default snapshot values (used when creating a new snapshot)
-function defaultSnapshot(tokenAddr: string) {
+function defaultSnapshot(tokenAddr: string, chainId: number) {
     return {
         tokenAddr,
+        chainId,
         lastPrice: '0',
         lastPriceUsd: '0',
         marketCapNative: '0',
@@ -54,17 +68,18 @@ function defaultSnapshot(tokenAddr: string) {
     }
 }
 
-ponder.on('BondingCurveJunoswap:Creation', async ({ event, context }) => {
+async function handleCreation({ event, context }: HandlerArgs, chainId: number) {
     const { creator, tokenAddr, logo, description, link1, link2, link3, createdTime } = event.args
     const tokenAddrLower = tokenAddr.toLowerCase()
 
     // Use standalone viem client — Ponder's context.client forces historical block numbers
-    const meta = await readERC20Metadata(25925, tokenAddrLower)
+    const meta = await readERC20Metadata(chainId, tokenAddrLower)
 
     await context.db
         .insert(schema.launchToken)
         .values({
             tokenAddr: tokenAddrLower,
+            chainId,
             creator: creator.toLowerCase(),
             name: meta.name,
             symbol: meta.symbol,
@@ -79,18 +94,21 @@ ponder.on('BondingCurveJunoswap:Creation', async ({ event, context }) => {
             createdAtBlock: Number(event.block.number),
         })
         .onConflictDoNothing()
-})
+}
 
-ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
+async function handleSwap({ event, context }: HandlerArgs, chainId: number) {
     const { sender, isBuy, tokenAddr, amountIn, amountOut, reserveIn, reserveOut } = event.args
     const tokenAddrLower = tokenAddr.toLowerCase()
     const senderLower = sender.toLowerCase()
-    const id = `${event.block.number}-${event.log.logIndex}`
+    // Prefix ids with chainId — block numbers/log indices are per-chain and would
+    // otherwise collide across testnet and mainnet in the shared tables.
+    const id = `${chainId}-${event.block.number}-${event.log.logIndex}`
     const timestamp = Number(event.block.timestamp)
 
     // 1. Insert swap event
     await context.db.insert(schema.swapEvent).values({
         id,
+        chainId,
         tokenAddr: tokenAddrLower,
         sender: senderLower,
         isBuy: isBuy ? 1 : 0,
@@ -108,7 +126,7 @@ ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
     const volume = calculateVolume(isBuy, amountIn, amountOut)
 
     // 2. Read native USD price for USD conversion
-    const nativePriceRecord = await context.db.find(schema.nativeUsdPrice, { chainId: 25925 })
+    const nativePriceRecord = await context.db.find(schema.nativeUsdPrice, { chainId })
     const nativeUsd = nativePriceRecord ? parseFloat(nativePriceRecord.price) : 0
     const priceUsd = nativeUsd > 0 && price > 0 ? price * nativeUsd : 0
 
@@ -116,7 +134,7 @@ ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
     const existingSnapshot = await context.db.find(schema.tokenSnapshot, {
         tokenAddr: tokenAddrLower,
     })
-    const snap = existingSnapshot ?? defaultSnapshot(tokenAddrLower)
+    const snap = existingSnapshot ?? defaultSnapshot(tokenAddrLower, chainId)
     const isNewSnapshot = !existingSnapshot
 
     const athMarketCap = Math.max(
@@ -125,7 +143,7 @@ ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
     ).toString()
 
     // 4. Read current holder state
-    const holderId = `${tokenAddrLower}-${senderLower}`
+    const holderId = `${chainId}-${tokenAddrLower}-${senderLower}`
     const existingHolder = await context.db.find(schema.tokenHolder, { id: holderId })
     const oldBalance = existingHolder ? BigInt(existingHolder.balance) : 0n
     const isNewHolder = !existingHolder
@@ -171,6 +189,7 @@ ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
             .insert(schema.tokenSnapshot)
             .values({
                 tokenAddr: tokenAddrLower,
+                chainId,
                 lastPrice: price > 0 ? price.toString() : '0',
                 lastPriceUsd: priceUsd > 0 ? priceUsd.toString() : '0',
                 marketCapNative: marketCap,
@@ -209,6 +228,7 @@ ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
             .insert(schema.tokenHolder)
             .values({
                 id: holderId,
+                chainId,
                 tokenAddr: tokenAddrLower,
                 address: senderLower,
                 balance: newBalance.toString(),
@@ -219,36 +239,38 @@ ponder.on('BondingCurveJunoswap:Swap', async ({ event, context }) => {
             balance: newBalance.toString(),
         })
     }
-})
+}
 
-ponder.on('BondingCurveJunoswap:Graduation', async ({ event, context }) => {
+async function handleGraduation({ event, context }: HandlerArgs) {
     const { tokenAddr } = event.args
 
+    // tokenAddr is the primary key (globally unique across chains), so no chainId
+    // is needed to locate the row.
     await context.db.update(schema.launchToken, { tokenAddr: tokenAddr.toLowerCase() }).set({
         isGraduated: 1,
         graduatedAt: Number(event.block.timestamp),
     })
-})
+}
 
 // Launch-token ERC20 transfers. Feeds the Portfolio activity feed's transfer
 // rows. We exclude mints/burns (the zero address) and bonding-curve swaps
 // (counterparty is BondingCurveJunoswap) — those are already captured as swapEvent,
 // so recording them here would duplicate trades as transfers. tokenHolder
 // balances are owned by the swap handlers and intentionally left untouched.
-const BONDING_CURVE_JUNOSWAP_LOWER = BONDING_CURVE_JUNOSWAP_ADDRESS.toLowerCase()
-ponder.on('LaunchToken:Transfer', async ({ event, context }) => {
+async function handleTransfer({ event, context }: HandlerArgs, chainId: number) {
     const { from, to, amount } = event.args
     const fromLower = from.toLowerCase()
     const toLower = to.toLowerCase()
+    const bondingCurveLower = BONDING_CURVE_ADDRESS_BY_CHAIN[chainId]
 
     if (fromLower === zeroAddress || toLower === zeroAddress) return
-    if (fromLower === BONDING_CURVE_JUNOSWAP_LOWER || toLower === BONDING_CURVE_JUNOSWAP_LOWER)
-        return
+    if (fromLower === bondingCurveLower || toLower === bondingCurveLower) return
 
     await context.db
         .insert(schema.transferEvent)
         .values({
-            id: `${event.block.number}-${event.log.logIndex}`,
+            id: `${chainId}-${event.block.number}-${event.log.logIndex}`,
+            chainId,
             tokenAddr: event.log.address.toLowerCase(),
             from: fromLower,
             to: toLower,
@@ -258,4 +280,33 @@ ponder.on('LaunchToken:Transfer', async ({ event, context }) => {
             transactionHash: event.transaction.hash,
         })
         .onConflictDoNothing()
-})
+}
+
+// kub testnet (chain 25925)
+ponder.on('BondingCurveJunoswap:Creation', (args) => handleCreation(args, 25925))
+ponder.on('BondingCurveJunoswap:Swap', (args) => handleSwap(args, 25925))
+ponder.on('BondingCurveJunoswap:Graduation', (args) => handleGraduation(args))
+ponder.on('LaunchToken:Transfer', (args) => handleTransfer(args, 25925))
+
+// kub mainnet (chain 96) — only registered once the contract is deployed (see
+// MAINNET_ENABLED). The Bitkub contracts must be present in ponder.config for these
+// registrations to resolve.
+if (MAINNET_ENABLED) {
+    // The Bitkub contracts are conditionally present in ponder.config (gated on the
+    // same flag), so they aren't in the static config type — cast the event names to
+    // their testnet counterparts to satisfy ponder.on's EventNames union. At runtime
+    // the real string resolves against the registered Bitkub contracts.
+    ponder.on('BondingCurveJunoswapBitkub:Creation' as 'BondingCurveJunoswap:Creation', (args) =>
+        handleCreation(args, 96)
+    )
+    ponder.on('BondingCurveJunoswapBitkub:Swap' as 'BondingCurveJunoswap:Swap', (args) =>
+        handleSwap(args, 96)
+    )
+    ponder.on(
+        'BondingCurveJunoswapBitkub:Graduation' as 'BondingCurveJunoswap:Graduation',
+        (args) => handleGraduation(args)
+    )
+    ponder.on('LaunchTokenBitkub:Transfer' as 'LaunchToken:Transfer', (args) =>
+        handleTransfer(args, 96)
+    )
+}

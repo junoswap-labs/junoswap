@@ -1,18 +1,38 @@
-import type { Address } from 'viem'
+import { zeroAddress, type Address } from 'viem'
 
+// kub testnet (chain 25925) deployment.
 export const BONDING_CURVE_JUNOSWAP_ADDRESS = '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9' as const
 
+// kub mainnet (chain 96) deployment (deployed 2026-06-28, block 32995517).
+export const BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS =
+    '0x65F6EC30A9E70822721585f6Bba15c40c2F8ab4e' as const
+
+// Default launchpad chain — used as the fallback when no wallet is connected and by
+// server paths that have no connected chain. Client code should prefer the connected
+// chainId and resolve the address via getBondingCurveAddress().
 export const BONDING_CURVE_JUNOSWAP_CHAIN_ID = 25925
 
 const LAUNCHPAD_CHAIN_CONFIG: Record<number, { address: Address }> = {
-    25925: { address: '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9' },
+    25925: { address: BONDING_CURVE_JUNOSWAP_ADDRESS },
+    96: { address: BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS },
 }
 
-const LAUNCHPAD_CHAINS = new Set(Object.keys(LAUNCHPAD_CHAIN_CONFIG).map(Number))
+// Returns the bonding-curve address for a chain, or undefined if the chain has no
+// (configured, non-zero) deployment. The zero-address guard keeps chain 96 inactive
+// until its real address is filled in above.
+export function getBondingCurveAddress(chainId: number): Address | undefined {
+    const address = LAUNCHPAD_CHAIN_CONFIG[chainId]?.address
+    return address && address !== zeroAddress ? address : undefined
+}
 
 export function isLaunchpadChain(chainId: number): boolean {
-    return LAUNCHPAD_CHAINS.has(chainId)
+    return getBondingCurveAddress(chainId) !== undefined
 }
+
+// Chains with an active (deployed) launchpad, for callers that need to enumerate them.
+export const LAUNCHPAD_CHAIN_IDS: number[] = Object.keys(LAUNCHPAD_CHAIN_CONFIG)
+    .map(Number)
+    .filter(isLaunchpadChain)
 
 export const BONDING_CURVE_JUNOSWAP_ABI = [
     {

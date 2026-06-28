@@ -8,8 +8,8 @@ import { ponderRequest } from '@/lib/ponder-client'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
 const ALL_SWAP_EVENTS_QUERY = `
-  query AllSwapEvents {
-    swapEvents(orderBy: "timestamp", orderDirection: "desc", limit: 50) {
+  query AllSwapEvents($chainId: Int!) {
+    swapEvents(where: { chainId: $chainId }, orderBy: "timestamp", orderDirection: "desc", limit: 50) {
       items {
         tokenAddr
         sender
@@ -22,7 +22,7 @@ const ALL_SWAP_EVENTS_QUERY = `
         transactionHash
       }
     }
-    launchTokens {
+    launchTokens(where: { chainId: $chainId }) {
       items {
         tokenAddr
         logo
@@ -68,7 +68,7 @@ export function useAllSwapEvents() {
     } = useQuery({
         queryKey: ['all-swap-events', chainId],
         queryFn: async (): Promise<EnrichedSwapEvent[]> => {
-            const data = await ponderRequest<SwapEventsResponse>(ALL_SWAP_EVENTS_QUERY)
+            const data = await ponderRequest<SwapEventsResponse>(ALL_SWAP_EVENTS_QUERY, { chainId })
 
             const tokenMeta = new Map<string, { logo: string; name: string; symbol: string }>()
             for (const token of data.launchTokens.items) {

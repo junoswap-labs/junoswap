@@ -1,6 +1,18 @@
 export const BONDING_CURVE_JUNOSWAP_ADDRESS = '0x77e5D3fC554e30aceFd5322ca65beE15ee6E39a9' as const
 
+// kub mainnet (chain 96) deployment (deployed 2026-06-28).
+export const BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS =
+    '0x65F6EC30A9E70822721585f6Bba15c40c2F8ab4e' as const
+export const BONDING_CURVE_JUNOSWAP_BITKUB_START_BLOCK = 32995517
+
 export const BONDING_CURVE_JUNOSWAP_CHAIN_ID = 25925
+
+// Per-chain bonding-curve deployments. Handlers resolve the contract address for
+// the transfer-filter from this map by chainId.
+export const BONDING_CURVE_ADDRESS_BY_CHAIN: Record<number, string> = {
+    25925: BONDING_CURVE_JUNOSWAP_ADDRESS.toLowerCase(),
+    96: BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS.toLowerCase(),
+}
 
 export const BONDING_CURVE_JUNOSWAP_ABI = [
     {

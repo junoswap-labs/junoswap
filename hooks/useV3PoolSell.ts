@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi'
 import { useSimulateContract, useWriteContract, usePublicClient, useReadContract } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { getV3Config } from '@/lib/dex-config'
 import { UNISWAP_V3_QUOTER_V2_ABI } from '@/lib/abis/uniswap-v3-quoter'
 import { UNISWAP_V3_SWAP_ROUTER_ABI } from '@/lib/abis/uniswap-v3-swap-router'
@@ -45,19 +45,14 @@ export function useV3PoolSell({
     const { address } = useAccount()
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
-    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
-    const v3Config = getV3Config(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+    const chainId = useLaunchpadChainId()
+    const publicClient = usePublicClient({ chainId })
+    const v3Config = getV3Config(chainId)
 
     // Quote from V3 quoter
     const quoteParams =
         enabled && tokenAddr && tokenAmount > 0n
-            ? buildQuoteParams(
-                  tokenAddr,
-                  wrappedNative,
-                  tokenAmount,
-                  poolFee,
-                  BONDING_CURVE_JUNOSWAP_CHAIN_ID
-              )
+            ? buildQuoteParams(tokenAddr, wrappedNative, tokenAmount, poolFee, chainId)
             : null
 
     const { data: quoteData } = useReadContract({
@@ -65,7 +60,7 @@ export function useV3PoolSell({
         abi: UNISWAP_V3_QUOTER_V2_ABI,
         functionName: 'quoteExactInputSingle',
         args: quoteParams ? [quoteParams] : undefined,
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
         query: {
             enabled: !!quoteParams && !!v3Config,
             staleTime: 10_000,
@@ -94,7 +89,7 @@ export function useV3PoolSell({
             slippageTolerance: slippageBps,
             deadline: Math.floor(Date.now() / 1000) + 20 * 60,
         }
-        return buildMulticallSwapToNative(swapParams, poolFee, BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+        return buildMulticallSwapToNative(swapParams, poolFee, chainId)
     }, [tokenAddr, wrappedNative, tokenAmount, minNativeOut, address, poolFee, slippageBps])
 
     // Simulate multicall on SwapRouter
@@ -103,7 +98,7 @@ export function useV3PoolSell({
         abi: UNISWAP_V3_SWAP_ROUTER_ABI,
         functionName: 'multicall',
         args: multicallData ? [multicallData] : undefined,
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
         query: {
             enabled:
                 enabled &&

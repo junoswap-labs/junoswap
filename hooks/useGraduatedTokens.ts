@@ -2,13 +2,13 @@
 
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { isLaunchpadChain } from '@/lib/abis/bonding-curve-junoswap'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
 import type { Token } from '@/types/tokens'
 
 const GRADUATED_TOKENS_QUERY = `
-  query GraduatedTokens {
-    launchTokens(orderBy: "graduatedAt", orderDirection: "desc") {
+  query GraduatedTokens($chainId: Int!) {
+    launchTokens(where: { chainId: $chainId }, orderBy: "graduatedAt", orderDirection: "desc") {
       items {
         tokenAddr
         name
@@ -33,13 +33,15 @@ interface GraduatedTokensResponse {
 }
 
 export function useGraduatedTokens(chainId: number): { tokens: Token[]; isLoading: boolean } {
-    const isLaunchpadChain = chainId === BONDING_CURVE_JUNOSWAP_CHAIN_ID
+    const launchpadChain = isLaunchpadChain(chainId)
 
     const { data: tokens, isLoading } = useQuery({
-        queryKey: ['graduated-tokens'],
+        queryKey: ['graduated-tokens', chainId],
         queryFn: async () => {
             try {
-                const data = await ponderRequest<GraduatedTokensResponse>(GRADUATED_TOKENS_QUERY)
+                const data = await ponderRequest<GraduatedTokensResponse>(GRADUATED_TOKENS_QUERY, {
+                    chainId,
+                })
                 return data.launchTokens.items
                     .filter((t) => t.isGraduated === 1)
                     .map(
@@ -48,7 +50,7 @@ export function useGraduatedTokens(chainId: number): { tokens: Token[]; isLoadin
                             symbol: t.symbol || '???',
                             name: t.name || '',
                             decimals: 18,
-                            chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+                            chainId,
                             logo: t.logo ?? '',
                         })
                     )
@@ -57,11 +59,11 @@ export function useGraduatedTokens(chainId: number): { tokens: Token[]; isLoadin
                 throw e
             }
         },
-        enabled: isLaunchpadChain,
+        enabled: launchpadChain,
         staleTime: 60_000,
     })
 
-    if (!isLaunchpadChain) {
+    if (!launchpadChain) {
         return { tokens: [], isLoading: false }
     }
 

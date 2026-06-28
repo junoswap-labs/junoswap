@@ -2,9 +2,10 @@
 
 import { Suspense } from 'react'
 import { useParams } from 'next/navigation'
-import { useChainId } from 'wagmi'
+import { useChainId, useSwitchChain } from 'wagmi'
 import { isAddress } from 'viem'
-import { kubTestnet } from '@/lib/wagmi'
+import { bitkub } from '@/lib/wagmi'
+import { isLaunchpadChain } from '@/lib/abis/bonding-curve-junoswap'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TokenDetailPage } from '@/components/launchpad/token-detail-page'
@@ -32,15 +33,21 @@ export default function TokenPage() {
 function TokenPageContent() {
     const params = useParams()
     const chainId = useChainId()
+    const { switchChain } = useSwitchChain()
     const tokenAddr = params.address as string
 
-    if (chainId !== kubTestnet.id) {
+    if (!isLaunchpadChain(chainId)) {
         return (
             <div className="flex min-h-screen items-start justify-center p-4">
                 <div className="w-full max-w-lg space-y-4">
                     <EmptyState
                         title="Chain Not Supported"
-                        description="Launchpad is currently available on KUB Testnet only. Please switch your network."
+                        description="The launchpad is available on supported KUB networks. Please switch your network."
+                        action={
+                            <Button onClick={() => switchChain({ chainId: bitkub.id })}>
+                                Switch Network
+                            </Button>
+                        }
                     />
                 </div>
             </div>

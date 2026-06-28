@@ -17,10 +17,8 @@ import { useV3PoolSell } from '@/hooks/useV3PoolSell'
 import { useGraduate } from '@/hooks/useGraduate'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { ERC20_ABI } from '@/lib/abis/erc20'
-import {
-    BONDING_CURVE_JUNOSWAP_ADDRESS,
-    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
-} from '@/lib/abis/bonding-curve-junoswap'
+import { getBondingCurveAddress } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { isValidNumberInput } from '@/lib/utils'
 import { formatKub, formatTokenAmount, isReadyToGraduate } from '@/services/launchpad'
 import { toastSuccess, toastError } from '@/lib/toast'
@@ -94,9 +92,9 @@ export function TokenTradeCard({
     const [sellAmount, setSellAmount] = useState('')
     const { settings, setSlippage } = useSwapStore()
 
-    const wrappedNative = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative as
-        | Address
-        | undefined
+    const chainId = useLaunchpadChainId()
+    const bondingCurveAddress = getBondingCurveAddress(chainId)
+    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative as Address | undefined
 
     const {
         nativeReserve,
@@ -105,7 +103,7 @@ export function TokenTradeCard({
         virtualAmount,
         graduationAmount,
         refetch: refetchReserves,
-    } = useTokenReserves({ tokenAddr, isGraduated: _initialIsGraduated })
+    } = useTokenReserves({ tokenAddr, isGraduated: _initialIsGraduated, chainId })
 
     const readyToGraduate = isReadyToGraduate(
         nativeReserve,
@@ -134,7 +132,7 @@ export function TokenTradeCard({
     // User's native KUB balance
     const { data: nativeBalance, refetch: refetchNative } = useBalance({
         address,
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId,
     })
 
     // User's token balance
@@ -143,7 +141,7 @@ export function TokenTradeCard({
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [address || '0x0'],
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId,
         query: { enabled: !!address },
     })
 
@@ -270,10 +268,10 @@ export function TokenTradeCard({
     const sellHash = isGraduated ? sellHashV3 : sellHashBC
 
     // Token approval — target V3 SwapRouter for graduated tokens, BondingCurveJunoswap otherwise
-    const v3Config = getV3Config(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+    const v3Config = getV3Config(chainId)
     const sellSpender = isGraduated
-        ? (v3Config?.swapRouter ?? BONDING_CURVE_JUNOSWAP_ADDRESS)
-        : BONDING_CURVE_JUNOSWAP_ADDRESS
+        ? (v3Config?.swapRouter ?? bondingCurveAddress)
+        : bondingCurveAddress
 
     const {
         needsApproval: needsSellApproval,
@@ -286,7 +284,7 @@ export function TokenTradeCard({
             symbol: tokenSymbol,
             name: '',
             decimals: tokenDecimals,
-            chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+            chainId,
         },
         owner: address,
         spender: sellSpender,
@@ -296,7 +294,7 @@ export function TokenTradeCard({
     // Handle buy success
     useEffect(() => {
         if (!isBuySuccess || !buyHash) return
-        const metadata = getChainMetadata(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+        const metadata = getChainMetadata(chainId)
         toastSuccess('Buy successful!', {
             action: {
                 label: 'View Transaction',
@@ -312,7 +310,7 @@ export function TokenTradeCard({
     // Handle sell success
     useEffect(() => {
         if (!isSellSuccess || !sellHash) return
-        const metadata = getChainMetadata(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+        const metadata = getChainMetadata(chainId)
         toastSuccess('Sell successful!', {
             action: {
                 label: 'View Transaction',
@@ -328,7 +326,7 @@ export function TokenTradeCard({
     // Handle graduate success
     useEffect(() => {
         if (!isGraduateSuccess || !graduateHash) return
-        const metadata = getChainMetadata(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+        const metadata = getChainMetadata(chainId)
         toastSuccess('Token graduated!', {
             action: {
                 label: 'View Transaction',

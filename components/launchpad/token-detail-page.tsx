@@ -2,7 +2,7 @@
 
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useTokenList } from '@/hooks/useTokenList'
@@ -28,6 +28,7 @@ interface TokenDetailPageProps {
 }
 
 export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
+    const chainId = useLaunchpadChainId()
     // Get token data from Ponder (includes name, symbol, isGraduated, etc.)
     const { tokens: allTokens, snapshotMap } = useTokenList()
     const tokenInfo = allTokens.find((t) => t.address.toLowerCase() === tokenAddr.toLowerCase())
@@ -42,10 +43,10 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
         virtualAmount,
         graduationAmount,
         isLoading: isLoadingReserves,
-    } = useTokenReserves({ tokenAddr, isGraduated })
+    } = useTokenReserves({ tokenAddr, isGraduated, chainId })
 
     // Resolve V3 pool address from Ponder for graduated tokens
-    const wrappedNative = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
+    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
     const { data: poolAddress } = useGraduatedPoolAddress(
         isGraduated ? tokenAddr : undefined,
         wrappedNative as Address | undefined

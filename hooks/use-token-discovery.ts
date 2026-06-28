@@ -7,7 +7,7 @@ import { getTokensForChain } from '@/lib/tokens'
 import { isNativeToken } from '@/lib/wagmi'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { isLaunchpadChain as isLaunchpadChainFn } from '@/lib/abis/bonding-curve-junoswap'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import type { Token } from '@/types/tokens'
 import type { TokenType } from '@/types/portfolio'
@@ -46,16 +46,18 @@ const V3_TOKENS_QUERY = `
   }
 `
 
-const BONDING_CURVE_TOKENS_QUERY = `{
-  launchTokens(where: { isGraduated: 0 }) {
-    items { tokenAddr name symbol logo }
+const BONDING_CURVE_TOKENS_QUERY = `
+  query BondingCurveTokens($chainId: Int!) {
+    launchTokens(where: { isGraduated: 0, chainId: $chainId }) {
+      items { tokenAddr name symbol logo }
+    }
   }
-}`
+`
 
 export function useTokenDiscovery(chainId: number) {
     const staticTokens = useMemo(() => getTokensForChain(chainId), [chainId])
     const { tokens: graduatedTokens } = useGraduatedTokens(chainId)
-    const isLaunchpadChain = chainId === BONDING_CURVE_JUNOSWAP_CHAIN_ID
+    const isLaunchpadChain = isLaunchpadChainFn(chainId)
 
     const { data: v3Tokens } = useQuery({
         queryKey: ['v3-tokens', chainId],
@@ -83,12 +85,13 @@ export function useTokenDiscovery(chainId: number) {
     })
 
     const { data: bondingCurveTokens } = useQuery({
-        queryKey: ['bonding-curve-tokens'],
+        queryKey: ['bonding-curve-tokens', chainId],
         queryFn: async () => {
             if (!isLaunchpadChain) return []
             try {
                 const data = await ponderRequest<BondingCurveTokenResponse>(
-                    BONDING_CURVE_TOKENS_QUERY
+                    BONDING_CURVE_TOKENS_QUERY,
+                    { chainId }
                 )
                 return data.launchTokens.items.map(
                     (t): Token => ({

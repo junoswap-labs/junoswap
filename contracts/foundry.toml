@@ -18,6 +18,8 @@ fail_on_revert = false
 
 [rpc_endpoints]
 kub-testnet = "https://rpc-testnet.bitkubchain.io"
+kub-mainnet = "https://rpc.bitkubchain.io"
 
 [etherscan]
 kub-testnet = { key = "verify", url = "https://testnet.bkcscan.com/api" }
+kub-mainnet = { key = "verify", url = "https://www.bkcscan.com/api" }

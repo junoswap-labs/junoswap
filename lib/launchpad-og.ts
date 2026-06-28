@@ -3,8 +3,6 @@
  * Talks to Ponder directly via PONDER_URL (never imported client-side).
  */
 
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
-
 interface LaunchTokenMeta {
     address: string
     name: string
@@ -18,11 +16,14 @@ interface LaunchTokenMeta {
     nativeUsdPrice: number | null
 }
 
+// No connected chain server-side: fetch every launchpad chain's native price and
+// each token's chainId, then match the price to the token's chain below.
 const TOKEN_META_QUERY = `
   query TokenMeta {
     launchTokens {
       items {
         tokenAddr
+        chainId
         name
         symbol
         logo
@@ -37,8 +38,9 @@ const TOKEN_META_QUERY = `
         priceChange1dPct
       }
     }
-    nativeUsdPrices(where: { chainId: ${BONDING_CURVE_JUNOSWAP_CHAIN_ID} }, limit: 1) {
+    nativeUsdPrices(limit: 100) {
       items {
+        chainId
         price
       }
     }
@@ -50,6 +52,7 @@ interface TokenMetaResponse {
         launchTokens: {
             items: Array<{
                 tokenAddr: string
+                chainId: number
                 name: string
                 symbol: string
                 logo: string
@@ -65,7 +68,7 @@ interface TokenMetaResponse {
             }>
         }
         nativeUsdPrices: {
-            items: Array<{ price: string }>
+            items: Array<{ chainId: number; price: string }>
         }
     }
 }
@@ -94,7 +97,7 @@ export async function fetchLaunchTokenMeta(address: string): Promise<LaunchToken
         const snapshot = data.tokenSnapshots.items.find((s) => s.tokenAddr.toLowerCase() === addr)
         const marketCap = snapshot ? parseFloat(snapshot.marketCapNative) : NaN
 
-        const rawUsd = data.nativeUsdPrices.items[0]?.price
+        const rawUsd = data.nativeUsdPrices.items.find((p) => p.chainId === token.chainId)?.price
         const nativeUsdPrice = rawUsd ? parseFloat(rawUsd) : NaN
 
         return {

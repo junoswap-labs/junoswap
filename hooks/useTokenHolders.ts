@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { usePublicClient } from 'wagmi'
 import { parseEther } from 'viem'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { ponderRequest } from '@/lib/ponder-client'
 import { fetchTokenTransferAddresses } from '@/lib/rpc/launchpad-queries'
@@ -83,7 +83,8 @@ export function useTokenHolders(
     poolAddress?: Address,
     isGraduated?: boolean
 ) {
-    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
+    const chainId = useLaunchpadChainId()
+    const publicClient = usePublicClient({ chainId })
 
     const { data, isLoading } = useQuery({
         queryKey: [

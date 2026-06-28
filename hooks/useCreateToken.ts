@@ -5,11 +5,8 @@ import { useWriteContract, useReadContract, usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { parseEther } from 'viem'
 import type { Address } from 'viem'
-import {
-    BONDING_CURVE_JUNOSWAP_ADDRESS,
-    BONDING_CURVE_JUNOSWAP_ABI,
-    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
-} from '@/lib/abis/bonding-curve-junoswap'
+import { BONDING_CURVE_JUNOSWAP_ABI } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadContract } from '@/hooks/useLaunchpadChainId'
 import {
     calculateBuyOutput,
     calculateMinOutput,
@@ -44,7 +41,8 @@ interface UseCreateTokenResult {
 export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenResult {
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
-    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
+    const { chainId, address: bondingCurveAddress } = useLaunchpadContract()
+    const publicClient = usePublicClient({ chainId })
 
     const [phase, setPhase] = useState<CreatePhase>('idle')
     const [createdTokenAddress, setCreatedTokenAddress] = useState<Address | null>(null)
@@ -58,24 +56,24 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     } | null>(null)
 
     const { data: createFee } = useReadContract({
-        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        address: bondingCurveAddress,
         abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'createFee',
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
     })
 
     const { data: initialNative } = useReadContract({
-        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        address: bondingCurveAddress,
         abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'initialNative',
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
     })
 
     const { data: virtualAmount } = useReadContract({
-        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+        address: bondingCurveAddress,
         abi: BONDING_CURVE_JUNOSWAP_ABI,
         functionName: 'virtualAmount',
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
     })
 
     const upfrontBuyNative = useMemo(() => {
@@ -166,7 +164,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         if (!publicClient) return null
         try {
             const receipt = await publicClient.getTransactionReceipt({ hash })
-            return parseTokenAddressFromLogs(receipt.logs)
+            return parseTokenAddressFromLogs(receipt.logs, bondingCurveAddress)
         } catch {
             return null
         }
@@ -175,7 +173,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     const didTriggerBuy = useRef(false)
 
     useEffect(() => {
-        if (!isCreateSuccess || !createHash) return
+        if (!isCreateSuccess || !createHash || !bondingCurveAddress) return
         if (didTriggerBuy.current) return
 
         if (upfrontBuyNative > 0n) {
@@ -197,7 +195,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     return
                 }
                 const reserveData = await publicClient.readContract({
-                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    address: bondingCurveAddress,
                     abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'pumpReserve',
                     args: [tokenAddr],
@@ -224,12 +222,12 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     buyAmount: upfrontBuyNative,
                 }
                 writeBuy({
-                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    address: bondingCurveAddress,
                     abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'buy',
                     args: [tokenAddr, actualMinOut],
                     value: upfrontBuyNative,
-                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+                    chainId: chainId,
                 })
             })
         } else {
@@ -238,7 +236,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
             })
             setPhase('success')
         }
-    }, [isCreateSuccess, createHash, upfrontBuyNative, minTokenOut, writeBuy])
+    }, [isCreateSuccess, createHash, upfrontBuyNative, minTokenOut, writeBuy, bondingCurveAddress])
 
     useEffect(() => {
         if (isBuySuccess) {
@@ -268,14 +266,14 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     }, [phase, isBuyWriteError, buyWriteError, buyReceipt])
 
     const create = (logoOverride?: string) => {
-        if (!form || createCost === 0n) return
+        if (!form || createCost === 0n || !bondingCurveAddress) return
         setPhase('creating')
         setPhaseError(null)
         setCreatedTokenAddress(null)
         didTriggerBuy.current = false
         buyParamsRef.current = null
         writeCreate({
-            address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+            address: bondingCurveAddress,
             abi: BONDING_CURVE_JUNOSWAP_ABI,
             functionName: 'createToken',
             args: [
@@ -288,7 +286,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                 form.link3,
             ],
             value: createCost,
-            chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+            chainId: chainId,
         })
     }
 

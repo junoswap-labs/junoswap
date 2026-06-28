@@ -1,7 +1,11 @@
 import { onchainTable } from 'ponder'
 
+// Bonding-curve tokens are globally unique by address (each chain has its own
+// BondingCurveJunoswap deployment, so token addresses never collide across chains).
+// chainId is carried for filtering only; tokenAddr stays the primary key.
 export const launchToken = onchainTable('launch_token', (t) => ({
     tokenAddr: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     creator: t.text().notNull(),
     name: t.text().default(''),
     symbol: t.text().default(''),
@@ -18,6 +22,7 @@ export const launchToken = onchainTable('launch_token', (t) => ({
 
 export const swapEvent = onchainTable('swap_event', (t) => ({
     id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     tokenAddr: t.text().notNull(),
     sender: t.text().notNull(),
     isBuy: t.integer().notNull(),
@@ -35,6 +40,7 @@ export const swapEvent = onchainTable('swap_event', (t) => ({
 // token movements — what the Portfolio activity feed shows as transfers.
 export const transferEvent = onchainTable('transfer_event', (t) => ({
     id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     tokenAddr: t.text().notNull(),
     from: t.text().notNull(),
     to: t.text().notNull(),
@@ -46,6 +52,7 @@ export const transferEvent = onchainTable('transfer_event', (t) => ({
 
 export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
     tokenAddr: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     lastPrice: t.text().default('0'),
     lastPriceUsd: t.text().default('0'),
     marketCapNative: t.text().default('0'),
@@ -63,6 +70,7 @@ export const tokenSnapshot = onchainTable('token_snapshot', (t) => ({
 
 export const tokenHolder = onchainTable('token_holder', (t) => ({
     id: t.text().primaryKey(),
+    chainId: t.integer().notNull(),
     tokenAddr: t.text().notNull(),
     address: t.text().notNull(),
     balance: t.text().notNull(),

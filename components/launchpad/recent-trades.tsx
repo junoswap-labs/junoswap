@@ -10,7 +10,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad'
 import { cn, formatTimeAgo } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { PortfolioLink } from '@/components/ui/portfolio-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -73,10 +73,12 @@ function TradeRow({
     trade,
     index,
     nativeUsdPrice,
+    chainId,
 }: {
     trade: SwapEventData
     index: number
     nativeUsdPrice: number | null
+    chainId: number
 }) {
     const nativeAmount = trade.isBuy ? trade.amountIn : trade.amountOut
     const tokenAmount = trade.isBuy ? trade.amountOut : trade.amountIn
@@ -90,12 +92,7 @@ function TradeRow({
                 'cursor-pointer transition-colors hover:bg-muted/30',
                 index % 2 === 1 && 'bg-muted/10'
             )}
-            onClick={() =>
-                window.open(
-                    getExplorerTxUrl(BONDING_CURVE_JUNOSWAP_CHAIN_ID, trade.transactionHash),
-                    '_blank'
-                )
-            }
+            onClick={() => window.open(getExplorerTxUrl(chainId, trade.transactionHash), '_blank')}
         >
             <TableCell className="py-2.5">
                 <span
@@ -189,6 +186,7 @@ export function RecentTrades({
     const debouncedSearch = useDebounce(addressSearch, 300)
     const { address: connectedAddress } = useAccount()
     const { nativeUsdPrice } = useNativeUsdPriceContext()
+    const chainId = useLaunchpadChainId()
 
     // Resolve the effective sender filter for the hook
     const hookSenderFilter = useMemo(() => {
@@ -427,6 +425,7 @@ export function RecentTrades({
                                             trade={trade}
                                             index={i}
                                             nativeUsdPrice={nativeUsdPrice}
+                                            chainId={chainId}
                                         />
                                     ))}
                                 </TableBody>

@@ -2,7 +2,17 @@ import { createConfig } from 'ponder'
 import {
     BONDING_CURVE_JUNOSWAP_ABI,
     BONDING_CURVE_JUNOSWAP_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS,
+    BONDING_CURVE_JUNOSWAP_BITKUB_START_BLOCK,
 } from './abis/bonding-curve-junoswap'
+
+// The kub mainnet (chain 96) bonding curve is only indexed once it's deployed and
+// its address filled in. Indexing from the zero address (and startBlock 0) against
+// the non-archive mainnet RPC would trigger a genesis-wide backfill, so we omit the
+// Bitkub contracts entirely until then. Keep in sync with MAINNET_ENABLED in
+// src/launchpad.ts, which gates the matching handler registrations.
+const BONDING_CURVE_MAINNET_ENABLED =
+    BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS !== '0x0000000000000000000000000000000000000000'
 import { ERC20_ABI } from './abis/erc20'
 import { UNISWAP_V3_FACTORY_ABI } from './abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from './abis/uniswap-v3-pool'
@@ -76,6 +86,28 @@ export default createConfig({
             },
             startBlock: 29065000,
         },
+        // kub mainnet (chain 96) bonding curve + its dynamically-created tokens.
+        // Present only once the contract is deployed (see BONDING_CURVE_MAINNET_ENABLED).
+        ...(BONDING_CURVE_MAINNET_ENABLED
+            ? {
+                  BondingCurveJunoswapBitkub: {
+                      abi: BONDING_CURVE_JUNOSWAP_ABI,
+                      chain: 'bitkub',
+                      address: BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS,
+                      startBlock: BONDING_CURVE_JUNOSWAP_BITKUB_START_BLOCK,
+                  },
+                  LaunchTokenBitkub: {
+                      abi: ERC20_ABI,
+                      chain: 'bitkub',
+                      factory: {
+                          address: BONDING_CURVE_JUNOSWAP_BITKUB_ADDRESS,
+                          event: CREATION_EVENT,
+                          parameter: 'tokenAddr',
+                      },
+                      startBlock: BONDING_CURVE_JUNOSWAP_BITKUB_START_BLOCK,
+                  },
+              }
+            : {}),
         // kubTestnet V3
         V3Factory: {
             abi: UNISWAP_V3_FACTORY_ABI,

@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi'
 import { useSimulateContract, useWriteContract, usePublicClient, useReadContract } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { getV3Config } from '@/lib/dex-config'
 import { UNISWAP_V3_QUOTER_V2_ABI } from '@/lib/abis/uniswap-v3-quoter'
 import { UNISWAP_V3_SWAP_ROUTER_ABI } from '@/lib/abis/uniswap-v3-swap-router'
@@ -44,19 +44,14 @@ export function useV3PoolBuy({
     const { address } = useAccount()
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
-    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
-    const v3Config = getV3Config(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+    const chainId = useLaunchpadChainId()
+    const publicClient = usePublicClient({ chainId })
+    const v3Config = getV3Config(chainId)
 
     // Quote from V3 quoter
     const quoteParams =
         enabled && tokenAddr && nativeAmount > 0n
-            ? buildQuoteParams(
-                  wrappedNative,
-                  tokenAddr,
-                  nativeAmount,
-                  poolFee,
-                  BONDING_CURVE_JUNOSWAP_CHAIN_ID
-              )
+            ? buildQuoteParams(wrappedNative, tokenAddr, nativeAmount, poolFee, chainId)
             : null
 
     const { data: quoteData } = useReadContract({
@@ -64,7 +59,7 @@ export function useV3PoolBuy({
         abi: UNISWAP_V3_QUOTER_V2_ABI,
         functionName: 'quoteExactInputSingle',
         args: quoteParams ? [quoteParams] : undefined,
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
         query: {
             enabled: !!quoteParams && !!v3Config,
             staleTime: 10_000,
@@ -101,7 +96,7 @@ export function useV3PoolBuy({
                   ]
                 : undefined,
         value: nativeAmount,
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId: chainId,
         query: {
             enabled: enabled && !!tokenAddr && !!address && nativeAmount > 0n && !!v3Config,
         },

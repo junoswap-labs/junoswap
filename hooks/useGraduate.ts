@@ -4,11 +4,8 @@ import { useState, useCallback, useRef } from 'react'
 import { useWriteContract, usePublicClient, useAccount } from 'wagmi'
 import type { Address } from 'viem'
 import { maxUint256, maxUint128, decodeEventLog, parseEther } from 'viem'
-import {
-    BONDING_CURVE_JUNOSWAP_ADDRESS,
-    BONDING_CURVE_JUNOSWAP_ABI,
-    BONDING_CURVE_JUNOSWAP_CHAIN_ID,
-} from '@/lib/abis/bonding-curve-junoswap'
+import { BONDING_CURVE_JUNOSWAP_ABI } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadContract } from '@/hooks/useLaunchpadChainId'
 import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@/lib/abis/nonfungible-position-manager'
 import { UNISWAP_V3_FACTORY_ABI } from '@/lib/abis/uniswap-v3-factory'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
@@ -81,12 +78,11 @@ export function useGraduate({
     tokenAddr,
     enabled: _enabled = true,
 }: UseGraduateParams): UseGraduateResult {
-    const publicClient = usePublicClient({ chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID })
+    const { chainId, address: bondingCurveAddress } = useLaunchpadContract()
+    const publicClient = usePublicClient({ chainId })
     const { address } = useAccount()
-    const v3Config = getV3Config(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
-    const wrappedNative = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative as
-        | Address
-        | undefined
+    const v3Config = getV3Config(chainId)
+    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative as Address | undefined
 
     const { writeContractAsync } = useWriteContract()
 
@@ -133,6 +129,7 @@ export function useGraduate({
             !v3Config ||
             !wrappedNative ||
             !address ||
+            !bondingCurveAddress ||
             isRunning.current
         )
             return
@@ -148,13 +145,13 @@ export function useGraduate({
 
             const [freshReserves, onChainCap] = await Promise.all([
                 publicClient.readContract({
-                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    address: bondingCurveAddress,
                     abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'pumpReserve',
                     args: [tokenAddr],
                 }),
                 publicClient.readContract({
-                    address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                    address: bondingCurveAddress,
                     abi: BONDING_CURVE_JUNOSWAP_ABI,
                     functionName: 'graduationAmount',
                 }),
@@ -242,7 +239,7 @@ export function useGraduate({
                 if (tokenBalBefore === 0n) {
                     setStep('buying-tokens')
                     await sendTx({
-                        address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                        address: bondingCurveAddress,
                         abi: BONDING_CURVE_JUNOSWAP_ABI,
                         functionName: 'buy',
                         args: [tokenAddr, 0n],
@@ -572,7 +569,7 @@ export function useGraduate({
 
             setStep('graduating')
             await sendTx({
-                address: BONDING_CURVE_JUNOSWAP_ADDRESS,
+                address: bondingCurveAddress,
                 abi: BONDING_CURVE_JUNOSWAP_ABI,
                 functionName: 'graduate',
                 args: [tokenAddr],
@@ -605,7 +602,7 @@ export function useGraduate({
         } finally {
             isRunning.current = false
         }
-    }, [tokenAddr, publicClient, v3Config, wrappedNative, address, sendTx])
+    }, [tokenAddr, publicClient, v3Config, wrappedNative, address, bondingCurveAddress, sendTx])
 
     const isPreparing = step === 'checking-pool'
     const isExecuting = !isPreparing && step !== 'idle' && step !== 'done' && step !== 'error'

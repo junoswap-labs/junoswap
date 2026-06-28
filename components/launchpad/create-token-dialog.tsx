@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateToken } from '@/hooks/useCreateToken'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { toastError, toastSuccess, toastWarning } from '@/lib/toast'
 import { uploadToPinata } from '@/app/actions/upload-to-pinata'
 import { getChainMetadata } from '@/lib/wagmi'
@@ -28,6 +28,7 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
     const { isConnected, address } = useAccount()
     const queryClient = useQueryClient()
     const router = useRouter()
+    const chainId = useLaunchpadChainId()
 
     const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
     const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -78,7 +79,7 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
 
     // Handle success
     const handleSuccess = useCallback(async () => {
-        const metadata = getChainMetadata(BONDING_CURVE_JUNOSWAP_CHAIN_ID)
+        const metadata = getChainMetadata(chainId)
         toastSuccess('Token created!', {
             action: {
                 label: 'View Transaction',
@@ -144,7 +145,7 @@ export function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps
                 link3: form.link3,
                 creator: (address ?? '0x0') as Address,
                 createdTime: Math.floor(Date.now() / 1000),
-                chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+                chainId,
                 graduatedAt: null,
                 isGraduated: false,
             }

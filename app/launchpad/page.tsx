@@ -1,12 +1,16 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import { useChainId, useSwitchChain } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { TokenList } from '@/components/launchpad/token-list'
 import { CreateTokenDialog } from '@/components/launchpad/create-token-dialog'
 import { ActivityTicker } from '@/components/launchpad/activity-feed'
+import { isLaunchpadChain } from '@/lib/abis/bonding-curve-junoswap'
+import { bitkub } from '@/lib/wagmi'
 import { Plus, Search } from 'lucide-react'
 
 export default function LaunchpadPage() {
@@ -60,6 +64,26 @@ export default function LaunchpadPage() {
 function LaunchpadContent() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const chainId = useChainId()
+    const { switchChain } = useSwitchChain()
+
+    if (!isLaunchpadChain(chainId)) {
+        return (
+            <div className="mx-auto px-4 max-w-[1700px] py-6 sm:px-6 lg:px-8">
+                <div className="flex min-h-[60vh] items-center justify-center">
+                    <EmptyState
+                        title="Chain Not Supported"
+                        description="The launchpad is available on supported KUB networks. Switch your network to browse and trade tokens."
+                        action={
+                            <Button onClick={() => switchChain({ chainId: bitkub.id })}>
+                                Switch Network
+                            </Button>
+                        }
+                    />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="mx-auto px-4 max-w-[1700px] py-6 sm:px-6 lg:px-8">

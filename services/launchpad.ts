@@ -1,9 +1,6 @@
 import { formatEther, decodeEventLog } from 'viem'
 import type { Address, Log } from 'viem'
-import {
-    BONDING_CURVE_JUNOSWAP_ADDRESS,
-    BONDING_CURVE_JUNOSWAP_ABI,
-} from '@/lib/abis/bonding-curve-junoswap'
+import { BONDING_CURVE_JUNOSWAP_ABI } from '@/lib/abis/bonding-curve-junoswap'
 
 const PUMP_FEE_BPS = 100n // 1%
 
@@ -138,10 +135,16 @@ export function isReadyToGraduate(
 /**
  * Extract the token address from Creation event logs.
  * The Creation event has `creator` indexed (topics[1]) and `tokenAddr` non-indexed (in data).
+ * `bondingCurveAddress` is the contract to attribute the Creation log to (per-chain);
+ * when omitted, any log decodable as a Creation event is accepted.
  */
-export function parseTokenAddressFromLogs(logs: Log[]): Address | null {
+export function parseTokenAddressFromLogs(
+    logs: Log[],
+    bondingCurveAddress?: Address
+): Address | null {
+    const expected = bondingCurveAddress?.toLowerCase()
     for (const log of logs) {
-        if (log.address.toLowerCase() !== BONDING_CURVE_JUNOSWAP_ADDRESS.toLowerCase()) continue
+        if (expected && log.address.toLowerCase() !== expected) continue
         try {
             const decoded = decodeEventLog({
                 abi: BONDING_CURVE_JUNOSWAP_ABI,

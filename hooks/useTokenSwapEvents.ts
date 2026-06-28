@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import { ponderRequest } from '@/lib/ponder-client'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import type { SwapEventData } from '@/lib/rpc/launchpad-queries'
 
 export type { SwapEventData }
@@ -118,9 +118,11 @@ export function useTokenSwapEvents(
     isGraduated?: boolean,
     filters?: SwapEventFilters
 ) {
+    const chainId = useLaunchpadChainId()
     return useQuery({
         queryKey: [
             'token-swap-events',
+            chainId,
             tokenAddr?.toLowerCase(),
             page,
             pageSize,
@@ -154,7 +156,7 @@ export function useTokenSwapEvents(
                     tokenAddr: tokenAddr.toLowerCase(),
                     limit: pageSize,
                     offset,
-                    chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+                    chainId,
                 }
                 if (filters?.sender) {
                     v3Variables.txFrom = filters.sender.toLowerCase()

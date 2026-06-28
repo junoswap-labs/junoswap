@@ -8,8 +8,8 @@ import { ponderRequest } from '@/lib/ponder-client'
 import type { LaunchToken } from '@/types/launchpad'
 
 const TOKEN_LIST_QUERY = `
-  query TokenList {
-    launchTokens(orderBy: "createdTime", orderDirection: "desc") {
+  query TokenList($chainId: Int!) {
+    launchTokens(where: { chainId: $chainId }, orderBy: "createdTime", orderDirection: "desc") {
       items {
         tokenAddr
         creator
@@ -25,7 +25,7 @@ const TOKEN_LIST_QUERY = `
         graduatedAt
       }
     }
-    tokenSnapshots {
+    tokenSnapshots(where: { chainId: $chainId }) {
       items {
         tokenAddr
         lastSwapAt
@@ -97,7 +97,7 @@ export function useTokenList(): UseTokenListResult {
     } = useQuery({
         queryKey: ['launchpad-token-list', chainId],
         queryFn: async () => {
-            const data = await ponderRequest<TokenListResponse>(TOKEN_LIST_QUERY)
+            const data = await ponderRequest<TokenListResponse>(TOKEN_LIST_QUERY, { chainId })
             const tokens = data.launchTokens.items.map(
                 (t): LaunchToken => ({
                     address: t.tokenAddr as Address,

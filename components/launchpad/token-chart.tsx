@@ -29,11 +29,9 @@ import { calculatePriceFromSqrtPrice, computeDailyMetrics } from '@/services/cha
 import type { DailyMetrics } from '@/services/chart'
 import { UNISWAP_V3_POOL_ABI } from '@/lib/abis/uniswap-v3-pool'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
-import { BONDING_CURVE_JUNOSWAP_CHAIN_ID } from '@/lib/abis/bonding-curve-junoswap'
+import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { useNativeUsdPriceContext } from './native-usd-price-provider'
 import { formatCompact } from '@/services/launchpad'
-
-const WRAPPED_NATIVE = INTERMEDIARY_TOKENS[BONDING_CURVE_JUNOSWAP_CHAIN_ID]?.wrappedNative
 
 interface TokenChartProps {
     tokenAddr: Address
@@ -119,6 +117,8 @@ export function TokenChart({
     const chartRef = useRef<IChartApi | null>(null)
     const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
     const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
+    const chainId = useLaunchpadChainId()
+    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
     const priceLineRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']> | null>(
         null
     )
@@ -131,7 +131,7 @@ export function TokenChart({
         address: poolAddress,
         abi: UNISWAP_V3_POOL_ABI,
         functionName: 'slot0' as const,
-        chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
+        chainId,
         query: {
             enabled: !!isGraduated && !!poolAddress,
             refetchInterval: 15_000,
@@ -164,8 +164,8 @@ export function TokenChart({
             const sqrtPriceX96 = (
                 slot0 as [bigint, number, number, number, number, number, boolean]
             )[0]
-            if (sqrtPriceX96 && sqrtPriceX96 > 0n && WRAPPED_NATIVE) {
-                const tokenIsToken0 = tokenAddr.toLowerCase() < WRAPPED_NATIVE.toLowerCase()
+            if (sqrtPriceX96 && sqrtPriceX96 > 0n && wrappedNative) {
+                const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
                 const price = calculatePriceFromSqrtPrice(sqrtPriceX96, tokenIsToken0)
                 const value = chartMode === 'mcap' ? price * 1e9 : price
                 const displayValue = nativeUsdPrice !== null ? value * nativeUsdPrice : value
@@ -242,6 +242,7 @@ export function TokenChart({
         poolAddress,
         slot0,
         tokenAddr,
+        wrappedNative,
     ])
 
     // OHLCV overlay - updated via DOM to avoid re-render loops
