@@ -43,6 +43,7 @@ function buildBondingCurveQuery(hasIsBuy: boolean, hasSender: boolean) {
             transactionHash
             blockNumber
           }
+          totalCount
         }
       }
     `
@@ -67,6 +68,7 @@ const V3_SWAP_EVENTS_QUERY = `
         transactionHash
         blockNumber
       }
+      totalCount
     }
   }
 `
@@ -84,6 +86,7 @@ interface BondingCurveSwapEventsResponse {
             transactionHash: string
             blockNumber: number
         }>
+        totalCount: number
     }
 }
 
@@ -99,6 +102,7 @@ interface V3SwapEventsResponse {
             transactionHash: string
             blockNumber: number
         }>
+        totalCount: number
     }
 }
 
@@ -129,7 +133,6 @@ export function useTokenSwapEvents(
             if (!tokenAddr) return { data: [], totalCount: 0 }
 
             const offset = (page - 1) * pageSize
-            const fetchLimit = pageSize + 1
 
             // For graduated tokens, merge V3 + bonding curve events
             if (isGraduated) {
@@ -145,10 +148,11 @@ export function useTokenSwapEvents(
                 if (hasBcIsBuy) bcVariables.isBuy = filters!.isBuy! ? 1 : 0
                 if (hasBcSender) bcVariables.sender = filters!.sender!.toLowerCase()
 
-                // V3 events (server-side pagination, txFrom filter)
+                // V3 events (server-side pagination, txFrom filter). totalCount tells
+                // us where the BC tail begins in the global sequence.
                 const v3Variables: Record<string, unknown> = {
                     tokenAddr: tokenAddr.toLowerCase(),
-                    limit: fetchLimit,
+                    limit: pageSize,
                     offset,
                     chainId: BONDING_CURVE_JUNOSWAP_CHAIN_ID,
                 }
@@ -209,14 +213,18 @@ export function useTokenSwapEvents(
                     v3Items = v3Items.filter((item) => item.isBuy === filters.isBuy)
                 }
 
-                // Merge: V3 events (newer) first, then BC events (older).
-                // All V3 timestamps >= graduatedAt and all BC timestamps < graduatedAt,
-                // so both desc-sorted sets concatenate cleanly.
-                const merged = [...v3Items, ...bcItems]
-
-                const hasMore = merged.length > pageSize
-                const data = hasMore ? merged.slice(0, pageSize) : merged
-                const totalCount = merged.length + offset
+                // Global sequence is all V3 events (newer, desc) then all BC events
+                // (older, desc): every V3 timestamp >= graduatedAt and every BC
+                // timestamp < graduatedAt. V3 is server-paginated, so v3Items already
+                // covers [offset, offset+pageSize); the BC tail must be sliced by the
+                // *global* offset (offset - nv3), not always from 0, or earlier BC rows
+                // re-appear on every page once V3 is exhausted.
+                const nv3 = v3Result.v3SwapEvents.totalCount
+                const bcStart = Math.max(0, offset - nv3)
+                const bcNeeded = pageSize - v3Items.length
+                const bcInWindow = bcNeeded > 0 ? bcItems.slice(bcStart, bcStart + bcNeeded) : []
+                const data = [...v3Items, ...bcInWindow]
+                const totalCount = nv3 + bcItems.length
 
                 return { data, totalCount }
             }
@@ -228,7 +236,7 @@ export function useTokenSwapEvents(
 
             const variables: Record<string, unknown> = {
                 tokenAddr: tokenAddr.toLowerCase(),
-                limit: fetchLimit,
+                limit: pageSize,
                 offset,
             }
             if (hasIsBuy) variables.isBuy = filters!.isBuy! ? 1 : 0
@@ -236,7 +244,7 @@ export function useTokenSwapEvents(
 
             const result = await ponderRequest<BondingCurveSwapEventsResponse>(query, variables)
 
-            const allItems = result.swapEvents.items.map((e) => ({
+            const data = result.swapEvents.items.map((e) => ({
                 blockNumber: BigInt(e.blockNumber),
                 timestamp: e.timestamp,
                 sender: e.sender as Address,
@@ -249,11 +257,7 @@ export function useTokenSwapEvents(
                 transactionHash: e.transactionHash as `0x${string}`,
             }))
 
-            const hasMore = allItems.length > pageSize
-            const data = hasMore ? allItems.slice(0, pageSize) : allItems
-            const totalCount = allItems.length + offset
-
-            return { data, totalCount }
+            return { data, totalCount: result.swapEvents.totalCount }
         },
         enabled: !!tokenAddr,
         staleTime: 30_000,
