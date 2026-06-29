@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useChainId } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
+import type { Address } from 'viem'
 import type { Token } from '@/types/tokens'
 import type { Timeframe, CandlestickData } from '@/types/chart'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
@@ -11,13 +12,16 @@ import { fetchAllPages } from '@/lib/ponder-client'
 import { classifySwapPair } from '@/lib/swap-chart'
 import {
     aggregatePricePoints,
-    aggregateV3Candlesticks,
     sanitizeCandles,
     buildContinuousSeries,
+    tokenNativeCandles,
+    ratioCandles,
 } from '@/services/chart'
 import type { V3SwapEvent } from '@/services/chart'
 
 const PAGE_SIZE = 1000
+// Wrapped native (KKUB/WJBC/WETH/WBNB/…) is 18 decimals on every supported chain.
+const NATIVE_DECIMALS = 18
 
 // native↔stable: the indexed native→USD price history is exactly the native/stable
 // (e.g. KKUB/KUSDT) price. Populated per native/stable V3 swap, so it avoids the
@@ -31,7 +35,7 @@ const NATIVE_USD_SNAPSHOTS_QUERY = `
   }
 `
 
-// token↔native: price the non-native token in native from its V3 swap events.
+// Per-token native price from its Junoswap V3 swaps (token↔native pool).
 const V3_SWAP_EVENTS_QUERY = `
   query SwapPairV3Events($tokenAddr: String!, $chainId: Int!, $after: String) {
     v3SwapEvents(where: { tokenAddr: $tokenAddr, chainId: $chainId }, orderBy: "timestamp", orderDirection: "asc", limit: ${PAGE_SIZE}, after: $after) {
@@ -57,14 +61,35 @@ interface V3EventsResponse {
 export interface SwapPairChart {
     candles: CandlestickData[]
     isLoading: boolean
-    /** True when the pair has no indexable price series (token/token, etc.). */
+    /** True when the pair has no indexable price series. */
     isUnsupported: boolean
     timeframe: Timeframe
     setTimeframe: (tf: Timeframe) => void
     baseSymbol: string
     quoteSymbol: string
-    /** 'usd' → native/stable price (prefix $); 'native' → token priced in native. */
-    denom: 'usd' | 'native'
+    /** 'usd' → $ prefix (vs native/stable); 'native'/'token' → priced in the quote token. */
+    denom: 'usd' | 'native' | 'token'
+}
+
+function resolveToken(
+    addr: Address | undefined,
+    tokenIn: Token | null | undefined,
+    tokenOut: Token | null | undefined
+): Token | null {
+    if (!addr) return null
+    const a = addr.toLowerCase()
+    for (const t of [tokenIn, tokenOut]) {
+        if (t && t.address.toLowerCase() === a) return t
+    }
+    return null
+}
+
+function fetchV3Events(tokenAddr: string, chainId: number) {
+    return fetchAllPages<V3EventsResponse, V3SwapEvent>(
+        V3_SWAP_EVENTS_QUERY,
+        { tokenAddr: tokenAddr.toLowerCase(), chainId },
+        (r) => r.v3SwapEvents
+    ).catch(() => [] as V3SwapEvent[])
 }
 
 export function useSwapPairChart(
@@ -73,19 +98,31 @@ export function useSwapPairChart(
 ): SwapPairChart {
     const chainId = useChainId()
     const [timeframe, setTimeframe] = useState<Timeframe>('15m')
+    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
 
     const classification = useMemo(
         () => classifySwapPair(chainId, tokenIn?.address, tokenOut?.address),
         [chainId, tokenIn?.address, tokenOut?.address]
     )
+    const { kind, baseAddr, quoteAddr } = classification
 
-    const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
+    const isNativeStable = kind === 'native-stable'
+    const isRatioKind = kind === 'token-native' || kind === 'token-stable' || kind === 'token-token'
+    const quoteIsNative =
+        !!quoteAddr &&
+        (isNativeToken(quoteAddr) || quoteAddr.toLowerCase() === wrappedNative?.toLowerCase())
+    const quoteNeedsV3 = isRatioKind && !!quoteAddr && !quoteIsNative
 
-    const isNativeStable = classification.kind === 'native-stable'
-    const v3TokenAddr =
-        classification.kind === 'token-native' ? classification.tokenAddr : undefined
+    const baseToken = useMemo(
+        () => resolveToken(baseAddr, tokenIn, tokenOut),
+        [baseAddr, tokenIn, tokenOut]
+    )
+    const quoteToken = useMemo(
+        () => resolveToken(quoteAddr, tokenIn, tokenOut),
+        [quoteAddr, tokenIn, tokenOut]
+    )
 
-    const { data: snapshotRows, isLoading: isLoadingSnapshots } = useQuery({
+    const { data: snapshotRows, isLoading: loadingSnap } = useQuery({
         queryKey: ['swap-pair-native-usd', chainId],
         queryFn: () =>
             fetchAllPages<SnapshotsResponse, { timestamp: number; price: string }>(
@@ -98,32 +135,25 @@ export function useSwapPairChart(
         refetchInterval: 30_000,
     })
 
-    const { data: v3Events, isLoading: isLoadingV3 } = useQuery({
-        queryKey: ['swap-pair-v3', v3TokenAddr?.toLowerCase(), chainId],
-        queryFn: () =>
-            fetchAllPages<V3EventsResponse, V3SwapEvent>(
-                V3_SWAP_EVENTS_QUERY,
-                { tokenAddr: v3TokenAddr!.toLowerCase(), chainId },
-                (r) => r.v3SwapEvents
-            ).catch(() => []),
-        enabled: !!v3TokenAddr,
+    // base is always a non-native token in the ratio kinds.
+    const { data: baseEvents, isLoading: loadingBase } = useQuery({
+        queryKey: ['swap-pair-v3', baseAddr?.toLowerCase(), chainId],
+        queryFn: () => fetchV3Events(baseAddr!, chainId),
+        enabled: isRatioKind && !!baseAddr,
         staleTime: 30_000,
         refetchInterval: 30_000,
     })
 
-    const { nativeSideToken, otherSideToken } = useMemo(() => {
-        const inNativeSide =
-            !!tokenIn &&
-            (isNativeToken(tokenIn.address) ||
-                tokenIn.address.toLowerCase() === wrappedNative?.toLowerCase())
-        return {
-            nativeSideToken: inNativeSide ? tokenIn : tokenOut,
-            otherSideToken: inNativeSide ? tokenOut : tokenIn,
-        }
-    }, [tokenIn, tokenOut, wrappedNative])
+    const { data: quoteEvents, isLoading: loadingQuote } = useQuery({
+        queryKey: ['swap-pair-v3', quoteAddr?.toLowerCase(), chainId],
+        queryFn: () => fetchV3Events(quoteAddr!, chainId),
+        enabled: quoteNeedsV3,
+        staleTime: 30_000,
+        refetchInterval: 30_000,
+    })
 
     const candles = useMemo(() => {
-        if (classification.kind === 'native-stable') {
+        if (isNativeStable) {
             const points = (snapshotRows ?? []).map((r) => ({
                 timestamp: r.timestamp,
                 price: parseFloat(r.price),
@@ -133,69 +163,62 @@ export function useSwapPairChart(
                 timeframe
             )
         }
-        if (classification.kind === 'token-native' && classification.tokenAddr && wrappedNative) {
-            // aggregateV3Candlesticks keys on which token is token0 to read price the
-            // right way up; mirror useTokenPriceHistory's lexicographic rule.
-            const tokenIsToken0 =
-                classification.tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
-            const raw = aggregateV3Candlesticks(v3Events ?? [], timeframe, 'price', tokenIsToken0)
-            // The V3 price is a raw-unit ratio (native smallest-units per token
-            // smallest-units); rescale to a human native-per-token price by the
-            // tokens' decimals so non-18-decimal tokens aren't off by 10^n.
-            const decToken = otherSideToken?.decimals ?? 18
-            const decNative = nativeSideToken?.decimals ?? 18
-            const factor = 10 ** (decToken - decNative)
-            const scaled =
-                factor === 1
-                    ? raw
-                    : raw.map((c) => ({
-                          ...c,
-                          open: c.open * factor,
-                          high: c.high * factor,
-                          low: c.low * factor,
-                          close: c.close * factor,
-                      }))
-            return buildContinuousSeries(sanitizeCandles(scaled), timeframe)
+        if (isRatioKind && baseAddr && wrappedNative) {
+            const npBase = tokenNativeCandles(
+                baseEvents ?? [],
+                baseAddr,
+                baseToken?.decimals ?? 18,
+                wrappedNative,
+                NATIVE_DECIMALS,
+                timeframe
+            )
+            // token↔native: the quote IS native, so the base series is already the price.
+            if (quoteIsNative) return npBase
+            if (!quoteAddr) return []
+            const npQuote = tokenNativeCandles(
+                quoteEvents ?? [],
+                quoteAddr,
+                quoteToken?.decimals ?? 18,
+                wrappedNative,
+                NATIVE_DECIMALS,
+                timeframe
+            )
+            return buildContinuousSeries(sanitizeCandles(ratioCandles(npBase, npQuote)), timeframe)
         }
         return []
     }, [
-        classification,
+        isNativeStable,
+        isRatioKind,
         snapshotRows,
-        v3Events,
+        baseEvents,
+        quoteEvents,
         timeframe,
+        baseAddr,
+        quoteAddr,
+        quoteIsNative,
         wrappedNative,
-        otherSideToken,
-        nativeSideToken,
+        baseToken,
+        quoteToken,
     ])
 
-    const { baseSymbol, quoteSymbol, denom } = useMemo<{
-        baseSymbol: string
-        quoteSymbol: string
-        denom: 'usd' | 'native'
-    }>(() => {
-        if (classification.kind === 'native-stable') {
-            return {
-                baseSymbol: nativeSideToken?.symbol ?? '',
-                quoteSymbol: otherSideToken?.symbol ?? 'USD',
-                denom: 'usd',
-            }
-        }
-        if (classification.kind === 'token-native') {
-            return {
-                baseSymbol: otherSideToken?.symbol ?? '',
-                quoteSymbol: nativeSideToken?.symbol ?? '',
-                denom: 'native',
-            }
-        }
-        return { baseSymbol: '', quoteSymbol: '', denom: 'usd' }
-    }, [classification.kind, nativeSideToken, otherSideToken])
+    const denom: 'usd' | 'native' | 'token' =
+        kind === 'native-stable' || kind === 'token-stable'
+            ? 'usd'
+            : kind === 'token-native'
+              ? 'native'
+              : 'token'
 
-    const isLoading = (isNativeStable && isLoadingSnapshots) || (!!v3TokenAddr && isLoadingV3)
+    const baseSymbol = baseToken?.symbol ?? ''
+    const quoteSymbol = quoteToken?.symbol ?? (kind === 'native-stable' ? 'USD' : '')
+
+    const isLoading =
+        (isNativeStable && loadingSnap) ||
+        (isRatioKind && (loadingBase || (quoteNeedsV3 && loadingQuote)))
 
     return {
         candles,
         isLoading,
-        isUnsupported: classification.kind === 'unsupported',
+        isUnsupported: kind === 'unsupported',
         timeframe,
         setTimeframe,
         baseSymbol,

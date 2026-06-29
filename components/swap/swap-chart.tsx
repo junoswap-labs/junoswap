@@ -21,6 +21,7 @@ import type { Token } from '@/types/tokens'
 import { TIMEFRAMES } from '@/hooks/useTokenPriceHistory'
 import { useSwapPairChart } from '@/hooks/useSwapPairChart'
 import { useChartColors, toLocalChartTime } from '@/lib/lightweight-chart-theme'
+import { formatChartPrice } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
 
@@ -28,15 +29,6 @@ interface SwapChartProps {
     tokenIn?: Token | null
     tokenOut?: Token | null
     className?: string
-}
-
-function formatPrice(value: number): string {
-    if (value === 0) return '0'
-    if (value >= 1000) return value.toFixed(2)
-    if (value >= 1) return value.toFixed(3)
-    if (value >= 0.01) return value.toFixed(4)
-    if (value >= 0.0001) return value.toFixed(6)
-    return value.toExponential(2)
 }
 
 export function SwapChart({ tokenIn, tokenOut, className }: SwapChartProps) {
@@ -164,7 +156,7 @@ export function SwapChart({ tokenIn, tokenOut, className }: SwapChartProps) {
         candleSeriesRef.current.applyOptions({
             priceFormat: {
                 type: 'custom',
-                formatter: (price: number) => `${prefix}${formatPrice(price)}`,
+                formatter: (price: number) => `${prefix}${formatChartPrice(price)}`,
             },
         })
 
@@ -219,7 +211,7 @@ export function SwapChart({ tokenIn, tokenOut, className }: SwapChartProps) {
                     {lastPrice !== null && (
                         <span className="text-sm font-medium tabular-nums">
                             {prefix}
-                            {formatPrice(lastPrice)}
+                            {formatChartPrice(lastPrice)}
                         </span>
                     )}
                     {changePct !== null && (

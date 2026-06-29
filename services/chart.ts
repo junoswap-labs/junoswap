@@ -329,6 +329,60 @@ export function aggregateV3Candlesticks(
     return Array.from(candles.values()).sort((a, b) => a.time - b.time)
 }
 
+/**
+ * Continuous "native per token" candle series for a non-native token from its V3 swaps.
+ * aggregateV3Candlesticks returns a raw smallest-unit ratio; rescale by the token/native
+ * decimal difference so non-18-decimal tokens aren't off by 10^n, then make it render-ready.
+ */
+export function tokenNativeCandles(
+    events: V3SwapEvent[],
+    tokenAddr: string,
+    tokenDecimals: number,
+    wrappedNativeAddr: string,
+    nativeDecimals: number,
+    timeframe: Timeframe
+): CandlestickData[] {
+    const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNativeAddr.toLowerCase()
+    const raw = aggregateV3Candlesticks(events, timeframe, 'price', tokenIsToken0)
+    const factor = 10 ** (tokenDecimals - nativeDecimals)
+    const scaled =
+        factor === 1
+            ? raw
+            : raw.map((c) => ({
+                  ...c,
+                  open: c.open * factor,
+                  high: c.high * factor,
+                  low: c.low * factor,
+                  close: c.close * factor,
+              }))
+    return buildContinuousSeries(sanitizeCandles(scaled), timeframe)
+}
+
+/**
+ * Pair price from two "native per token" series: base / quote, inner-joined by bucket
+ * time. high/low use the cross extremes (baseHigh/quoteLow, baseLow/quoteHigh). Buckets
+ * absent from quote, or with a non-positive quote value, are skipped. Run the result
+ * through sanitizeCandles + buildContinuousSeries before charting.
+ */
+export function ratioCandles(base: CandlestickData[], quote: CandlestickData[]): CandlestickData[] {
+    const q = new Map(quote.map((c) => [c.time, c]))
+    const out: CandlestickData[] = []
+    for (const b of base) {
+        const qc = q.get(b.time)
+        if (!qc) continue
+        if (qc.open <= 0 || qc.high <= 0 || qc.low <= 0 || qc.close <= 0) continue
+        out.push({
+            time: b.time,
+            open: b.open / qc.open,
+            high: b.high / qc.low,
+            low: b.low / qc.high,
+            close: b.close / qc.close,
+            volume: 0,
+        })
+    }
+    return out
+}
+
 export function stitchCandlesticks(
     bondingCurveCandles: CandlestickData[],
     v3Candles: CandlestickData[],

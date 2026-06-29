@@ -5,8 +5,11 @@ import {
     aggregateV3Candlesticks,
     buildContinuousSeries,
     sanitizeCandles,
+    tokenNativeCandles,
+    ratioCandles,
     SAFE_CANDLE_VALUE_MAX,
 } from '@/services/chart'
+import type { V3SwapEvent } from '@/services/chart'
 import type { CandlestickData } from '@/types/chart'
 
 const NATIVE = (n: number) => BigInt(n) * 10n ** 18n
@@ -288,5 +291,60 @@ describe('buildContinuousSeries', () => {
         const out = buildContinuousSeries([c(0, 4, 4, 4, 4)], '1h', 500, 10850)
         expect(out.map((o) => o.time)).toEqual([0, 3600, 7200, 10800])
         expect(out.every((o) => o.close === 4)).toBe(true)
+    })
+})
+
+describe('tokenNativeCandles', () => {
+    const Q96 = (2n ** 96n).toString() // sqrtPriceX96 for raw price 1
+    const ev = (timestamp: number, sqrt: string): V3SwapEvent => ({
+        timestamp,
+        amount0: '1000000000000000000',
+        amount1: '1000000000000000000',
+        sqrtPriceX96: sqrt,
+        tick: 0,
+    })
+    const TOKEN = '0x0000000000000000000000000000000000000001'
+    const WN = '0xffffffffffffffffffffffffffffffffffffffff'
+
+    it('rescales the raw V3 price by the token/native decimal difference', () => {
+        const at18 = tokenNativeCandles([ev(100, Q96)], TOKEN, 18, WN, 18, '1h')
+        const at6 = tokenNativeCandles([ev(100, Q96)], TOKEN, 6, WN, 18, '1h')
+        // 18-dec token: raw price 1 stays 1; 6-dec token: scaled by 10^(6-18) = 1e-12.
+        expect(at18[at18.length - 1]!.close).toBeCloseTo(1, 6)
+        expect(at6[at6.length - 1]!.close).toBeGreaterThan(1e-13)
+        expect(at6[at6.length - 1]!.close).toBeLessThan(1e-11)
+    })
+})
+
+describe('ratioCandles', () => {
+    const c = (
+        time: number,
+        open: number,
+        high: number,
+        low: number,
+        close: number
+    ): CandlestickData => ({ time, open, high, low, close, volume: 0 })
+
+    it('divides aligned OHLC using cross extremes (high=bH/qL, low=bL/qH)', () => {
+        const out = ratioCandles([c(0, 10, 12, 8, 11)], [c(0, 2, 4, 1, 2)])
+        expect(out).toHaveLength(1)
+        expect(out[0]).toMatchObject({
+            time: 0,
+            open: 5, // 10/2
+            high: 12, // baseHigh/quoteLow = 12/1
+            low: 2, // baseLow/quoteHigh = 8/4
+            close: 5.5, // 11/2
+            volume: 0,
+        })
+    })
+
+    it('inner-joins on time (skips buckets missing from quote)', () => {
+        const out = ratioCandles([c(0, 1, 1, 1, 1), c(3600, 2, 2, 2, 2)], [c(3600, 2, 2, 2, 2)])
+        expect(out.map((o) => o.time)).toEqual([3600])
+        expect(out[0]!.close).toBe(1)
+    })
+
+    it('skips buckets with a non-positive quote value', () => {
+        expect(ratioCandles([c(0, 1, 1, 1, 1)], [c(0, 0, 0, 0, 0)])).toEqual([])
     })
 })
