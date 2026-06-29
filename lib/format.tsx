@@ -69,6 +69,39 @@ export function formatRewardAmount(value: bigint, decimals: number): string {
     return num.toFixed(leadingZeros + 3)
 }
 
+const SUBSCRIPT = '₀₁₂₃₄₅₆₇₈₉'
+const toSubscript = (n: number) =>
+    String(n)
+        .split('')
+        .map((d) => SUBSCRIPT[+d])
+        .join('')
+
+/**
+ * Format a price for chart axes/headers. Tiny values use DexScreener-style
+ * subscript-zero ("hoist") notation — the subscript is the count of leading zeros
+ * after the decimal — instead of scientific notation:
+ *   0.0000995 → "0.0₄995", 0.000099552 → "0.0₄9955" (4 significant figures)
+ * Larger values use adaptive decimal precision. (Prices are non-negative.)
+ */
+export function formatChartPrice(value: number): string {
+    if (!Number.isFinite(value) || value === 0) return '0'
+    if (value >= 1000) return value.toFixed(2)
+    if (value >= 1) return value.toFixed(3)
+    if (value >= 0.01) return value.toFixed(4)
+    if (value >= 0.0001) return value.toFixed(6).replace(/\.?0+$/, '')
+
+    const exp = Math.floor(Math.log10(value)) // e.g. -5 for 9.95e-5
+    let leadingZeros = -exp - 1 // zeros after "0." before the first significant digit
+    let digits = Math.round((value / 10 ** exp) * 1000) // mantissa ∈ [1,10) → 4 sig figs
+    // Rounding can roll the mantissa over to 10.00 (e.g. 9.9996e-5 → 1.0e-4).
+    if (digits >= 10000) {
+        digits = Math.round(digits / 10)
+        leadingZeros -= 1
+    }
+    const sig = String(digits).replace(/0+$/, '') || '0'
+    return `0.0${toSubscript(leadingZeros)}${sig}`
+}
+
 /**
  * Calculate APR from pool fee, TVL, and 30-day volume
  * APR = ((dailyAvgVolume * feeRate) / TVL) * 365 * 100
