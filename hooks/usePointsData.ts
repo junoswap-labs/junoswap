@@ -64,7 +64,7 @@ export function usePointsData(
             // external kublerx) and external V2 volume are indexed for all supported
             // chains. Count every source where available.
             const [bondingCurve, v3, v2] = await Promise.all([
-                isLaunchpadChain(chainId) ? fetchSwapEvents(since) : Promise.resolve([]),
+                isLaunchpadChain(chainId) ? fetchSwapEvents(chainId, since) : Promise.resolve([]),
                 fetchV3SwapEvents(chainId, since),
                 fetchV2SwapEvents(chainId, since),
             ])

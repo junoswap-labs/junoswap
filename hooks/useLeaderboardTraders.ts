@@ -90,7 +90,7 @@ export function useLeaderboardTraders(
             // are indexed for all supported chains.
             const includeLaunchpad = isLaunchpadChain(chainId)
             const [swapEvents, v3SwapEvents, v2SwapEvents, tokenHolders] = await Promise.all([
-                includeLaunchpad ? fetchSwapEvents(since) : Promise.resolve([]),
+                includeLaunchpad ? fetchSwapEvents(chainId, since) : Promise.resolve([]),
                 fetchV3SwapEvents(chainId, since),
                 fetchV2SwapEvents(chainId, since),
                 includeLaunchpad ? fetchTokenHolders() : Promise.resolve([]),

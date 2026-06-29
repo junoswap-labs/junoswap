@@ -28,7 +28,9 @@ export function useUserSwapEvents(address: Address | undefined, chainId: number)
                 // Same protocols and parsing as the leaderboard/points fetchers, scoped
                 // to this trader, so portfolio PnL matches the leaderboard exactly.
                 const [bondingCurveEvents, v3Events, v2Events] = await Promise.all([
-                    hasLaunchpad ? fetchBondingCurveSwaps({ sender }) : Promise.resolve([]),
+                    hasLaunchpad
+                        ? fetchBondingCurveSwaps(chainId, { sender })
+                        : Promise.resolve([]),
                     fetchV3Swaps(chainId, { sender }),
                     fetchV2Swaps(chainId, { sender }),
                 ])

@@ -130,8 +130,11 @@ function toRow(p: ParsedSwap): SwapEventRow {
     }
 }
 
-export async function fetchSwapEvents(sinceTimestamp: number): Promise<SwapEventRow[]> {
-    return (await fetchBondingCurveSwaps({ since: sinceTimestamp })).map(toRow)
+export async function fetchSwapEvents(
+    chainId: number,
+    sinceTimestamp: number
+): Promise<SwapEventRow[]> {
+    return (await fetchBondingCurveSwaps(chainId, { since: sinceTimestamp })).map(toRow)
 }
 
 export async function fetchV3SwapEvents(
@@ -160,7 +163,7 @@ export async function fetchSwapEventsForSenders(
     if (senders.length === 0) return []
     const [bondingCurve, v3, v2] = await Promise.all([
         isLaunchpadChain(chainId)
-            ? fetchBondingCurveSwaps({ senderIn: senders })
+            ? fetchBondingCurveSwaps(chainId, { senderIn: senders })
             : Promise.resolve([]),
         fetchV3Swaps(chainId, { senderIn: senders }),
         fetchV2Swaps(chainId, { senderIn: senders }),

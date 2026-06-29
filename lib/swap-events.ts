@@ -199,8 +199,11 @@ function buildWhere(filters: string[]): string {
 }
 
 /** Bonding-curve swaps (launchpad chain only). Already buy/sell-normalized by the indexer. */
-export async function fetchBondingCurveSwaps(filter: SwapFilter): Promise<ParsedSwap[]> {
-    const filters: string[] = []
+export async function fetchBondingCurveSwaps(
+    chainId: number,
+    filter: SwapFilter
+): Promise<ParsedSwap[]> {
+    const filters = [`chainId: ${chainId}`]
     if (filter.sender) filters.push(`sender: "${filter.sender}"`)
     if (filter.senderIn) filters.push(`sender_in: ${gqlList(filter.senderIn)}`)
     if (filter.since && filter.since > 0) filters.push(`timestamp_gte: ${filter.since}`)

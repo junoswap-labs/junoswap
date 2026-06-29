@@ -105,13 +105,14 @@ interface TokenMeta {
 
 async function fetchBondingCurveEvents(
     sender: string,
+    chainId: number,
     limit: number,
     after?: string
 ): Promise<{ items: BondingCurvePage['swapEvents']['items']; totalCount: number }> {
     const query = `
-        query UserBcActivity($sender: String!, $limit: Int!, $after: String) {
+        query UserBcActivity($sender: String!, $chainId: Int!, $limit: Int!, $after: String) {
             swapEvents(
-                where: { sender: $sender },
+                where: { sender: $sender, chainId: $chainId },
                 orderBy: "timestamp",
                 orderDirection: "desc",
                 limit: $limit,
@@ -123,15 +124,16 @@ async function fetchBondingCurveEvents(
             }
         }
     `
-    const data = await ponderRequest<BondingCurvePage>(query, { sender, limit, after })
+    const data = await ponderRequest<BondingCurvePage>(query, { sender, chainId, limit, after })
     // Total count comes from a separate count query
     const countQuery = `
-        query UserBcCount($sender: String!) {
-            swapEvents(where: { sender: $sender }, limit: 0) { items { id } }
+        query UserBcCount($sender: String!, $chainId: Int!) {
+            swapEvents(where: { sender: $sender, chainId: $chainId }, limit: 0) { items { id } }
         }
     `
     const countData = await ponderRequest<BondingCurvePage>(countQuery, {
         sender,
+        chainId,
         limit: 0,
     })
     return {
@@ -221,14 +223,16 @@ async function fetchV2Events(
 
 async function fetchTransferEvents(
     sender: string,
+    chainId: number,
     limit: number
 ): Promise<{ items: TransferPage['transferEvents']['items']; totalCount: number }> {
     // The generated Ponder filter supports OR, so a single query covers both
-    // incoming and outgoing transfers for the connected wallet.
+    // incoming and outgoing transfers for the connected wallet. The OR is wrapped in
+    // an AND with chainId so the chain filter applies to both legs.
     const query = `
-        query UserTransfers($sender: String!, $limit: Int!) {
+        query UserTransfers($sender: String!, $chainId: Int!, $limit: Int!) {
             transferEvents(
-                where: { OR: [{ from: $sender }, { to: $sender }] },
+                where: { AND: [{ OR: [{ from: $sender }, { to: $sender }] }, { chainId: $chainId }] },
                 orderBy: "timestamp",
                 orderDirection: "desc",
                 limit: $limit
@@ -239,13 +243,13 @@ async function fetchTransferEvents(
             }
         }
     `
-    const data = await ponderRequest<TransferPage>(query, { sender, limit })
+    const data = await ponderRequest<TransferPage>(query, { sender, chainId, limit })
     const countQuery = `
-        query UserTransferCount($sender: String!) {
-            transferEvents(where: { OR: [{ from: $sender }, { to: $sender }] }, limit: 0) { items { id } }
+        query UserTransferCount($sender: String!, $chainId: Int!) {
+            transferEvents(where: { AND: [{ OR: [{ from: $sender }, { to: $sender }] }, { chainId: $chainId }] }, limit: 0) { items { id } }
         }
     `
-    const countData = await ponderRequest<TransferPage>(countQuery, { sender })
+    const countData = await ponderRequest<TransferPage>(countQuery, { sender, chainId })
     return {
         items: data.transferEvents.items,
         totalCount: countData.transferEvents.items.length,
@@ -324,12 +328,12 @@ export function useUserActivity(
                             : Promise.resolve(new Map<string, TokenMeta>()),
                         fetchV3TokenMeta(chainId),
                         hasLaunchpad
-                            ? fetchBondingCurveEvents(sender, PAGE_SIZE + 50)
+                            ? fetchBondingCurveEvents(sender, chainId, PAGE_SIZE + 50)
                             : Promise.resolve({ items: [], totalCount: 0 }),
                         fetchV3Events(sender, chainId, PAGE_SIZE + 50),
                         fetchV2Events(sender, chainId, PAGE_SIZE + 50),
                         hasLaunchpad
-                            ? fetchTransferEvents(sender, PAGE_SIZE + 50)
+                            ? fetchTransferEvents(sender, chainId, PAGE_SIZE + 50)
                             : Promise.resolve({ items: [], totalCount: 0 }),
                     ])
 
