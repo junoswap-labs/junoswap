@@ -114,6 +114,130 @@ export function aggregateCandlesticks(
     return Array.from(candles.values()).sort((a, b) => a.time - b.time)
 }
 
+export interface PricePoint {
+    timestamp: number
+    price: number
+}
+
+/**
+ * Bucket spot-price points (e.g. native→USD snapshots) into sparse per-bucket OHLC:
+ * open = first point in the bucket, close = last, high/low = extremes. Input must be
+ * sorted ascending by timestamp. Price-only series, so candle volume is 0. No gap fill
+ * or continuity here — pass the result through buildContinuousSeries for a render-ready
+ * (connected, windowed) series.
+ */
+export function aggregatePricePoints(
+    points: PricePoint[],
+    timeframe: Timeframe
+): CandlestickData[] {
+    if (points.length === 0) return []
+
+    const duration = TIMEFRAME_DURATIONS[timeframe]
+    const candles = new Map<number, CandlestickData>()
+
+    for (const point of points) {
+        if (point.price <= 0) continue
+        const candleTime = Math.floor(point.timestamp / duration) * duration
+        const existing = candles.get(candleTime)
+        if (!existing) {
+            candles.set(candleTime, {
+                time: candleTime,
+                open: point.price,
+                high: point.price,
+                low: point.price,
+                close: point.price,
+                volume: 0,
+            })
+        } else {
+            existing.high = Math.max(existing.high, point.price)
+            existing.low = Math.min(existing.low, point.price)
+            existing.close = point.price
+        }
+    }
+
+    return Array.from(candles.values()).sort((a, b) => a.time - b.time)
+}
+
+/**
+ * Turn sparse per-bucket candles into a continuous, render-ready series:
+ *  - snaps each candle's open to the previous candle's close so bodies connect
+ *    (no vertical jumps between candles),
+ *  - flat-fills every missing time bucket at the prior close (no time holes),
+ *  - extends flat from the last bucket to the current bucket (live right edge),
+ *  - caps to the most recent `maxCandles` buckets, so a year of history at a fine
+ *    timeframe can't expand into hundreds of thousands of candles.
+ * Input must be sorted ascending by time.
+ */
+export function buildContinuousSeries(
+    candles: CandlestickData[],
+    timeframe: Timeframe,
+    maxCandles = 500,
+    nowSec: number = Math.floor(Date.now() / 1000)
+): CandlestickData[] {
+    if (candles.length === 0) return []
+
+    const duration = TIMEFRAME_DURATIONS[timeframe]
+    const byTime = new Map<number, CandlestickData>()
+    for (const c of candles) byTime.set(c.time, c)
+
+    const firstBucket = candles[0]!.time
+    const lastBucket = candles[candles.length - 1]!.time
+    const nowBucket = Math.floor(nowSec / duration) * duration
+    const endTime = Math.max(lastBucket, nowBucket)
+    const startTime = Math.max(firstBucket, endTime - (maxCandles - 1) * duration)
+
+    // Seed prevClose from the last real candle strictly before the window so the first
+    // emitted candle connects to prior (off-screen) price; if the window starts at the
+    // first candle, open it at its own price.
+    let prevClose: number | undefined
+    for (const c of candles) {
+        if (c.time < startTime) prevClose = c.close
+        else break
+    }
+    if (prevClose === undefined) {
+        const firstInWindow = candles.find((c) => c.time >= startTime)
+        prevClose = firstInWindow ? firstInWindow.open : candles[0]!.close
+    }
+
+    const result: CandlestickData[] = []
+    for (let t = startTime; t <= endTime; t += duration) {
+        const real = byTime.get(t)
+        if (real) {
+            result.push({
+                ...real,
+                open: prevClose,
+                high: Math.max(real.high, prevClose),
+                low: Math.min(real.low, prevClose),
+            })
+            prevClose = real.close
+        } else {
+            result.push({
+                time: t,
+                open: prevClose,
+                high: prevClose,
+                low: prevClose,
+                close: prevClose,
+                volume: 0,
+            })
+        }
+    }
+
+    return result
+}
+
+// lightweight-charts rejects values outside ±~9.007e13. A V3 swap at a price-boundary
+// sqrtPrice (or a degenerate/misattributed pool) can yield an absurd price (~2^128),
+// which would throw when fed to the candlestick series. Drop candles whose OHLC falls
+// outside a safe range and zero out a stray volume so one bad event can't crash the chart.
+export const SAFE_CANDLE_VALUE_MAX = 9_000_000_000_000
+
+export function sanitizeCandles(candles: CandlestickData[]): CandlestickData[] {
+    const ok = (v: number) => Number.isFinite(v) && Math.abs(v) <= SAFE_CANDLE_VALUE_MAX
+    return candles
+        .filter((c) => ok(c.open) && ok(c.high) && ok(c.low) && ok(c.close))
+        .map((c) => (ok(c.volume) ? c : { ...c, volume: 0 }))
+}
+
 export interface V3SwapEvent {
     timestamp: number
     amount0: string

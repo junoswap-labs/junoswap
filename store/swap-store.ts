@@ -24,6 +24,7 @@ interface SwapStore extends SwapState {
     setDeadlineMinutes: (minutes: number) => void
     setExpertMode: (enabled: boolean) => void
     setAutoSelectBestDex: (enabled: boolean) => void
+    setShowChart: (enabled: boolean) => void
     setIsUpdatingFromUrl: (updating: boolean) => void
     setDexQuotes: (quotes: Record<DEXType, DexQuote>) => void
     setBestQuoteDex: (dexId: DEXType | null) => void
@@ -38,6 +39,7 @@ const defaultSettings: SwapSettings = {
     deadlineMinutes: 20,
     expertMode: false,
     autoSelectBestDex: true,
+    showChart: false,
 }
 
 const initialState: SwapState = {
@@ -119,6 +121,14 @@ export const useSwapStore = create<SwapStore>()(
                         settings: {
                             ...state.settings,
                             autoSelectBestDex: enabled,
+                        },
+                    })),
+
+                setShowChart: (enabled) =>
+                    set((state) => ({
+                        settings: {
+                            ...state.settings,
+                            showChart: enabled,
                         },
                     })),
 

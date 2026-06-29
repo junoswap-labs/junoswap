@@ -49,3 +49,29 @@ export function ponderRequest<T>(query: string, variables?: Record<string, unkno
             }
         )
 }
+
+export interface PonderPageInfo {
+    hasNextPage: boolean
+    endCursor: string | null
+}
+
+// Walk every page of a Ponder list query via opaque cursor. The cursor must be
+// pageInfo.endCursor (a raw row id is rejected server-side). Ponder caps a list
+// response at 50 items without an explicit limit, so callers must pass `limit`
+// (and a matching `$after` variable) in their query.
+export async function fetchAllPages<TResponse, TItem>(
+    query: string,
+    variables: Record<string, unknown>,
+    select: (r: TResponse) => { pageInfo: PonderPageInfo; items: TItem[] }
+): Promise<TItem[]> {
+    const items: TItem[] = []
+    let after: string | null = null
+    for (;;) {
+        const result = await ponderRequest<TResponse>(query, { ...variables, after })
+        const conn = select(result)
+        items.push(...conn.items)
+        if (!conn.pageInfo.hasNextPage || !conn.pageInfo.endCursor) break
+        after = conn.pageInfo.endCursor
+    }
+    return items
+}

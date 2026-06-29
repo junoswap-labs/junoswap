@@ -26,10 +26,10 @@ import { getDefaultPairTokens } from '@/lib/tokens'
 import { getDexConfig, isV2Config, getDefaultDexForChain, getSupportedDexs } from '@/lib/dex-config'
 import { TokenSelect } from './token-select'
 import { SettingsDialog } from './settings-dialog'
-import { ArrowDownUp, ArrowRightLeft } from 'lucide-react'
+import { ArrowDownUp, ArrowRightLeft, CandlestickChart } from 'lucide-react'
 import { toast } from 'sonner'
 import { isSameToken, getWrapOperation } from '@/services/tokens'
-import { isValidNumberInput } from '@/lib/utils'
+import { isValidNumberInput, cn } from '@/lib/utils'
 import { getChainMetadata, isNativeToken, shouldSkipUnwrap } from '@/lib/wagmi'
 import { useKkubUnwrap } from '@/hooks/useKkubUnwrap'
 
@@ -58,6 +58,7 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
         setIsLoading,
         setSlippage,
         setDeadlineMinutes,
+        setShowChart,
         selectedDex,
         setSelectedDex,
     } = useSwapStore()
@@ -358,7 +359,23 @@ export function SwapCard({ tokens: tokensOverride }: SwapCardProps) {
     return (
         <Card>
             <CardContent className="p-0">
-                <div className="space-y-2 p-6">
+                <div className="flex items-center justify-between px-6 pt-4">
+                    <h2 className="text-base font-semibold">Swap</h2>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Toggle price chart"
+                        title="Toggle price chart"
+                        className={cn(
+                            'h-8 w-8',
+                            settings.showChart ? 'text-primary' : 'text-muted-foreground'
+                        )}
+                        onClick={() => setShowChart(!settings.showChart)}
+                    >
+                        <CandlestickChart className="h-4 w-4" />
+                    </Button>
+                </div>
+                <div className="space-y-2 px-6 pb-6 pt-3">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="amount-in">From</Label>
                         <span
