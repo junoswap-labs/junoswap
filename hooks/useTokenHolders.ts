@@ -7,14 +7,17 @@ import type { Address } from 'viem'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { ERC20_ABI } from '@/lib/abis/erc20'
 import { ponderRequest } from '@/lib/ponder-client'
-import { fetchTokenTransferAddresses } from '@/lib/rpc/launchpad-queries'
 import type { HolderData } from '@/lib/rpc/launchpad-queries'
 
 export type { HolderData }
 
+// Wide candidate window: balances are text in Ponder so there's no reliable numeric
+// orderBy, and fetchRealBalances re-reads on-chain balances to pick the real top 20.
+// A larger pull keeps the true top holders in range for graduated tokens, which can
+// have many more holders than the bonding-curve phase.
 const TOKEN_HOLDERS_QUERY = `
   query TokenHolders($tokenAddr: String!) {
-    tokenHolders(where: { tokenAddr: $tokenAddr }, limit: 30) {
+    tokenHolders(where: { tokenAddr: $tokenAddr }, limit: 200) {
       items {
         address
       }
@@ -96,21 +99,14 @@ export function useTokenHolders(
         queryFn: async () => {
             if (!tokenAddr || !publicClient) return { holders: [], holderCount: 0 }
 
-            let addresses: Address[]
-            let holderCount: number
-
-            if (isGraduated) {
-                // For graduated tokens, use ERC20 Transfer events to find all holders
-                addresses = await fetchTokenTransferAddresses(publicClient, tokenAddr)
-                holderCount = addresses.length
-            } else {
-                // Non-graduated: Ponder only
-                const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
-                    tokenAddr: tokenAddr.toLowerCase(),
-                })
-                addresses = result.tokenHolders.items.map((h) => h.address as Address)
-                holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
-            }
+            // Ponder's tokenHolder table tracks holders across the whole lifecycle —
+            // bonding-curve swaps, P2P transfers, and post-graduation V3-pool trades — so
+            // the same query serves graduated and non-graduated tokens.
+            const result = await ponderRequest<TokenHoldersResponse>(TOKEN_HOLDERS_QUERY, {
+                tokenAddr: tokenAddr.toLowerCase(),
+            })
+            const addresses = result.tokenHolders.items.map((h) => h.address as Address)
+            const holderCount = result.tokenSnapshots.items[0]?.holderCount ?? addresses.length
 
             // Always fetch real on-chain balances via balanceOf
             const allAddresses = [...new Set(addresses)] as Address[]

@@ -252,15 +252,17 @@ async function handleGraduation({ event, context }: HandlerArgs) {
     })
 }
 
-// Launch-token ERC20 transfers. Feeds the Portfolio activity feed's transfer
-// rows. We exclude mints/burns (the zero address) and bonding-curve swaps
-// (counterparty is BondingCurveJunoswap) — those are already captured as swapEvent,
-// so recording them here would duplicate trades as transfers. tokenHolder
-// balances are owned by the swap handlers and intentionally left untouched.
+// Launch-token ERC20 transfers. Feeds the Portfolio activity feed's transfer rows
+// AND maintains tokenHolder balances for genuine token movements — P2P transfers and
+// post-graduation V3-pool trades (the pool emits LaunchToken transfers pool↔trader).
+// We exclude mints/burns (the zero address) and bonding-curve swap legs (counterparty
+// is BondingCurveJunoswap): those are already captured as swapEvent and their tokenHolder
+// balances are maintained by handleSwap, so recording them here would double-count.
 async function handleTransfer({ event, context }: HandlerArgs, chainId: number) {
     const { from, to, amount } = event.args
     const fromLower = from.toLowerCase()
     const toLower = to.toLowerCase()
+    const tokenAddrLower = event.log.address.toLowerCase()
     const bondingCurveLower = BONDING_CURVE_ADDRESS_BY_CHAIN[chainId]
 
     if (fromLower === zeroAddress || toLower === zeroAddress) return
@@ -271,7 +273,7 @@ async function handleTransfer({ event, context }: HandlerArgs, chainId: number) 
         .values({
             id: `${chainId}-${event.block.number}-${event.log.logIndex}`,
             chainId,
-            tokenAddr: event.log.address.toLowerCase(),
+            tokenAddr: tokenAddrLower,
             from: fromLower,
             to: toLower,
             amount: amount.toString(),
@@ -280,6 +282,55 @@ async function handleTransfer({ event, context }: HandlerArgs, chainId: number) 
             transactionHash: event.transaction.hash,
         })
         .onConflictDoNothing()
+
+    // Apply the balance delta to each side and adjust holderCount on a zero crossing,
+    // mirroring handleSwap. The snapshot is guaranteed to exist here: a non-curve transfer
+    // can only happen after a buy (which creates it), so we never need to create one.
+    const amt = BigInt(amount)
+    const fromNew = await applyHolderDelta(context, chainId, tokenAddrLower, fromLower, -amt)
+    const toNew = await applyHolderDelta(context, chainId, tokenAddrLower, toLower, amt)
+
+    const snap = await context.db.find(schema.tokenSnapshot, { tokenAddr: tokenAddrLower })
+    if (snap) {
+        let holderCount = snap.holderCount ?? 0
+        if (fromNew.crossedToZero) holderCount = Math.max(0, holderCount - 1)
+        if (toNew.crossedToPositive) holderCount += 1
+        if (holderCount !== (snap.holderCount ?? 0)) {
+            await context.db
+                .update(schema.tokenSnapshot, { tokenAddr: tokenAddrLower })
+                .set({ holderCount })
+        }
+    }
+}
+
+// Upserts a tokenHolder balance by `delta` and reports whether the balance crossed zero,
+// so the caller can keep holderCount in step.
+async function applyHolderDelta(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    context: any,
+    chainId: number,
+    tokenAddr: string,
+    address: string,
+    delta: bigint
+): Promise<{ crossedToPositive: boolean; crossedToZero: boolean }> {
+    const id = `${chainId}-${tokenAddr}-${address}`
+    const existing = await context.db.find(schema.tokenHolder, { id })
+    const oldBalance = existing ? BigInt(existing.balance) : 0n
+    const newBalance = oldBalance + delta
+
+    if (existing) {
+        await context.db.update(schema.tokenHolder, { id }).set({ balance: newBalance.toString() })
+    } else {
+        await context.db
+            .insert(schema.tokenHolder)
+            .values({ id, chainId, tokenAddr, address, balance: newBalance.toString() })
+            .onConflictDoNothing()
+    }
+
+    return {
+        crossedToPositive: oldBalance <= 0n && newBalance > 0n,
+        crossedToZero: oldBalance > 0n && newBalance <= 0n,
+    }
 }
 
 // kub testnet (chain 25925)
