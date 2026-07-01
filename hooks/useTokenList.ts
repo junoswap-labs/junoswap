@@ -5,6 +5,7 @@ import { useChainId } from 'wagmi'
 import type { Address } from 'viem'
 import { isLaunchpadChain } from '@/lib/abis/bonding-curve-junoswap'
 import { ponderRequest } from '@/lib/ponder-client'
+import { normalizePinataGateway } from '@/lib/ipfs'
 import type { LaunchToken } from '@/types/launchpad'
 
 const TOKEN_LIST_QUERY = `
@@ -103,7 +104,7 @@ export function useTokenList(): UseTokenListResult {
                     address: t.tokenAddr as Address,
                     name: t.name ?? '',
                     symbol: t.symbol ?? '',
-                    logo: t.logo ?? '',
+                    logo: t.logo ? normalizePinataGateway(t.logo) : '',
                     description: t.description ?? '',
                     link1: t.link1 ?? '',
                     link2: t.link2 ?? '',

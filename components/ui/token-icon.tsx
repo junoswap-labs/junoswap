@@ -1,16 +1,20 @@
 'use client'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useState } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 type TokenIconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
-const SIZE_MAP: Record<TokenIconSize, { container: string; text: string }> = {
-    xs: { container: 'h-5 w-5', text: 'text-[9px]' },
-    sm: { container: 'h-8 w-8', text: 'text-[10px]' },
-    md: { container: 'h-9 w-9', text: 'text-[11px]' },
-    lg: { container: 'h-12 w-12', text: 'text-sm' },
-    xl: { container: 'h-20 w-20', text: 'text-xl' },
+// `sizes` reflects the largest rendered width per preset so the Next.js image
+// optimizer generates an appropriately small source (xl cards scale up to 120px
+// via the className override in token-card.tsx).
+const SIZE_MAP: Record<TokenIconSize, { container: string; text: string; sizes: string }> = {
+    xs: { container: 'h-5 w-5', text: 'text-[9px]', sizes: '20px' },
+    sm: { container: 'h-8 w-8', text: 'text-[10px]', sizes: '32px' },
+    md: { container: 'h-9 w-9', text: 'text-[11px]', sizes: '36px' },
+    lg: { container: 'h-12 w-12', text: 'text-sm', sizes: '48px' },
+    xl: { container: 'h-20 w-20', text: 'text-xl', sizes: '120px' },
 }
 
 function getInitials(symbol: string | null | undefined): string {
@@ -39,14 +43,34 @@ export function TokenIcon({
     variant = 'circle',
     className,
 }: TokenIconProps) {
-    const { container, text } = SIZE_MAP[size]
+    // Keyed remount on src change resets the error state so a new logo gets a fresh try.
+    return (
+        <TokenIconInner
+            key={src ?? ''}
+            src={src}
+            symbol={symbol}
+            size={size}
+            variant={variant}
+            className={className}
+        />
+    )
+}
+
+function TokenIconInner({
+    src,
+    symbol,
+    size = 'sm',
+    variant = 'circle',
+    className,
+}: TokenIconProps) {
+    const [errored, setErrored] = useState(false)
+    const { container, text, sizes } = SIZE_MAP[size]
     const shape = variant === 'square' ? 'rounded-xl' : 'rounded-full'
     const fallbackStyle = cn(text, 'bg-primary/15 text-primary font-semibold')
 
-    // No logo: render the initials badge directly rather than relying on Radix's
-    // image-fallback path, so logo-less tokens (imported / external V3) always show a
-    // legible icon instead of an empty circle.
-    if (!src) {
+    // No logo (or a failed load): render the initials badge directly so logo-less or
+    // broken-logo tokens (imported / external V3) always show a legible icon.
+    if (!src || errored) {
         return (
             <span
                 className={cn(
@@ -63,10 +87,18 @@ export function TokenIcon({
     }
 
     return (
-        <Avatar className={cn(container, 'shrink-0', shape, className)}>
-            <AvatarImage src={src} alt={symbol ?? 'Token'} />
-            <AvatarFallback className={fallbackStyle}>{getInitials(symbol)}</AvatarFallback>
-        </Avatar>
+        <span
+            className={cn(container, shape, 'relative block shrink-0 overflow-hidden', className)}
+        >
+            <Image
+                src={src}
+                alt={symbol ?? 'Token'}
+                fill
+                sizes={sizes}
+                className="object-cover"
+                onError={() => setErrored(true)}
+            />
+        </span>
     )
 }
 

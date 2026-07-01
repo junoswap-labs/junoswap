@@ -10,7 +10,7 @@ const ALLOWED_MIME_TYPES = [
 
 const MAX_FILE_SIZE = 1024 * 1024 // 1MB
 const PINATA_UPLOAD_URL = 'https://uploads.pinata.cloud/v3/files'
-const PINATA_GATEWAY = 'https://gateway.pinata.cloud/ipfs'
+const PINATA_GATEWAY = 'https://cmswap.mypinata.cloud/ipfs'
 
 interface UploadResult {
     success: true

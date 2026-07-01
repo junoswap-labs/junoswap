@@ -7,6 +7,7 @@ import { getTokensForChain } from '@/lib/tokens'
 import { isNativeToken } from '@/lib/wagmi'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderRequest, isPonderError } from '@/lib/ponder-client'
+import { normalizePinataGateway } from '@/lib/ipfs'
 import { isLaunchpadChain as isLaunchpadChainFn } from '@/lib/abis/bonding-curve-junoswap'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import type { Token } from '@/types/tokens'
@@ -100,7 +101,7 @@ export function useTokenDiscovery(chainId: number) {
                         name: t.name || 'Unknown Token',
                         decimals: 18,
                         chainId,
-                        logo: t.logo ?? undefined,
+                        logo: t.logo ? normalizePinataGateway(t.logo) : undefined,
                     })
                 )
             } catch (e) {
