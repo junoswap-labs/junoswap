@@ -6,8 +6,8 @@ import type { Address } from 'viem'
 import {
     ProtocolType,
     getDexConfig,
-    UNISWAP_V3_FACTORY_ABI,
-    UNISWAP_V3_POOL_ABI,
+    V3_FACTORY_ABI,
+    V3_POOL_ABI,
     sortTokens,
     getTickSpacing,
 } from '@coshi190/juno-moneta-sdk'
@@ -39,7 +39,7 @@ export function usePool(
         error: poolError,
     } = useReadContract({
         address: dexConfig?.factory,
-        abi: UNISWAP_V3_FACTORY_ABI,
+        abi: V3_FACTORY_ABI,
         functionName: 'getPool',
         args: isEnabled ? [sortedToken0!.address, sortedToken1!.address, fee] : undefined,
         chainId: effectiveChainId,
@@ -58,13 +58,13 @@ export function usePool(
         contracts: [
             {
                 address: poolAddress as Address,
-                abi: UNISWAP_V3_POOL_ABI,
+                abi: V3_POOL_ABI,
                 functionName: 'slot0',
                 chainId: effectiveChainId,
             },
             {
                 address: poolAddress as Address,
-                abi: UNISWAP_V3_POOL_ABI,
+                abi: V3_POOL_ABI,
                 functionName: 'liquidity',
                 chainId: effectiveChainId,
             },

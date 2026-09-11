@@ -12,7 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { zeroAddress, type Address } from 'viem'
 import {
-    ERC20_ABI,
+    KAP20_ABI,
     calculateBuyOutput,
     calculateSellOutput,
     planCurveCall,
@@ -64,7 +64,7 @@ export function useBondingCurveSwapExecution({
 
     const { data: allowance = 0n } = useReadContract({
         address: tokenAddr ?? undefined,
-        abi: ERC20_ABI,
+        abi: KAP20_ABI,
         functionName: tokenAddr ? getAllowanceFunctionName(tokenAddr) : 'allowance',
         args: [address ?? zeroAddress, bondingCurveAddress ?? zeroAddress],
         chainId,

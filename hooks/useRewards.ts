@@ -4,7 +4,7 @@ import { getStakerAddress, type EarnProgram } from '@/lib/earn-programs'
 import { useMemo, useRef } from 'react'
 import { useReadContract, useReadContracts, useChainId } from 'wagmi'
 import type { IncentiveKey, StakedPosition } from '@/types/earn'
-import { UNISWAP_V3_STAKER_ABI } from '@coshi190/juno-moneta-sdk'
+import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import { calculateRewardRate } from '@/services/mining/create-incentive'
 export function usePendingRewards(
     incentiveKey: IncentiveKey | null,

@@ -1,5 +1,6 @@
 import type { Address } from 'viem'
-import { ProtocolType, getDexConfig, UNISWAP_V3_STAKER_ABI } from '@coshi190/juno-moneta-sdk'
+import { ProtocolType, getDexConfig } from '@coshi190/juno-moneta-sdk'
+import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import { JUNO_V3_STAKER_ABI } from '@/lib/abis/juno-v3-staker'
 
 /** LP farming programs. The Uniswap staker comes from the SDK registry; ours is deployed here. */

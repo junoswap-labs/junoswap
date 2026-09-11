@@ -17,7 +17,7 @@
         "clean": "rm -rf .next out build tsconfig.tsbuildinfo coverage playwright-report test-results .vercel"
     },
     "dependencies": {
-        "@coshi190/juno-moneta-sdk": "0.40.0",
+        "@coshi190/juno-moneta-sdk": "0.43.0",
         "@lifi/sdk": "^3.16.3",
         "@metamask/jazzicon": "^2.0.0",
         "@radix-ui/react-avatar": "^1.1.11",

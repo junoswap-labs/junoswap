@@ -1,6 +1,6 @@
 import { encodeFunctionData, encodeAbiParameters, keccak256, type Address, type Hex } from 'viem'
 import type { IncentiveKey, UnstakeParams } from '@/types/earn'
-import { UNISWAP_V3_STAKER_ABI } from '@coshi190/juno-moneta-sdk'
+import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 
 /**
  * The staker keys every incentive by `keccak256(abi.encode(key))`, which is the same encoding

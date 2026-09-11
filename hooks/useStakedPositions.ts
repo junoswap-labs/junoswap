@@ -11,7 +11,8 @@ import { useReadContracts, useChainId } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import type { StakedPosition, Incentive, DepositInfo, PositionWithTokens } from '@/types/earn'
-import { UNISWAP_V3_STAKER_ABI, fetchPositionsByTokenIds } from '@coshi190/juno-moneta-sdk'
+import { fetchPositionsByTokenIds } from '@coshi190/juno-moneta-sdk'
+import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 export function useStakedPositions(
     positions: PositionWithTokens[],

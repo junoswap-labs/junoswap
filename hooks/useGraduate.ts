@@ -8,9 +8,9 @@ import {
     ProtocolType,
     getDexConfig,
     NONFUNGIBLE_POSITION_MANAGER_ABI,
-    UNISWAP_V3_FACTORY_ABI,
-    UNISWAP_V3_POOL_ABI,
-    UNISWAP_V3_SWAP_ROUTER_ABI,
+    V3_FACTORY_ABI,
+    V3_POOL_ABI,
+    V3_SWAP_ROUTER_ABI,
     WETH9_ABI,
     ERC20_ABI,
     getCurveState,
@@ -166,7 +166,7 @@ export function useGraduate({
 
             const poolAddress = (await publicClient.readContract({
                 address: factory,
-                abi: UNISWAP_V3_FACTORY_ABI,
+                abi: V3_FACTORY_ABI,
                 functionName: 'getPool',
                 args: [token0, token1, 10000],
             })) as Address
@@ -178,7 +178,7 @@ export function useGraduate({
             if (poolAddress && poolAddress !== ZERO_ADDR) {
                 const slot0 = (await publicClient.readContract({
                     address: poolAddress,
-                    abi: UNISWAP_V3_POOL_ABI,
+                    abi: V3_POOL_ABI,
                     functionName: 'slot0',
                 })) as [bigint, number, number, number, number, number, boolean]
 
@@ -412,7 +412,7 @@ export function useGraduate({
 
                 const latestSlot0 = (await publicClient.readContract({
                     address: poolAddress,
-                    abi: UNISWAP_V3_POOL_ABI,
+                    abi: V3_POOL_ABI,
                     functionName: 'slot0',
                 })) as [bigint, number, number, number, number, number, boolean]
                 const latestSqrtPrice = latestSlot0[0]
@@ -435,7 +435,7 @@ export function useGraduate({
                         if (swapAmount > 0n) {
                             await sendTx({
                                 address: swapRouter,
-                                abi: UNISWAP_V3_SWAP_ROUTER_ABI,
+                                abi: V3_SWAP_ROUTER_ABI,
                                 functionName: 'exactInputSingle',
                                 args: [
                                     {
@@ -460,7 +460,7 @@ export function useGraduate({
                         if (swapAmount > 0n) {
                             await sendTx({
                                 address: swapRouter,
-                                abi: UNISWAP_V3_SWAP_ROUTER_ABI,
+                                abi: V3_SWAP_ROUTER_ABI,
                                 functionName: 'exactInputSingle',
                                 args: [
                                     {

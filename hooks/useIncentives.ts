@@ -9,9 +9,9 @@ import {
     fetchIncentives,
     ProtocolType,
     getDexConfig,
-    UNISWAP_V3_STAKER_ABI,
     type V3PoolRow,
 } from '@coshi190/juno-moneta-sdk'
+import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import type { Token } from '@/types/token'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { findTokenByAddress } from '@/lib/tokens'

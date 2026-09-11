@@ -2,11 +2,7 @@
 
 import { useReadContract } from 'wagmi'
 import type { Address } from 'viem'
-import {
-    UNISWAP_V3_POOL_ABI,
-    calculatePriceFromSqrtPrice,
-    TOTAL_SUPPLY,
-} from '@coshi190/juno-moneta-sdk'
+import { V3_POOL_ABI, calculatePriceFromSqrtPrice, TOTAL_SUPPLY } from '@coshi190/juno-moneta-sdk'
 
 interface UseGraduatedPoolPriceParams {
     poolAddress?: Address
@@ -33,7 +29,7 @@ export function useGraduatedPoolPrice({
 }: UseGraduatedPoolPriceParams): UseGraduatedPoolPriceResult {
     const { data: slot0 } = useReadContract({
         address: poolAddress,
-        abi: UNISWAP_V3_POOL_ABI,
+        abi: V3_POOL_ABI,
         functionName: 'slot0' as const,
         chainId,
         query: {

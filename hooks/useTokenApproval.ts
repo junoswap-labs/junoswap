@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
-import { getDexConfig, ProtocolType, ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getDexConfig, ProtocolType, KAP20_ABI } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { buildInfiniteApprovalParams, needsApproval, getAllowanceFunctionName } from '@/lib/tokens'
 import { useSwapStore } from '@/store/swap-store'
@@ -42,7 +42,7 @@ export function useTokenApproval({
     const isTokenNative = token ? isNativeToken(token.address) : false
     const { data: allowance = 0n, refetch: refetchAllowance } = useReadContract({
         address: token?.address as Address,
-        abi: ERC20_ABI,
+        abi: KAP20_ABI,
         functionName: token ? getAllowanceFunctionName(token.address) : 'allowance',
         args: [owner ?? zeroAddress, spender ?? zeroAddress],
         chainId: token?.chainId,

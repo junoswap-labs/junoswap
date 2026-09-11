@@ -14,9 +14,9 @@ import type { IncentiveKey, PositionWithTokens } from '@/types/earn'
 import {
     ProtocolType,
     getDexConfig,
-    UNISWAP_V3_STAKER_ABI,
     NONFUNGIBLE_POSITION_MANAGER_ABI,
 } from '@coshi190/juno-moneta-sdk'
+import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import {
     encodeIncentiveKeyData,
     buildUnstakeAndWithdrawMulticall,

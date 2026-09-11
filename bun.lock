@@ -5,7 +5,7 @@
     "": {
       "name": "junoswap",
       "dependencies": {
-        "@coshi190/juno-moneta-sdk": "0.40.0",
+        "@coshi190/juno-moneta-sdk": "0.43.0",
         "@lifi/sdk": "^3.16.3",
         "@metamask/jazzicon": "^2.0.0",
         "@radix-ui/react-avatar": "^1.1.11",
@@ -93,7 +93,7 @@
 
     "@coinbase/wallet-sdk": ["@coinbase/wallet-sdk@4.3.6", "", { "dependencies": { "@noble/hashes": "1.4.0", "clsx": "1.2.1", "eventemitter3": "5.0.1", "idb-keyval": "6.2.1", "ox": "0.6.9", "preact": "10.24.2", "viem": "^2.27.2", "zustand": "5.0.3" } }, "sha512-4q8BNG1ViL4mSAAvPAtpwlOs1gpC+67eQtgIwNvT3xyeyFFd+guwkc8bcX5rTmQhXpqnhzC4f0obACbP9CqMSA=="],
 
-    "@coshi190/juno-moneta-sdk": ["@coshi190/juno-moneta-sdk@0.40.0", "", { "dependencies": { "graphql-request": "^7.4.0" }, "peerDependencies": { "viem": "^2.25.0" } }, "sha512-An708dwJMk2DyfJdcgHMxYIt34li4dpk83yBYPL7MMy5B89CHVI+plRZtbP1+BD0jQODXtGVi8LHZjRzovxKNw=="],
+    "@coshi190/juno-moneta-sdk": ["@coshi190/juno-moneta-sdk@0.43.0", "", { "dependencies": { "graphql-request": "^7.4.0" }, "peerDependencies": { "viem": "^2.25.0" } }, "sha512-0FI4fum8/qeCibSp641AIx1qgf3IiB9yjGKusOStyg7KlXRuDaMUGThFSq5JTk3oNHBCF90DXXwPxuJmU1N8/w=="],
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.5", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-GalEZH4JgOMHYYcYmVqnFirFsjZHeoGMDt9IxEnM9F7GRUUyUksJ7Ou53L83WHJq3RWKD3AcBpo0iQh0oMpf8A=="],
 
