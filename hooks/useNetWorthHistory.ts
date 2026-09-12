@@ -6,7 +6,7 @@ import {
     computeNetWorthHistory,
     needsPriceHistory,
     type NetWorthPoint,
-} from '@coshi190/juno-moneta-sdk'
+} from '@/services/portfolio/net-worth'
 import { fetchTokenPriceHistory, type PricePoint } from '@/lib/price-history'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 import type { UserSwapEvent } from '@/hooks/useUserSwapEvents'

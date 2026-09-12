@@ -2,17 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { fetchUserSwapEvents } from '@coshi190/juno-moneta-sdk'
-import { ponderClient } from '@/lib/ponder-client'
+import { fetchUserSwapEvents, type UserSwapEvent } from '@/lib/user-swaps'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 
-export interface UserSwapEvent {
-    tokenAddr: string
-    isBuy: boolean
-    amountIn: string
-    amountOut: string
-    timestamp: number
-}
+export type { UserSwapEvent }
 
 export function useUserSwapEvents(address: Address | undefined, chainId: number) {
     const isSupportedChain = isLeaderboardSupportedChain(chainId)
@@ -21,7 +14,7 @@ export function useUserSwapEvents(address: Address | undefined, chainId: number)
         queryKey: ['user-swap-events', address, chainId],
         queryFn: async (): Promise<UserSwapEvent[]> => {
             if (!address || !isSupportedChain) return []
-            return fetchUserSwapEvents(ponderClient, { chainId, address })
+            return fetchUserSwapEvents(chainId, address)
         },
         enabled: !!address && isSupportedChain,
         staleTime: 60_000,
