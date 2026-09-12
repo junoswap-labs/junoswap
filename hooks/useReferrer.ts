@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import type { Address } from 'viem'
-import { normalizeReferrer, DEFAULT_REFERRER } from '@coshi190/juno-moneta-sdk'
+import { isAddress, type Address } from 'viem'
 import { useReferralStore } from '@/store/referral-store'
 
-export function useReferrer(): Address {
+function resolveReferrer(raw: string | null | undefined): Address | null {
+    return raw && isAddress(raw) ? (raw as Address) : null
+}
+
+export function useReferrer(): Address | null {
     const searchParams = useSearchParams()
     const urlRef = searchParams.get('ref')
     const storedRef = useReferralStore((s) => s.referrer)
@@ -14,18 +17,11 @@ export function useReferrer(): Address {
 
     useEffect(() => {
         if (!urlRef) return
-        const normalized = normalizeReferrer(urlRef)
-        if (
-            normalized !== DEFAULT_REFERRER &&
-            normalized.toLowerCase() !== storedRef?.toLowerCase()
-        ) {
+        const normalized = resolveReferrer(urlRef)
+        if (normalized && normalized.toLowerCase() !== storedRef?.toLowerCase()) {
             setReferrer(normalized)
         }
     }, [urlRef, storedRef, setReferrer])
 
-    return useMemo(() => {
-        const fromUrl = normalizeReferrer(urlRef)
-        if (fromUrl !== DEFAULT_REFERRER) return fromUrl
-        return normalizeReferrer(storedRef)
-    }, [urlRef, storedRef])
+    return useMemo(() => resolveReferrer(urlRef) ?? resolveReferrer(storedRef), [urlRef, storedRef])
 }

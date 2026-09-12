@@ -3,10 +3,14 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import type { TokenPnl, PortfolioPnlTotals } from '@coshi190/juno-moneta-sdk'
 import type { TokenHolding } from '@/hooks/useMultiBalances'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
-import { fetchPortfolioPnl, EMPTY_PNL_TOTALS } from '@/lib/user-pnl'
+import {
+    fetchPortfolioPnl,
+    EMPTY_PNL_TOTALS,
+    type TokenPnl,
+    type PortfolioPnlTotals,
+} from '@/lib/user-pnl'
 
 export function usePortfolioPnl(
     address: Address | undefined,

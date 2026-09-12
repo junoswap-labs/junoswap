@@ -1,5 +1,21 @@
-import type { TokenPnl, PortfolioPnlTotals } from '@coshi190/juno-moneta-sdk'
 import { getJson, ponderBaseUrl } from '@/lib/indexer-http'
+
+export interface TokenPnl {
+    costBasisUsd: number
+    totalInvestedUsd: number
+    realizedUsd: number
+    unrealizedUsd: number
+    totalPnlUsd: number
+    pnlPercent: number
+}
+
+export interface PortfolioPnlTotals {
+    totalInvestedUsd: number
+    realizedUsd: number
+    unrealizedUsd: number
+    totalPnlUsd: number
+    totalPnlPercent: number
+}
 
 export interface UserPnlResponse {
     perToken: Record<string, TokenPnl>

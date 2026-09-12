@@ -3,9 +3,15 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAccount, useChainId } from 'wagmi'
-import { fetchReferralRewards, type ReferredTrader } from '@coshi190/juno-moneta-sdk'
+import { fetchReferralRewards } from '@coshi190/juno-moneta-sdk'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
+
+export interface ReferredTrader {
+    address: string
+    points: number
+    volumeUsd: number
+}
 
 export interface ReferralRewards {
     referralPoints: number
