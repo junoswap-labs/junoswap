@@ -1,10 +1,10 @@
+import { getDexConfig, getSupportedDexs, ProtocolType } from '@coshi190/juno-moneta-sdk'
 import {
     computePoolPrice,
     computeTickPrice,
-    getDexConfig,
-    getSupportedDexs,
-    ProtocolType,
-} from '@coshi190/juno-moneta-sdk'
+    tickToSqrtPriceX96,
+    type TickRange,
+} from '@/lib/tick-math'
 
 /** Fee tiers are hundredths of a bip, so 3000 renders as '0.30%'. */
 export function formatFeeTier(fee: number): string {
@@ -79,4 +79,145 @@ export function sqrtPriceX96ToPrice(
 /** Display price at a tick, in the same formatting bands as {@link sqrtPriceX96ToPrice}. */
 export function tickToPrice(tick: number, decimals0: number, decimals1: number): string {
     return formatPoolPrice(computeTickPrice({ tick, decimals0, decimals1 }))
+}
+
+/**
+ * Below here is liquidity math the SDK no longer publishes. `computeDependentAmount` was the only
+ * exported entry point, junoswap its only consumer, and the whole chain is pure arithmetic with no
+ * chain access and no SDK state, so it lives here rather than behind the SDK's version boundary.
+ */
+
+const Q96 = 2n ** 96n
+
+function getLiquidityForAmount0(
+    sqrtPriceAX96: bigint,
+    sqrtPriceBX96: bigint,
+    amount0: bigint
+): bigint {
+    if (sqrtPriceAX96 > sqrtPriceBX96) {
+        ;[sqrtPriceAX96, sqrtPriceBX96] = [sqrtPriceBX96, sqrtPriceAX96]
+    }
+    const intermediate = (sqrtPriceAX96 * sqrtPriceBX96) / Q96
+    return (amount0 * intermediate) / (sqrtPriceBX96 - sqrtPriceAX96)
+}
+
+function getLiquidityForAmount1(
+    sqrtPriceAX96: bigint,
+    sqrtPriceBX96: bigint,
+    amount1: bigint
+): bigint {
+    if (sqrtPriceAX96 > sqrtPriceBX96) {
+        ;[sqrtPriceAX96, sqrtPriceBX96] = [sqrtPriceBX96, sqrtPriceAX96]
+    }
+    return (amount1 * Q96) / (sqrtPriceBX96 - sqrtPriceAX96)
+}
+
+function getAmount0ForLiquidity(
+    sqrtPriceAX96: bigint,
+    sqrtPriceBX96: bigint,
+    liquidity: bigint
+): bigint {
+    if (sqrtPriceAX96 > sqrtPriceBX96) {
+        ;[sqrtPriceAX96, sqrtPriceBX96] = [sqrtPriceBX96, sqrtPriceAX96]
+    }
+    return (liquidity * Q96 * (sqrtPriceBX96 - sqrtPriceAX96)) / sqrtPriceBX96 / sqrtPriceAX96
+}
+
+function getAmount1ForLiquidity(
+    sqrtPriceAX96: bigint,
+    sqrtPriceBX96: bigint,
+    liquidity: bigint
+): bigint {
+    if (sqrtPriceAX96 > sqrtPriceBX96) {
+        ;[sqrtPriceAX96, sqrtPriceBX96] = [sqrtPriceBX96, sqrtPriceAX96]
+    }
+    return (liquidity * (sqrtPriceBX96 - sqrtPriceAX96)) / Q96
+}
+
+function calculateAmount1FromAmount0(
+    sqrtPriceX96: bigint,
+    sqrtPriceLowerX96: bigint,
+    sqrtPriceUpperX96: bigint,
+    amount0: bigint
+): bigint {
+    if (amount0 === 0n) return 0n
+
+    if (sqrtPriceLowerX96 > sqrtPriceUpperX96) {
+        ;[sqrtPriceLowerX96, sqrtPriceUpperX96] = [sqrtPriceUpperX96, sqrtPriceLowerX96]
+    }
+
+    if (sqrtPriceX96 <= sqrtPriceLowerX96) {
+        return 0n
+    } else if (sqrtPriceX96 >= sqrtPriceUpperX96) {
+        return 0n
+    } else {
+        const liquidity = getLiquidityForAmount0(sqrtPriceX96, sqrtPriceUpperX96, amount0)
+        return getAmount1ForLiquidity(sqrtPriceLowerX96, sqrtPriceX96, liquidity)
+    }
+}
+
+function calculateAmount0FromAmount1(
+    sqrtPriceX96: bigint,
+    sqrtPriceLowerX96: bigint,
+    sqrtPriceUpperX96: bigint,
+    amount1: bigint
+): bigint {
+    if (amount1 === 0n) return 0n
+
+    if (sqrtPriceLowerX96 > sqrtPriceUpperX96) {
+        ;[sqrtPriceLowerX96, sqrtPriceUpperX96] = [sqrtPriceUpperX96, sqrtPriceLowerX96]
+    }
+
+    if (sqrtPriceX96 <= sqrtPriceLowerX96) {
+        return 0n
+    } else if (sqrtPriceX96 >= sqrtPriceUpperX96) {
+        return 0n
+    } else {
+        const liquidity = getLiquidityForAmount1(sqrtPriceLowerX96, sqrtPriceX96, amount1)
+        return getAmount0ForLiquidity(sqrtPriceX96, sqrtPriceUpperX96, liquidity)
+    }
+}
+
+function mirrorRange(tickLower: number, tickUpper: number, invert: boolean | undefined): TickRange {
+    if (!invert) return { tickLower, tickUpper }
+    return { tickLower: -tickUpper, tickUpper: -tickLower }
+}
+
+export interface DependentAmountParams {
+    sqrtPriceX96: bigint
+    tickLower: number
+    tickUpper: number
+    amount: bigint
+    side: 'token0' | 'token1'
+    invert?: boolean
+}
+
+/**
+ * The other side of a liquidity deposit: given one token amount and a range, how much of the other
+ * token the position needs at the current price. Returns 0n when the price sits outside the range,
+ * which is the single-sided case the deposit dialogs render as an empty field.
+ *
+ * `invert` means the caller's token0/token1 are reversed relative to canonical pool order, so both
+ * the range and the requested side are mirrored back into pool orientation before the math runs.
+ */
+export function computeDependentAmount(params: DependentAmountParams): bigint {
+    const { tickLower, tickUpper } = mirrorRange(params.tickLower, params.tickUpper, params.invert)
+    const sqrtPriceLowerX96 = tickToSqrtPriceX96(tickLower)
+    const sqrtPriceUpperX96 = tickToSqrtPriceX96(tickUpper)
+    const poolSide = params.invert ? (params.side === 'token0' ? 'token1' : 'token0') : params.side
+
+    if (poolSide === 'token0') {
+        return calculateAmount1FromAmount0(
+            params.sqrtPriceX96,
+            sqrtPriceLowerX96,
+            sqrtPriceUpperX96,
+            params.amount
+        )
+    }
+    return calculateAmount0FromAmount1(
+        params.sqrtPriceX96,
+        sqrtPriceLowerX96,
+        sqrtPriceUpperX96,
+        params.amount
+    )
 }

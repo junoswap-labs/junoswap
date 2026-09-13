@@ -8,11 +8,10 @@ import type {
 import {
     NONFUNGIBLE_POSITION_MANAGER_ABI,
     getTickSpacing,
-    invertSqrtPriceX96,
     planAddLiquidity,
     planIncreaseLiquidity,
-    sortTokens,
 } from '@coshi190/juno-moneta-sdk'
+import { invertSqrtPriceX96, sortTokens } from '@/lib/tick-math'
 import { isNativeToken } from '@/lib/wagmi'
 import { getWrappedNativeAddress } from '@/lib/tokens'
 

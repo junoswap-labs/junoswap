@@ -1,17 +1,15 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
-import {
-    ProtocolType,
-    getDexConfig,
-    computeDependentAmount,
-    computeInitialSqrtPriceX96,
-    getFullRange,
-    getTickForPrice,
-    getTickSpacing,
-} from '@coshi190/juno-moneta-sdk'
+import { ProtocolType, getDexConfig, getTickSpacing } from '@coshi190/juno-moneta-sdk'
+import { computeInitialSqrtPriceX96, getFullRange, getTickForPrice } from '@/lib/tick-math'
 import { getPresetTickRange } from '@/lib/range-presets'
-import { defaultFeeTier, formatFeeTier, v3FeeTiers } from '@/lib/liquidity-helpers'
+import {
+    computeDependentAmount,
+    defaultFeeTier,
+    formatFeeTier,
+    v3FeeTiers,
+} from '@/lib/liquidity-helpers'
 import type { Token } from '@/types/token'
 import { useAccount, useChainId } from 'wagmi'
 import { useRouter } from 'next/navigation'

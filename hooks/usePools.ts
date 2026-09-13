@@ -8,9 +8,9 @@ import {
     getDexConfig,
     V3_FACTORY_ABI,
     V3_POOL_ABI,
-    sortTokens,
     getTickSpacing,
 } from '@coshi190/juno-moneta-sdk'
+import { sortTokens } from '@/lib/tick-math'
 import type { Token } from '@/types/token'
 import type { V3PoolData } from '@/types/earn'
 

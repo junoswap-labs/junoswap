@@ -1,5 +1,3 @@
-import { computePositionValueUsd } from '@coshi190/juno-moneta-sdk'
-
 export const SECONDS_PER_YEAR = 31_536_000
 
 /**
@@ -14,14 +12,10 @@ export function positionValueUsd(
     decimals1: number,
     price1: number | undefined
 ): number | null {
-    return computePositionValueUsd({
-        amount0,
-        decimals0,
-        price0,
-        amount1,
-        decimals1,
-        price1,
-    })
+    if (price0 === undefined || price1 === undefined) return null
+    const value =
+        (Number(amount0) / 10 ** decimals0) * price0 + (Number(amount1) / 10 ** decimals1) * price1
+    return Number.isFinite(value) ? value : null
 }
 
 export interface FarmAprInput {

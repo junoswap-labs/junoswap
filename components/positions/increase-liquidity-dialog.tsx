@@ -10,12 +10,9 @@ import { useIncreaseLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { usePool } from '@/hooks/usePools'
-import {
-    ProtocolType,
-    getDexConfig,
-    computeDependentAmount,
-    isInRange,
-} from '@coshi190/juno-moneta-sdk'
+import { ProtocolType, getDexConfig } from '@coshi190/juno-moneta-sdk'
+import { computeDependentAmount } from '@/lib/liquidity-helpers'
+import { isInRange } from '@/lib/tick-math'
 import { getChainMetadata } from '@/lib/wagmi'
 import { parseTokenAmount, formatBalance, formatTokenAmount } from '@/lib/tokens'
 import { toastError } from '@/lib/toast'
