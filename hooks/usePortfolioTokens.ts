@@ -3,18 +3,18 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import {
-    fetchTokenHolders,
-    fetchLaunchTokens,
-    LAUNCH_TOKEN_CARD_FIELDS,
-    TOKEN_HOLDER_BALANCE_FIELDS,
-} from '@coshi190/juno-moneta-sdk'
+import { fetchTokenHolders, fetchLaunchTokens } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
 import { hasSettled } from '@/lib/query-status'
 import { useTokenDiscovery } from '@/hooks/useTokenDiscovery'
+
+const CARD_FIELDS = ['tokenAddr', 'name', 'symbol', 'logo', 'isGraduated'] as const
+
+const HOLDER_BALANCE_FIELDS = ['tokenAddr', 'balance'] as const
+
 export function usePortfolioTokens(chainId: number, userAddress?: Address) {
     const {
         allTokens: discoveredTokens,
@@ -31,7 +31,7 @@ export function usePortfolioTokens(chainId: number, userAddress?: Address) {
                 const holdings = await fetchTokenHolders(
                     ponderClient,
                     { address: userAddress },
-                    TOKEN_HOLDER_BALANCE_FIELDS
+                    HOLDER_BALANCE_FIELDS
                 )
                 return holdings
                     .filter((h) => BigInt(h.balance) > 0n)
@@ -65,7 +65,7 @@ export function usePortfolioTokens(chainId: number, userAddress?: Address) {
                 const rows = await fetchLaunchTokens(
                     ponderClient,
                     { tokenAddrs: unknownAddrs },
-                    LAUNCH_TOKEN_CARD_FIELDS
+                    CARD_FIELDS
                 )
                 const map = new Map<string, { name: string; symbol: string; logo: string }>()
                 for (const raw of rows) {

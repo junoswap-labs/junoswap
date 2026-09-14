@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { encodeAbiParameters, encodeEventTopics } from 'viem'
 import type { Address, Log } from 'viem'
-import { getCurveCreationEvent } from '@coshi190/juno-moneta-sdk'
+import { BONDING_CURVE_JUNOSWAP_ABI } from '@coshi190/juno-moneta-sdk'
 import { findEventArgs } from '@/services/launchpad/receipt'
 
 const CURVE = '0x1111111111111111111111111111111111111111' as Address
@@ -25,7 +25,7 @@ function makeLog(address: Address, data: `0x${string}`, topics: `0x${string}`[])
 
 function creationLog(address: Address, tokenAddr: Address): Log {
     const topics = encodeEventTopics({
-        abi: [getCurveCreationEvent()],
+        abi: BONDING_CURVE_JUNOSWAP_ABI,
         eventName: 'Creation',
         args: { creator: CREATOR },
     })
@@ -45,7 +45,7 @@ function creationLog(address: Address, tokenAddr: Address): Log {
 }
 
 const CREATION = {
-    abi: [getCurveCreationEvent()],
+    abi: BONDING_CURVE_JUNOSWAP_ABI,
     eventName: 'Creation',
 } as const
 
@@ -93,7 +93,7 @@ describe('findEventArgs', () => {
         expect(findEventArgs([], { ...CREATION, address: CURVE })).toBeNull()
         expect(
             findEventArgs([creationLog(CURVE, TOKEN)], {
-                abi: [getCurveCreationEvent()],
+                abi: BONDING_CURVE_JUNOSWAP_ABI,
                 eventName: 'Swap',
                 address: CURVE,
             })

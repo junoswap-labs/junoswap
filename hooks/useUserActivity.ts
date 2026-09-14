@@ -9,7 +9,6 @@ import {
     fetchUserTransfers,
     fetchUserAggSwaps,
     fetchLaunchTokens,
-    LAUNCH_TOKEN_META_FIELDS,
     fetchV3Tokens,
     getBondingCurveDeployment,
     getAggRouterDeployment,
@@ -20,6 +19,7 @@ import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 import { findTokenByAddress, getTokensForChain, findWrappedNativeAddress } from '@/lib/tokens'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
+import { LAUNCH_TOKEN_META_FIELDS } from '@/lib/ponder-fields'
 import type { ActivityEvent, ActivityLeg } from '@/types/portfolio'
 
 const PAGE_SIZE = 20

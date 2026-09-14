@@ -1,11 +1,15 @@
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
-import type { LaunchTokenDetail, V3PoolRow } from '@coshi190/juno-moneta-sdk'
+import type { V3PoolRow } from '@/types/pools'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
+import type { LaunchTokenEntity, LAUNCH_TOKEN_DETAIL_FIELDS } from '@/lib/ponder-fields'
 import type { LaunchToken } from '@/types/launchpad'
 
-export type RawLaunchTokenItem = LaunchTokenDetail
+export type RawLaunchTokenItem = Pick<
+    LaunchTokenEntity,
+    (typeof LAUNCH_TOKEN_DETAIL_FIELDS)[number]
+>
 
 export function mapLaunchTokenItem(raw: RawLaunchTokenItem, chainId: number): LaunchToken {
     const item = applyLaunchpadTokenOverride(raw, chainId)

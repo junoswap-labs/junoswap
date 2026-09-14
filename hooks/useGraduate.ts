@@ -13,16 +13,25 @@ import {
     V3_SWAP_ROUTER_ABI,
     WETH9_ABI,
     ERC20_ABI,
-    getCurveState,
     planCurveCall,
-    isReadyToGraduate,
-    isSqrtPriceWithinTolerance,
-    PRICE_TOLERANCE_BPS,
-    calculateGraduationSqrtPriceX96,
+    computeCurve,
 } from '@coshi190/juno-moneta-sdk'
+import { getCurveState } from '@/lib/curve-state'
 import { useLaunchpadContract } from '@/hooks/useLaunchpadChainId'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { findEventArgs } from '@/services/launchpad/receipt'
+
+function isSqrtPriceWithinTolerance(
+    current: bigint,
+    target: bigint,
+    toleranceBps: bigint
+): boolean {
+    if (target <= 0n) return false
+    const diff = current > target ? current - target : target - current
+    return diff <= (target * toleranceBps) / 10000n
+}
+
+const PRICE_TOLERANCE_BPS = 400n
 
 type PoolStatus = 'no_pool' | 'not_initialized' | 'correct' | 'wrong'
 
@@ -149,16 +158,23 @@ export function useGraduate({
             if (!curve) throw new Error('Bonding curve state unavailable')
             const { nativeReserve, tokenReserve } = curve
 
-            if (!isReadyToGraduate(nativeReserve, tokenReserve, curve.graduationAmount, false)) {
+            const { graduation } = computeCurve({
+                nativeReserve,
+                tokenReserve,
+                virtualAmount: curve.virtualAmount,
+                graduationAmount: curve.graduationAmount,
+                token: tokenAddr,
+                wrappedNative,
+            })
+
+            if (!graduation.isReady) {
                 throw new Error('Not ready to graduate — bonding curve has not reached the cap')
             }
 
-            const correctSqrtPrice = calculateGraduationSqrtPriceX96(
-                tokenAddr,
-                wrappedNative,
-                nativeReserve,
-                tokenReserve
-            )
+            const correctSqrtPrice = graduation.sqrtPriceX96
+            if (correctSqrtPrice <= 0n) {
+                throw new Error('Invalid reserves for sqrtPriceX96 calculation')
+            }
 
             const tokenIsToken0 = tokenAddr.toLowerCase() < wrappedNative.toLowerCase()
             const token0: Address = tokenIsToken0 ? tokenAddr : wrappedNative

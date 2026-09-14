@@ -5,13 +5,9 @@ import { useWriteContract, usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { parseEther } from 'viem'
 import type { Address } from 'viem'
-import {
-    getCurveCreationEvent,
-    calculateBuyOutput,
-    getCurveState,
-    planCurveCall,
-    INITIAL_TOKEN_SUPPLY,
-} from '@coshi190/juno-moneta-sdk'
+import { BONDING_CURVE_JUNOSWAP_ABI, computeCurve, planCurveCall } from '@coshi190/juno-moneta-sdk'
+import { INITIAL_TOKEN_SUPPLY } from '@/lib/launchpad-curve'
+import { getCurveState } from '@/lib/curve-state'
 import { useLaunchpadContract } from '@/hooks/useLaunchpadChainId'
 import { calculateMinOutput } from '@/services/dex/slippage'
 import { findEventArgs } from '@/services/launchpad/receipt'
@@ -75,12 +71,12 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
 
     const expectedTokens = useMemo(() => {
         if (upfrontBuyNative <= 0n || !curve) return 0n
-        return calculateBuyOutput(
-            upfrontBuyNative,
-            curve.initialNative,
-            INITIAL_TOKEN_SUPPLY,
-            curve.virtualAmount
-        )
+        return computeCurve({
+            nativeReserve: curve.initialNative,
+            tokenReserve: INITIAL_TOKEN_SUPPLY,
+            virtualAmount: curve.virtualAmount,
+            buyAmountIn: upfrontBuyNative,
+        }).buyOutput
     }, [upfrontBuyNative, curve])
 
     const minTokenOut = useMemo(
@@ -148,7 +144,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         try {
             const receipt = await publicClient.getTransactionReceipt({ hash })
             const args = findEventArgs<{ tokenAddr: Address }>(receipt.logs, {
-                abi: [getCurveCreationEvent()],
+                abi: BONDING_CURVE_JUNOSWAP_ABI,
                 eventName: 'Creation',
                 address: bondingCurveAddress,
             })
@@ -187,12 +183,12 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     return
                 }
 
-                const actualExpected = calculateBuyOutput(
-                    upfrontBuyNative,
-                    state.nativeReserve,
-                    state.tokenReserve,
-                    state.virtualAmount
-                )
+                const actualExpected = computeCurve({
+                    nativeReserve: state.nativeReserve,
+                    tokenReserve: state.tokenReserve,
+                    virtualAmount: state.virtualAmount,
+                    buyAmountIn: upfrontBuyNative,
+                }).buyOutput
                 const actualMinOut = calculateMinOutput(actualExpected, slippageBps)
 
                 buyParamsRef.current = {

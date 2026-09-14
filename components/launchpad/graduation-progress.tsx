@@ -2,11 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { formatKub, formatKubRounded } from '@/services/launchpad/launchpad'
-import {
-    calculateStableGraduationProgress,
-    calculateExactGraduationReserve,
-    isReadyToGraduate,
-} from '@coshi190/juno-moneta-sdk'
+import { computeCurve } from '@coshi190/juno-moneta-sdk'
 import { Button } from '@/components/ui/button'
 
 interface GraduationProgressProps {
@@ -30,8 +26,15 @@ export function GraduationProgress({
     onGraduate,
     className,
 }: GraduationProgressProps) {
-    const exactTarget = calculateExactGraduationReserve(virtualAmount, graduationAmount)
-    const progress = calculateStableGraduationProgress(nativeReserve, exactTarget)
+    const { graduation } = computeCurve({
+        nativeReserve,
+        tokenReserve,
+        virtualAmount,
+        graduationAmount,
+        isGraduated,
+    })
+    const exactTarget = graduation.exactReserve
+    const progress = graduation.progress
 
     if (isGraduated) {
         return (
@@ -58,7 +61,7 @@ export function GraduationProgress({
         )
     }
 
-    const ready = isReadyToGraduate(nativeReserve, tokenReserve, graduationAmount, isGraduated)
+    const ready = graduation.isReady
 
     if (ready) {
         return (

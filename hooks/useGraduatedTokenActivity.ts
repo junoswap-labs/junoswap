@@ -7,9 +7,9 @@ import {
     fetchBondingCurvePricesSince,
     fetchV3PricesSince,
     fetchTokenV3Swaps,
-    calculatePrice,
-    calculatePriceFromSqrtPrice,
+    computeCurve,
 } from '@coshi190/juno-moneta-sdk'
+import { computePoolPrice } from '@/lib/tick-math'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import {
     aggregatePricePoints,
@@ -43,7 +43,12 @@ async function fetchTokenActivity(
         const v3Points = await fetchV3PricesSince(ponderClient, { tokenAddr, chainId, since })
         const points: PricePoint[] = v3Points.map((e) => ({
             timestamp: e.timestamp,
-            price: calculatePriceFromSqrtPrice(BigInt(e.sqrtPriceX96), e.tokenIsToken0 === 1),
+            price: computePoolPrice({
+                sqrtPriceX96: BigInt(e.sqrtPriceX96),
+                decimals0: 18,
+                decimals1: 18,
+                invert: e.tokenIsToken0 !== 1,
+            }),
         }))
 
         if (graduatedAt !== null && graduatedAt >= since) {
@@ -52,14 +57,10 @@ async function fetchTokenActivity(
                 if (e.timestamp >= graduatedAt) continue
                 points.push({
                     timestamp: e.timestamp,
-                    price: calculatePrice({
-                        timestamp: e.timestamp,
-                        isBuy: e.isBuy === 1,
-                        amountIn: 0n,
-                        amountOut: 0n,
-                        reserveIn: BigInt(e.reserveIn),
-                        reserveOut: BigInt(e.reserveOut),
-                    }),
+                    price: computeCurve({
+                        nativeReserve: e.isBuy === 1 ? BigInt(e.reserveIn) : BigInt(e.reserveOut),
+                        tokenReserve: e.isBuy === 1 ? BigInt(e.reserveOut) : BigInt(e.reserveIn),
+                    }).price,
                 })
             }
             points.sort((a, b) => a.timestamp - b.timestamp)

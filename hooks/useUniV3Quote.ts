@@ -7,14 +7,13 @@ import { zeroAddress, type Address } from 'viem'
 import {
     getV3Quotes,
     getDexConfig,
-    wrapQuoteResult,
     ProtocolType,
     type V3QuoteOutcome,
 } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { QuoteResult } from '@/types/swap'
-import { isSameToken, getSwapAddress, getWrapOperation } from '@/lib/tokens'
+import { isSameToken, getSwapAddress, getWrapOperation, wrapQuoteResult } from '@/lib/tokens'
 
 interface UseUniV3QuoteParams {
     tokenIn: Token | null

@@ -3,7 +3,8 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { fetchV3TokenSnapshots, TOTAL_SUPPLY } from '@coshi190/juno-moneta-sdk'
+import { fetchV3TokenSnapshots } from '@coshi190/juno-moneta-sdk'
+import { TOTAL_SUPPLY } from '@/lib/launchpad-curve'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 
 // Market caps for graduated tokens from the indexer's per-swap V3 snapshot. A pool's

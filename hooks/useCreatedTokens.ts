@@ -6,13 +6,22 @@ import {
     getBondingCurveDeployment,
     fetchLaunchTokens,
     fetchTokenSnapshots,
-    LAUNCH_TOKEN_DETAIL_FIELDS,
-    TOKEN_SNAPSHOT_CREATOR_FIELDS,
 } from '@coshi190/juno-moneta-sdk'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { ponderClient } from '@/lib/ponder-client'
+import { LAUNCH_TOKEN_DETAIL_FIELDS } from '@/lib/ponder-fields'
 import { mapLaunchTokenItem } from '@/services/launchpad/launchpad'
 import type { CreatedToken } from '@/types/portfolio'
+
+const SNAPSHOT_CREATOR_FIELDS = [
+    'tokenAddr',
+    'marketCapNative',
+    'creatorFeeNative',
+    'creatorFeeClaimedNative',
+    'creatorFeeToken',
+    'creatorFeeClaimedToken',
+    'lastPriceUsd',
+] as const
 
 interface UseCreatedTokensResult {
     createdTokens: CreatedToken[]
@@ -37,7 +46,7 @@ export function useCreatedTokens(address: Address | undefined): UseCreatedTokens
             const snapshots = await fetchTokenSnapshots(
                 ponderClient,
                 { chainId, tokenAddrs: items.map((t) => t.tokenAddr) },
-                TOKEN_SNAPSHOT_CREATOR_FIELDS
+                SNAPSHOT_CREATOR_FIELDS
             )
             const snapshotMap = new Map(snapshots.map((s) => [s.tokenAddr.toLowerCase(), s]))
 

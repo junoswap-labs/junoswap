@@ -1,9 +1,9 @@
 import {
-    createPonderClient,
     fetchLaunchTokens,
     fetchNativeUsdPrice,
     fetchTokenSnapshots,
 } from '@coshi190/juno-moneta-sdk'
+import { createPonderClient } from '@/lib/ponder-client'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
 

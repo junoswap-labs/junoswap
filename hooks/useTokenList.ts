@@ -5,13 +5,22 @@ import {
     getBondingCurveDeployment,
     fetchLaunchTokens,
     fetchTokenSnapshots,
-    LAUNCH_TOKEN_DETAIL_FIELDS,
-    TOKEN_SNAPSHOT_LIST_FIELDS,
 } from '@coshi190/juno-moneta-sdk'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { ponderClient } from '@/lib/ponder-client'
+import { LAUNCH_TOKEN_DETAIL_FIELDS } from '@/lib/ponder-fields'
 import { mapLaunchTokenItem } from '@/services/launchpad/launchpad'
 import type { LaunchToken } from '@/types/launchpad'
+
+const SNAPSHOT_LIST_FIELDS = [
+    'tokenAddr',
+    'lastSwapAt',
+    'marketCapNative',
+    'athMarketCapNative',
+    'lastPrice',
+    'price1dAgoTimestamp',
+    'priceChange1dPct',
+] as const
 
 const STALENESS_TOLERANCE = 3600 // 1 hour — hide badge if reference price is >1h before the 24h mark
 
@@ -46,7 +55,7 @@ export function useTokenList(): UseTokenListResult {
                     orderBy: 'createdTime',
                     orderDirection: 'desc',
                 }),
-                fetchTokenSnapshots(ponderClient, { chainId }, TOKEN_SNAPSHOT_LIST_FIELDS),
+                fetchTokenSnapshots(ponderClient, { chainId }, SNAPSHOT_LIST_FIELDS),
             ])
             const tokens = rows.map((t): LaunchToken => mapLaunchTokenItem(t, chainId))
             const now = Math.floor(Date.now() / 1000)

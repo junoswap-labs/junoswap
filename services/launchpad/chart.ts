@@ -1,26 +1,20 @@
 import { formatEther } from 'viem'
 import type { Timeframe, ChartMode, CandlestickData } from '@/types/chart'
 import { TIMEFRAME_DURATIONS } from '@/types/chart'
-import {
-    PUMP_FEE_BPS,
-    TOTAL_SUPPLY,
-    calculateMarketCapValue,
-    calculatePrice,
-    calculatePreSwapPrice,
-    calculatePriceFromSqrtPrice,
-    type CurveSwapEvent as SwapEvent,
-} from '@coshi190/juno-moneta-sdk'
+import { computeCurve } from '@coshi190/juno-moneta-sdk'
+import { computePoolPrice } from '@/lib/tick-math'
+import { TOTAL_SUPPLY } from '@/lib/launchpad-curve'
 
-export type { CurveSwapEvent as SwapEvent } from '@coshi190/juno-moneta-sdk'
+const PUMP_FEE_BPS = 100n
 
-function calculateVolume(event: SwapEvent): number {
+function calculateVolume(event: CurveSwapEvent): number {
     return event.isBuy
         ? parseFloat(formatEther(event.amountIn))
         : parseFloat(formatEther(event.amountOut))
 }
 
 export function aggregateCandlesticks(
-    events: SwapEvent[],
+    events: CurveSwapEvent[],
     timeframe: Timeframe,
     mode: ChartMode = 'mcap'
 ): CandlestickData[] {
@@ -30,7 +24,12 @@ export function aggregateCandlesticks(
     const candles = new Map<number, CandlestickData>()
 
     for (const event of events) {
-        const value = mode === 'mcap' ? calculateMarketCapValue(event) : calculatePrice(event)
+        const { price, marketCap, preSwapPrice, preSwapMarketCap } = computeCurve({
+            nativeReserve: event.isBuy ? event.reserveIn : event.reserveOut,
+            tokenReserve: event.isBuy ? event.reserveOut : event.reserveIn,
+            swap: event,
+        })
+        const value = mode === 'mcap' ? marketCap : price
         const volume = calculateVolume(event)
         if (value <= 0) continue
 
@@ -38,8 +37,7 @@ export function aggregateCandlesticks(
 
         const existing = candles.get(candleTime)
         if (!existing) {
-            const openPrice = calculatePreSwapPrice(event)
-            const openValue = mode === 'mcap' ? openPrice * TOTAL_SUPPLY : openPrice
+            const openValue = mode === 'mcap' ? preSwapMarketCap : preSwapPrice
             const open = openValue > 0 ? openValue : value
             candles.set(candleTime, {
                 time: candleTime,
@@ -180,6 +178,16 @@ export function sanitizeCandles(candles: CandlestickData[]): CandlestickData[] {
         .map((c) => (ok(c.volume) ? c : { ...c, volume: 0 }))
 }
 
+export interface CurveSwapEvent {
+    timestamp: number
+    isBuy: boolean
+    amountIn: bigint
+    amountOut: bigint
+    reserveIn: bigint
+    reserveOut: bigint
+    sender?: string
+}
+
 export interface V3SwapEvent {
     timestamp: number
     amount0: string
@@ -208,7 +216,12 @@ export function aggregateV3Candlesticks(
 
     for (const event of events) {
         const sqrtPrice = BigInt(event.sqrtPriceX96)
-        const price = calculatePriceFromSqrtPrice(sqrtPrice, tokenIsToken0)
+        const price = computePoolPrice({
+            sqrtPriceX96: sqrtPrice,
+            decimals0: 18,
+            decimals1: 18,
+            invert: !tokenIsToken0,
+        })
         const value = mode === 'mcap' ? price * TOTAL_SUPPLY : price
         if (value <= 0) continue
 
@@ -356,7 +369,9 @@ function absBigInt(v: bigint): bigint {
 }
 
 export function extractCreatorTrades(
-    bcEvents: Array<Pick<SwapEvent, 'timestamp' | 'isBuy' | 'sender' | 'amountIn' | 'amountOut'>>,
+    bcEvents: Array<
+        Pick<CurveSwapEvent, 'timestamp' | 'isBuy' | 'sender' | 'amountIn' | 'amountOut'>
+    >,
     v3Events: Array<
         Pick<V3SwapEvent, 'timestamp' | 'amount0' | 'amount1' | 'txFrom' | 'tokenIsToken0'>
     >,
@@ -433,7 +448,7 @@ export interface FeeBreakdown {
     totalNative: number // KUB-denominated combined total (sell fees valued at the KUB received)
 }
 
-export function computeFeeBreakdown(events: SwapEvent[]): FeeBreakdown {
+export function computeFeeBreakdown(events: CurveSwapEvent[]): FeeBreakdown {
     const feeRate = Number(PUMP_FEE_BPS) / 10000
     let nativeFees = 0
     let tokenFees = 0

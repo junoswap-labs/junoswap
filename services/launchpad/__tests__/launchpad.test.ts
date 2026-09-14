@@ -6,7 +6,7 @@ import {
     formatCompact,
     findGraduatedPool,
 } from '@/services/launchpad/launchpad'
-import type { V3PoolRow } from '@coshi190/juno-moneta-sdk'
+import type { V3PoolRow } from '@/types/pools'
 
 describe('formatKub', () => {
     it('returns "0" for zero', () => {

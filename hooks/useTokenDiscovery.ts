@@ -9,11 +9,8 @@ import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
-import {
-    getBondingCurveDeployment,
-    fetchLaunchTokens,
-    LAUNCH_TOKEN_META_FIELDS,
-} from '@coshi190/juno-moneta-sdk'
+import { LAUNCH_TOKEN_META_FIELDS } from '@/lib/ponder-fields'
+import { getBondingCurveDeployment, fetchLaunchTokens } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { hasSettled } from '@/lib/query-status'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'

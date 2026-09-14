@@ -2,18 +2,16 @@
 
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import {
-    fetchTokenHolders,
-    fetchTokenSnapshots,
-    INITIAL_TOKEN_SUPPLY,
-    TOKEN_SNAPSHOT_HOLDER_COUNT_FIELDS,
-} from '@coshi190/juno-moneta-sdk'
+import { fetchTokenHolders, fetchTokenSnapshots } from '@coshi190/juno-moneta-sdk'
+import { INITIAL_TOKEN_SUPPLY } from '@/lib/launchpad-curve'
 import { ponderClient } from '@/lib/ponder-client'
 import type { HolderData } from '@/types/launchpad'
 
 export type { HolderData }
 
 const HOLDER_FIELDS = ['address', 'balance'] as const
+
+const SNAPSHOT_HOLDER_COUNT_FIELDS = ['holderCount'] as const
 
 // ponytail: balances come from the indexer (same source that decides who is a holder), so every
 // holder is listed without an on-chain read per address. If indexer lag ever matters, verify the
@@ -57,7 +55,7 @@ export function useTokenHolders(
                 fetchTokenSnapshots(
                     ponderClient,
                     { tokenAddrs: [tokenAddr] },
-                    TOKEN_SNAPSHOT_HOLDER_COUNT_FIELDS
+                    SNAPSHOT_HOLDER_COUNT_FIELDS
                 ),
             ])
 

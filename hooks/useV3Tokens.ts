@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { fetchV3Tokens, type V3TokenRow } from '@coshi190/juno-moneta-sdk'
+import { fetchV3Tokens } from '@coshi190/juno-moneta-sdk'
+import type { V3TokenRow } from '@/types/pools'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 
 export function useV3Tokens(chainId: number): {

@@ -7,11 +7,7 @@ import { formatEther, type Address } from 'viem'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
-import {
-    getBondingCurveDeployment,
-    fetchTokenHolders,
-    TOKEN_HOLDER_ADDRESS_FIELDS,
-} from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment, fetchTokenHolders } from '@coshi190/juno-moneta-sdk'
 import { useTokenDiscovery } from '@/hooks/useTokenDiscovery'
 import { useMultiBalances } from '@/hooks/useMultiBalances'
 import { useTokenPrices } from '@/hooks/useTokenPrices'
@@ -32,9 +28,11 @@ export interface TraderAgg {
 
 const PAGE_SIZE = 20
 
+const HOLDER_ADDRESS_FIELDS = ['address'] as const
+
 async function fetchHolders(chainId: number): Promise<string[]> {
     try {
-        const rows = await fetchTokenHolders(ponderClient, { chainId }, TOKEN_HOLDER_ADDRESS_FIELDS)
+        const rows = await fetchTokenHolders(ponderClient, { chainId }, HOLDER_ADDRESS_FIELDS)
         return rows.map((h) => h.address)
     } catch (e) {
         if (isPonderError(e)) return []

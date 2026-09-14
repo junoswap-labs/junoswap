@@ -8,14 +8,13 @@ import {
     getV2Quotes,
     getSupportedDexs,
     getDexConfig,
-    wrapQuoteResult,
     ProtocolType,
     type V2QuoteOutcome,
 } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { QuoteResult } from '@/types/swap'
-import { isSameToken, getWrapOperation } from '@/lib/tokens'
+import { isSameToken, getWrapOperation, wrapQuoteResult } from '@/lib/tokens'
 
 interface UseUniV2QuoteParams {
     tokenIn: Token | null

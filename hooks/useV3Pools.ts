@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { fetchV3Pools, type V3PoolRow } from '@coshi190/juno-moneta-sdk'
+import { fetchV3Pools } from '@coshi190/juno-moneta-sdk'
+import type { V3PoolRow } from '@/types/pools'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 
 export function useV3Pools(

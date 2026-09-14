@@ -8,6 +8,7 @@ import {
     isNativeToken,
 } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
+import type { QuoteResult } from '@/types/swap'
 import { kubTestnet, jbc, bitkub, worldchain, base, bsc } from './wagmi'
 import { resolveLaunchpadLogo } from './logo'
 import tokenData from './tokens.json'
@@ -216,4 +217,13 @@ export function getWrapOperation(
         tokenOut.address as Address,
         tokenIn.chainId
     )
+}
+
+export function wrapQuoteResult(amountIn: bigint, operation: 'wrap' | 'unwrap'): QuoteResult {
+    return {
+        amountOut: amountIn,
+        sqrtPriceX96After: 0n,
+        initializedTicksCrossed: 0,
+        gasEstimate: operation === 'wrap' ? 50000n : 40000n,
+    }
 }

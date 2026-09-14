@@ -26,7 +26,7 @@ import type { Token } from '@/types/token'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { isValidNumberInput } from '@/lib/utils'
 import { formatKub, formatTokenAmount } from '@/services/launchpad/launchpad'
-import { isReadyToGraduate, calculateGraduationTarget } from '@coshi190/juno-moneta-sdk'
+import { computeCurve } from '@coshi190/juno-moneta-sdk'
 import { calculateMinOutput } from '@/services/dex/slippage'
 import { toastSuccess, toastError } from '@/lib/toast'
 import { getChainMetadata } from '@/lib/wagmi'
@@ -116,12 +116,14 @@ export function TokenTradeCard({
         refetch: refetchReserves,
     } = useTokenReserves({ tokenAddr, isGraduated: _initialIsGraduated, chainId })
 
-    const readyToGraduate = isReadyToGraduate(
+    const { graduation } = computeCurve({
         nativeReserve,
         tokenReserve,
+        virtualAmount,
         graduationAmount,
-        isGraduated
-    )
+        isGraduated,
+    })
+    const readyToGraduate = graduation.isReady
 
     const {
         graduate,
@@ -480,7 +482,7 @@ export function TokenTradeCard({
         !isGraduated &&
         !readyToGraduate &&
         graduationAmount > 0n &&
-        nativeReserve >= (calculateGraduationTarget(tokenReserve, graduationAmount) * 90n) / 100n
+        nativeReserve >= (graduation.target * 90n) / 100n
 
     if (readyToGraduate) {
         return (
