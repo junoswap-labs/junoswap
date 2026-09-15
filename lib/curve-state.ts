@@ -1,5 +1,6 @@
 import type { Abi, Address, PublicClient } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_ABI, getBondingCurveDeployment } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment } from '@/lib/deployments'
 
 export interface CurveState {
     createFee: bigint
@@ -46,7 +47,7 @@ export async function getCurveState(
     const deployment = getBondingCurveDeployment(params.chainId)
     if (!deployment) return null
 
-    const abi = BONDING_CURVE_JUNOSWAP_ABI as Abi
+    const abi = getAbi('bondingCurve') as Abi
     const contracts: CurveCall[] = CURVE_GLOBALS.map((functionName) => ({
         address: deployment.address,
         abi,

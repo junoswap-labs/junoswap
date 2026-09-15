@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import { ProtocolType } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { RoutingResult, RouteQuote } from '@/types/routing'
 import type { Address } from 'viem'
@@ -73,7 +72,7 @@ export function useSwapRouting({
                 },
                 quote: v3Direct.quote,
                 dexId: v3Direct.primaryDexId,
-                protocolType: ProtocolType.V3,
+                protocolType: 'v3',
             })
         }
         if (v2PrimaryQuote?.quote && v2DirectResult.primaryDexId) {
@@ -85,7 +84,7 @@ export function useSwapRouting({
                 },
                 quote: v2PrimaryQuote.quote,
                 dexId: v2DirectResult.primaryDexId,
-                protocolType: ProtocolType.V2,
+                protocolType: 'v2',
             })
         }
         return routes

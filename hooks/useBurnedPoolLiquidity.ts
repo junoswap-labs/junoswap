@@ -3,11 +3,7 @@
 import { useMemo } from 'react'
 import { useChainId, useReadContract, useReadContracts } from 'wagmi'
 import type { Address } from 'viem'
-import {
-    NONFUNGIBLE_POSITION_MANAGER_ABI,
-    ProtocolType,
-    getDexConfig,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi, getDexes } from '@coshi190/juno-moneta-sdk'
 
 export const BURN_ADDRESS: Address = '0x000000000000000000000000000000000000dEaD'
 
@@ -51,11 +47,11 @@ export function useBurnedPoolLiquidity(pool: PoolKey | null): {
     isLoading: boolean
 } {
     const chainId = useChainId()
-    const positionManager = getDexConfig(chainId, undefined, ProtocolType.V3)?.positionManager
+    const positionManager = getDexes(chainId, 'v3')[0]?.positionManager
 
     const { data: balance, isLoading: isLoadingBalance } = useReadContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'balanceOf',
         args: [BURN_ADDRESS],
         query: { enabled: !!positionManager && !!pool },
@@ -67,7 +63,7 @@ export function useBurnedPoolLiquidity(pool: PoolKey | null): {
         if (!positionManager || scanCount === 0) return []
         return Array.from({ length: scanCount }, (_, i) => ({
             address: positionManager,
-            abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+            abi: getAbi('positionManager'),
             functionName: 'tokenOfOwnerByIndex' as const,
             args: [BURN_ADDRESS, BigInt(i)] as const,
             chainId,
@@ -91,7 +87,7 @@ export function useBurnedPoolLiquidity(pool: PoolKey | null): {
         if (!positionManager || tokenIds.length === 0) return []
         return tokenIds.map((tokenId) => ({
             address: positionManager,
-            abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+            abi: getAbi('positionManager'),
             functionName: 'positions' as const,
             args: [tokenId] as const,
             chainId,

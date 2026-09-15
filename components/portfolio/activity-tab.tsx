@@ -8,7 +8,6 @@ import { ExternalLink, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { useUserActivity } from '@/hooks/useUserActivity'
 import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
 import { formatKub, formatTokenAmount, formatCompact } from '@/services/launchpad/launchpad'
-import { NATIVE_TOKEN_ADDRESS } from '@coshi190/juno-moneta-sdk'
 import {
     formatTokenAmount as formatTokenAmountDecimals,
     formatDisplayAmount,
@@ -19,7 +18,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { NATIVE_USD_STABLE } from '@/lib/routing-config'
 import { cn, formatTimeAgo, formatAddress } from '@/lib/utils'
 import { getExplorerTxUrl } from '@/lib/explorer'
-import { getChainMetadata } from '@/lib/wagmi'
+import { getChainMetadata, NATIVE_TOKEN_ADDRESS } from '@/lib/wagmi'
 import { getProtocolMeta } from '@/lib/dex-meta'
 import { TokenIcon, TokenIconSkeleton } from '@/components/ui/token-icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'

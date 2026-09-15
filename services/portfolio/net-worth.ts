@@ -1,5 +1,6 @@
 import { formatUnits, type Address } from 'viem'
-import { getStablecoins, getWrappedNativeAddress, isNativeToken } from '@coshi190/juno-moneta-sdk'
+import { isNativeToken } from '@/lib/wagmi'
+import { findWrappedNativeAddress, getStablecoins } from '@/lib/tokens'
 import type { PricePoint } from '@/lib/price-history'
 import type { UserSwapEvent } from '@/lib/user-swaps'
 
@@ -187,7 +188,7 @@ function buildLedgerNetWorthSeries(params: BuildLedgerParams): NetWorthPoint[] {
 function classifyPriceKind(address: string, chainId: number): PriceKind {
     if (isNativeToken(address as Address)) return 'native'
     const lower = address.toLowerCase()
-    const wrapped = getWrappedNativeAddress(chainId)
+    const wrapped = findWrappedNativeAddress(chainId)
     if (wrapped && lower === wrapped.toLowerCase()) return 'native'
     if (getStablecoins(chainId)?.has(lower)) return 'stable'
     return 'reconstructed'

@@ -1,3 +1,4 @@
+import type { Address } from 'viem'
 import { http, createConfig } from 'wagmi'
 import { cookieStorage, createStorage } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
@@ -103,4 +104,14 @@ export function getChainMetadata(chainId: number) {
     return chainMetadata[chainId as keyof typeof chainMetadata]
 }
 
-export { isNativeToken, shouldSkipUnwrap } from '@coshi190/juno-moneta-sdk'
+export const NATIVE_TOKEN_ADDRESS: Address = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+
+export function isNativeToken(address: Address): boolean {
+    return address.toLowerCase() === NATIVE_TOKEN_ADDRESS
+}
+
+const SKIP_UNWRAP_CHAINS: readonly number[] = [bitkub.id]
+
+export function shouldSkipUnwrap(chainId: number): boolean {
+    return SKIP_UNWRAP_CHAINS.includes(chainId)
+}

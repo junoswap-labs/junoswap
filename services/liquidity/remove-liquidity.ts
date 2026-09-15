@@ -5,7 +5,7 @@ import type {
     CollectCallParams,
 } from '@/types/earn'
 import { MAX_UINT128 } from '@/types/earn'
-import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { getWrappedNativeAddress } from '@/lib/tokens'
 import { shouldSkipUnwrap } from '@/lib/wagmi'
 
@@ -21,7 +21,7 @@ function buildDecreaseLiquidityParams(params: RemoveLiquidityParams): DecreaseLi
 
 function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'decreaseLiquidity',
         args: [params],
     })
@@ -29,7 +29,7 @@ function encodeDecreaseLiquidity(params: DecreaseLiquidityCallParams): Hex {
 
 function encodeCollect(params: CollectCallParams): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'collect',
         args: [params],
     })
@@ -37,7 +37,7 @@ function encodeCollect(params: CollectCallParams): Hex {
 
 export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'unwrapWETH9',
         args: [amountMinimum, recipient],
     })
@@ -45,7 +45,7 @@ export function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): He
 
 function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'sweepToken',
         args: [token, amountMinimum, recipient],
     })

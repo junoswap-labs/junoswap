@@ -16,7 +16,7 @@ import {
 
 vi.mock('@coshi190/juno-moneta-sdk', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
-    ERC20_ABI: [],
+    getAbi: () => [],
 }))
 
 describe('lib/tokens', () => {

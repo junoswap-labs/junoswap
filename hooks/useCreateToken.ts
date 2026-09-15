@@ -5,7 +5,7 @@ import { useWriteContract, usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { parseEther } from 'viem'
 import type { Address } from 'viem'
-import { BONDING_CURVE_JUNOSWAP_ABI, computeCurve, planCurveCall } from '@coshi190/juno-moneta-sdk'
+import { getAbi, computeCurve, planCurveCall } from '@coshi190/juno-moneta-sdk'
 import { INITIAL_TOKEN_SUPPLY } from '@/lib/launchpad-curve'
 import { getCurveState } from '@/lib/curve-state'
 import { useLaunchpadContract } from '@/hooks/useLaunchpadChainId'
@@ -144,7 +144,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         try {
             const receipt = await publicClient.getTransactionReceipt({ hash })
             const args = findEventArgs<{ tokenAddr: Address }>(receipt.logs, {
-                abi: BONDING_CURVE_JUNOSWAP_ABI,
+                abi: getAbi('bondingCurve'),
                 eventName: 'Creation',
                 address: bondingCurveAddress,
             })

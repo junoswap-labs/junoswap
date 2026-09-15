@@ -3,13 +3,8 @@
 import { useMemo } from 'react'
 import { useReadContract, useReadContracts } from 'wagmi'
 import type { Address } from 'viem'
-import {
-    ProtocolType,
-    getDexConfig,
-    V3_FACTORY_ABI,
-    V3_POOL_ABI,
-    getTickSpacing,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi, getDexes } from '@coshi190/juno-moneta-sdk'
+import { getTickSpacing } from '@/lib/liquidity-helpers'
 import { sortTokens } from '@/lib/tick-math'
 import type { Token } from '@/types/token'
 import type { V3PoolData } from '@/types/earn'
@@ -26,7 +21,7 @@ export function usePool(
     error: Error | null
 } {
     const effectiveChainId = chainId ?? token0?.chainId ?? token1?.chainId ?? 1
-    const dexConfig = getDexConfig(effectiveChainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(effectiveChainId, 'v3')[0]
     const [sortedToken0, sortedToken1] = useMemo(() => {
         if (!token0 || !token1) return [null, null]
         return sortTokens(token0, token1)
@@ -39,7 +34,7 @@ export function usePool(
         error: poolError,
     } = useReadContract({
         address: dexConfig?.factory,
-        abi: V3_FACTORY_ABI,
+        abi: getAbi('v3Factory'),
         functionName: 'getPool',
         args: isEnabled ? [sortedToken0!.address, sortedToken1!.address, fee] : undefined,
         chainId: effectiveChainId,
@@ -58,13 +53,13 @@ export function usePool(
         contracts: [
             {
                 address: poolAddress as Address,
-                abi: V3_POOL_ABI,
+                abi: getAbi('v3Pool'),
                 functionName: 'slot0',
                 chainId: effectiveChainId,
             },
             {
                 address: poolAddress as Address,
-                abi: V3_POOL_ABI,
+                abi: getAbi('v3Pool'),
                 functionName: 'liquidity',
                 chainId: effectiveChainId,
             },

@@ -1,11 +1,10 @@
 import type { Address } from 'viem'
-import {
-    type ProtocolType,
-    type SplitAllocation as SdkSplitAllocation,
-} from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { QuoteResult } from './swap'
+
+/** The AMM generation a route trades through. */
+export type Protocol = 'v2' | 'v3'
 export interface SwapRoute {
     path: Address[]
     fees?: number[]
@@ -18,7 +17,7 @@ export interface RouteQuote {
     route: SwapRoute
     quote: QuoteResult
     dexId: DEXType
-    protocolType: ProtocolType
+    protocolType: Protocol
     priceImpact?: number
 }
 
@@ -28,9 +27,6 @@ export interface RoutingResult {
     bestRoute: RouteQuote | null
     allRoutes: RouteQuote[]
 }
-
-/** The SDK's generic split allocation, bound to the frontend's RouteQuote. */
-export type SplitAllocation = SdkSplitAllocation<RouteQuote>
 
 export interface IntermediaryConfig {
     wrappedNative: Address

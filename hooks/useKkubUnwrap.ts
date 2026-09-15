@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import type { Address } from 'viem'
 import { maxUint256, zeroAddress } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { getWrappedNativeAddress } from '@/lib/tokens'
 import { shouldSkipUnwrap } from '@/lib/wagmi'
 
@@ -50,7 +50,7 @@ export function useKkubUnwrap({
 
     const { data: allowance = 0n } = useReadContract({
         address: kkubAddress!,
-        abi: ERC20_ABI,
+        abi: getAbi('erc20'),
         functionName: 'allowance',
         args: owner ? [owner, KKUB_UNWRAPPER_ADDRESS] : ([zeroAddress, zeroAddress] as const),
         chainId,
@@ -103,7 +103,7 @@ export function useKkubUnwrap({
             setPhase('approving')
             writeContract({
                 address: kkubAddress,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'approve',
                 args: [KKUB_UNWRAPPER_ADDRESS, maxUint256],
             })

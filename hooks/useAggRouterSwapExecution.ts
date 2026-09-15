@@ -8,16 +8,13 @@ import {
     type UseSimulateContractParameters,
 } from 'wagmi'
 import { type Address } from 'viem'
-import {
-    encodeSwapCalldata,
-    planAggregateSwap,
-    type AggregatePlan,
-    type SwapPlan,
-} from '@coshi190/juno-moneta-sdk'
+import { getAggregatePlan, planSwap } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { SwapResult } from '@/types/swap'
 import { toastError } from '@/lib/toast'
 import { useReferrer } from '@/hooks/useReferrer'
+
+type AggregatePlan = NonNullable<Awaited<ReturnType<typeof getAggregatePlan>>>['plan']
 
 interface UseAggRouterSwapExecutionParams {
     tokenIn: Token
@@ -58,10 +55,10 @@ export function useAggRouterSwapExecution({
     const referrer = useReferrer()
     const chainId = tokenIn.chainId
 
-    const swapPlan = useMemo<SwapPlan | null>(() => {
+    const swapPlan = useMemo<ReturnType<typeof planSwap> | null>(() => {
         if (!plan || amountIn <= 0n) return null
         try {
-            return planAggregateSwap({
+            return planSwap({
                 chainId,
                 tokenIn: tokenIn.address as Address,
                 tokenOut: tokenOut.address as Address,
@@ -70,7 +67,7 @@ export function useAggRouterSwapExecution({
                 recipient,
                 deadline: Math.floor(Date.now() / 1000) + deadlineMinutes * 60,
                 referrer,
-                plan,
+                aggregate: plan,
             })
         } catch {
             // Unroutable legs or no router on this chain — surfaced as a toast on submit.
@@ -125,7 +122,7 @@ export function useAggRouterSwapExecution({
         }
         sendTransaction({
             to: swapPlan.call.address,
-            data: encodeSwapCalldata(swapPlan, referrer),
+            data: swapPlan.data,
             value: swapPlan.call.value,
             chainId,
         })

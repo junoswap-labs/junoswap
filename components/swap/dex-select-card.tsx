@@ -5,7 +5,7 @@ import { useChainId } from 'wagmi'
 import { parseUnits } from 'viem'
 import { useSwapStore } from '@/store/swap-store'
 import { useMultiDexQuotes } from '@/hooks/useMultiDexQuotes'
-import { getSupportedDexs } from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
 import { DEX_REGISTRY } from '@/lib/dex-meta'
 import { percentDiff } from '@/lib/routing-config'
 import { formatDisplayAmount } from '@/lib/tokens'
@@ -31,7 +31,7 @@ export function DexSelectCard() {
         aggPredictedOut,
     } = useSwapStore()
     const chainId = useChainId()
-    const supportedDexs = getSupportedDexs(chainId)
+    const supportedDexs = getDexes(chainId).map((dex) => dex.dexId)
     const amountInBigInt = useMemo(() => {
         if (!amountIn || !tokenIn) return 0n
         try {

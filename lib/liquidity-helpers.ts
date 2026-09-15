@@ -1,4 +1,4 @@
-import { getDexConfig, getSupportedDexs, ProtocolType } from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
 import {
     computePoolPrice,
     computeTickPrice,
@@ -14,23 +14,28 @@ export function formatFeeTier(fee: number): string {
 /** The tier the UI would rather trade, when nothing upstream has picked one. */
 const PREFERRED_FEE_TIER = 3000
 
+const DEFAULT_TICK_SPACING = 60
+
+const TICK_SPACING_BY_FEE: Record<number, number> = {
+    100: 1,
+    500: 10,
+    2500: 50,
+    3000: 60,
+    10000: 200,
+}
+
+/** The tick spacing a V3 pool of this fee tier is deployed with. */
+export function getTickSpacing(fee: number): number {
+    return TICK_SPACING_BY_FEE[fee] ?? DEFAULT_TICK_SPACING
+}
+
 /** Stand-in for a chain whose V3 deployment we can't resolve; mirrors the tiers the SDK used to
  * hand back before fee tiers became a per-DEX config field. */
 const FALLBACK_FEE_TIERS = [100, 500, 3000, 10000]
 
-/**
- * `getDexConfig` falls back to the default DEX (junoswap) when no id is given, and junoswap has no
- * V3 on every chain — BSC is Pancake, Base and Worldchain are Uniswap. Ask for the chain's own V3
- * DEX before settling for that default, or these chains resolve to nothing.
- */
-function v3ConfigForChain(chainId: number) {
-    const [chainDexId] = getSupportedDexs(chainId, ProtocolType.V3)
-    return getDexConfig(chainId, chainDexId, ProtocolType.V3)
-}
-
 /** The V3 fee tiers a chain actually offers. */
 export function v3FeeTiers(chainId: number): number[] {
-    const tiers = v3ConfigForChain(chainId)?.feeTiers
+    const tiers = getDexes(chainId, 'v3')[0]?.feeTiers
     return tiers?.length ? tiers : FALLBACK_FEE_TIERS
 }
 

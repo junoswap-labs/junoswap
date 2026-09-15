@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useAccount, useChainId, useReadContract, useReadContracts } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { STAKING_REWARDS_LENS_ABI } from '@/lib/abis/staking-rewards'
 import { getStakingRewards } from '@/lib/earn-programs'
 import { findTokenByAddress } from '@/lib/tokens'
@@ -61,8 +61,8 @@ export function useStakingPools(): {
 
     const { data: metadata, isLoading: isLoadingMeta } = useReadContracts({
         contracts: tokenAddresses.flatMap((address) => [
-            { address, abi: ERC20_ABI, functionName: 'symbol' as const, chainId },
-            { address, abi: ERC20_ABI, functionName: 'decimals' as const, chainId },
+            { address, abi: getAbi('erc20'), functionName: 'symbol' as const, chainId },
+            { address, abi: getAbi('erc20'), functionName: 'decimals' as const, chainId },
         ]),
         query: { enabled: tokenAddresses.length > 0, staleTime: 5 * 60_000 },
     })

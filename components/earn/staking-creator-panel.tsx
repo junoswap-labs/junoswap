@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAccount, useChainId, useReadContract } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { formatUnits, zeroAddress } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -67,7 +67,7 @@ export function StakingCreatorPanel({
 
     const { data: allowance } = useReadContract({
         address: pool.view.rewardsToken,
-        abi: ERC20_ABI,
+        abi: getAbi('erc20'),
         functionName: 'allowance',
         args: [account ?? zeroAddress, epoch.factory ?? zeroAddress],
         chainId,

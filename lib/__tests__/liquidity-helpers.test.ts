@@ -26,8 +26,8 @@ const inRange = {
 
 describe('lib/liquidity-helpers', () => {
     describe('v3FeeTiers', () => {
-        // getDexConfig defaults to junoswap, which has no V3 on BSC/Base/Worldchain. Resolving the
-        // chain's own V3 DEX is what keeps the fee dropdown from rendering empty there.
+        // junoswap has no V3 on BSC/Base/Worldchain — those are Pancake and Uniswap. Reading the
+        // tiers off the chain's own V3 DEX is what keeps the fee dropdown from rendering empty.
         it('reads the tiers off the chain’s own V3 DEX, not the default one', () => {
             expect(v3FeeTiers(BSC)).toEqual([100, 500, 2500, 10000])
         })

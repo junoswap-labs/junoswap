@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { ProtocolType, getDexConfig, getTickSpacing } from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
+import { getTickSpacing } from '@/lib/liquidity-helpers'
 import { computeInitialSqrtPriceX96, getFullRange, getTickForPrice } from '@/lib/tick-math'
 import { getPresetTickRange } from '@/lib/range-presets'
 import {
@@ -56,7 +57,7 @@ export function AddLiquidityDialog({
     const { address } = useAccount()
     const chainId = useChainId()
     const router = useRouter()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const { tokens: allTokens } = useChainTokens(chainId)
 
     const [token0, setToken0] = useState<Token | null>(null)

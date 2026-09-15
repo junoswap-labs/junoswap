@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { zeroAddress, type Address } from 'viem'
-import { getV2Quotes, ProtocolType } from '@coshi190/juno-moneta-sdk'
+import { getV2Quotes } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { RouteQuote, SwapRoute } from '@/types/routing'
@@ -63,16 +63,16 @@ export function useUniV2MultiHopQuote({
                 amountIn,
                 connectors: getIntermediaryTokens(chainId),
                 maxHops: MAX_HOPS,
-                includeDirect: false,
             }),
         enabled: isReadyForQuote,
         staleTime: 0,
     })
 
     const routes = useMemo((): RouteQuote[] => {
-        const data = quoteQuery.data?.routes
+        const data = quoteQuery.data
         if (!data || data.length === 0) return []
-        return data.map((r) => {
+        return data.flatMap((r) => {
+            if (!r.quote || r.path.length <= 2) return []
             const intermediaryTokens = r.path
                 .slice(1, -1)
                 .map((addr) => findTokenByAddress(chainId, addr))
@@ -82,12 +82,14 @@ export function useUniV2MultiHopQuote({
                 isMultiHop: true,
                 intermediaryTokens,
             }
-            return {
-                route,
-                quote: r.quote,
-                dexId: r.dexId,
-                protocolType: ProtocolType.V2,
-            }
+            return [
+                {
+                    route,
+                    quote: r.quote,
+                    dexId: r.dexId,
+                    protocolType: 'v2',
+                },
+            ]
         })
     }, [quoteQuery.data, chainId])
 

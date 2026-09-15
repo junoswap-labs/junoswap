@@ -5,12 +5,8 @@ import type {
     MintCallParams,
     IncreaseLiquidityCallParams,
 } from '@/types/earn'
-import {
-    NONFUNGIBLE_POSITION_MANAGER_ABI,
-    getTickSpacing,
-    planAddLiquidity,
-    planIncreaseLiquidity,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi, planAddLiquidity, planIncreaseLiquidity } from '@coshi190/juno-moneta-sdk'
+import { getTickSpacing } from '@/lib/liquidity-helpers'
 import { invertSqrtPriceX96, sortTokens } from '@/lib/tick-math'
 import { isNativeToken } from '@/lib/wagmi'
 import { getWrappedNativeAddress } from '@/lib/tokens'
@@ -69,7 +65,7 @@ export function buildIncreaseLiquidityParams(
 
 function encodeMint(params: MintCallParams): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'mint',
         args: [params],
     })
@@ -77,7 +73,7 @@ function encodeMint(params: MintCallParams): Hex {
 
 function encodeIncreaseLiquidity(params: IncreaseLiquidityCallParams): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'increaseLiquidity',
         args: [params],
     })
@@ -90,7 +86,7 @@ function encodeCreateAndInitializePool(
     sqrtPriceX96: bigint
 ): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'createAndInitializePoolIfNecessary',
         args: [token0, token1, fee, sqrtPriceX96],
     })
@@ -98,7 +94,7 @@ function encodeCreateAndInitializePool(
 
 function encodeRefundETH(): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'refundETH',
         args: [],
     })

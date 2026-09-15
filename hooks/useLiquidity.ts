@@ -14,12 +14,7 @@ import type {
     PositionWithTokens,
     PositionDetails,
 } from '@/types/earn'
-import {
-    ProtocolType,
-    getDexConfig,
-    NONFUNGIBLE_POSITION_MANAGER_ABI,
-    planRemoveLiquidity,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi, planRemoveLiquidity, getDexes } from '@coshi190/juno-moneta-sdk'
 import {
     buildMintParams,
     buildMintWithNativeMulticall,
@@ -36,7 +31,7 @@ import { getWrappedNativeAddress } from '@/lib/tokens'
 
 export function useAddLiquidity(params: AddLiquidityParams | null, skipSimulation?: boolean) {
     const chainId = useChainId()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const positionManager = dexConfig?.positionManager
     const isEnabled = !!params && !!positionManager
     const { callData, value } = useMemo(() => {
@@ -82,7 +77,7 @@ export function useAddLiquidity(params: AddLiquidityParams | null, skipSimulatio
         error: simulationError,
     } = useSimulateContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         ...callData,
         value,
         query: {
@@ -129,7 +124,7 @@ export function useIncreaseLiquidity(
     skipSimulation?: boolean
 ) {
     const chainId = useChainId()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const positionManager = dexConfig?.positionManager
     const isEnabled = tokenId !== undefined && !!positionManager && !!position
     const hasNativeToken = useMemo(() => {
@@ -195,7 +190,7 @@ export function useIncreaseLiquidity(
         error: simulationError,
     } = useSimulateContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         ...callData,
         value,
         query: {
@@ -240,7 +235,7 @@ export function useRemoveLiquidity(
     deadlineMinutes: number = 20
 ) {
     const chainId = useChainId()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const positionManager = dexConfig?.positionManager
     const isEnabled = !!position && !!recipient && !!positionManager && percentage > 0
     const plan = useMemo(() => {
@@ -283,7 +278,7 @@ export function useRemoveLiquidity(
         error: simulationError,
     } = useSimulateContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         ...callData,
         query: {
             enabled: isEnabled && !!callData,
@@ -333,7 +328,7 @@ export function useCollectFees(
     recipient: Address | undefined
 ) {
     const chainId = useChainId()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const positionManager = dexConfig?.positionManager
     const isEnabled = !!position && !!recipient && !!positionManager
     const callData = useMemo(() => {
@@ -363,7 +358,7 @@ export function useCollectFees(
         error: simulationError,
     } = useSimulateContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         ...callData,
         query: {
             enabled: isEnabled && !!callData,

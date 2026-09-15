@@ -2,7 +2,7 @@
 
 import { createContext, createElement, useContext, type ReactNode } from 'react'
 import { useChainId } from 'wagmi'
-import { getBondingCurveDeployment } from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment } from '@/lib/deployments'
 import type { Address } from 'viem'
 import { kubTestnet } from '@/lib/wagmi'
 

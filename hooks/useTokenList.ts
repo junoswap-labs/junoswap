@@ -1,11 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import {
-    getBondingCurveDeployment,
-    fetchLaunchTokens,
-    fetchTokenSnapshots,
-} from '@coshi190/juno-moneta-sdk'
+import { fetchLaunchTokens, fetchTokenSnapshots } from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment } from '@/lib/deployments'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { ponderClient } from '@/lib/ponder-client'
 import { LAUNCH_TOKEN_DETAIL_FIELDS } from '@/lib/ponder-fields'

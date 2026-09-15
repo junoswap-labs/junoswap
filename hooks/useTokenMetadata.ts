@@ -2,7 +2,7 @@
 
 import { useReadContracts } from 'wagmi'
 import type { Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { isValidTokenAddress } from '@/lib/tokens'
 interface UseTokenMetadataResult {
@@ -20,9 +20,9 @@ export function useTokenMetadata(
 
     const { data, isLoading, isError } = useReadContracts({
         contracts: [
-            { address: tokenAddress, abi: ERC20_ABI, functionName: 'symbol', chainId },
-            { address: tokenAddress, abi: ERC20_ABI, functionName: 'name', chainId },
-            { address: tokenAddress, abi: ERC20_ABI, functionName: 'decimals', chainId },
+            { address: tokenAddress, abi: getAbi('erc20'), functionName: 'symbol', chainId },
+            { address: tokenAddress, abi: getAbi('erc20'), functionName: 'name', chainId },
+            { address: tokenAddress, abi: getAbi('erc20'), functionName: 'decimals', chainId },
         ],
         query: { enabled },
     })

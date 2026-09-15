@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
-import { getDexConfig, ProtocolType, KAP20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi, getDexes } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { buildInfiniteApprovalParams, needsApproval, getAllowanceFunctionName } from '@/lib/tokens'
 import { useSwapStore } from '@/store/swap-store'
@@ -35,14 +35,15 @@ export function useTokenApproval({
     amountToApprove,
 }: UseTokenApprovalParams): UseTokenApprovalResult {
     const { selectedDex } = useSwapStore()
-    const dexConfig = token ? getDexConfig(token.chainId, selectedDex) : undefined
-    const defaultSpender =
-        dexConfig?.protocolType === ProtocolType.V3 ? dexConfig.swapRouter : dexConfig?.router
+    const dexConfig = token
+        ? getDexes(token.chainId).find((dex) => dex.dexId === selectedDex)
+        : undefined
+    const defaultSpender = dexConfig?.protocol === 'v3' ? dexConfig.swapRouter : dexConfig?.router
     const spender = spenderOverride || defaultSpender
     const isTokenNative = token ? isNativeToken(token.address) : false
     const { data: allowance = 0n, refetch: refetchAllowance } = useReadContract({
         address: token?.address as Address,
-        abi: KAP20_ABI,
+        abi: getAbi('kap20'),
         functionName: token ? getAllowanceFunctionName(token.address) : 'allowance',
         args: [owner ?? zeroAddress, spender ?? zeroAddress],
         chainId: token?.chainId,

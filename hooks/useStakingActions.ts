@@ -10,7 +10,7 @@ import {
     useWriteContract,
 } from 'wagmi'
 import { maxUint256, type Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { STAKING_REWARDS_ABI, STAKING_REWARDS_FACTORY_ABI } from '@/lib/abis/staking-rewards'
 import { getStakingRewards } from '@/lib/earn-programs'
 
@@ -82,7 +82,7 @@ export function useStakingPoolActions(
         if (!pool || !stakingToken) return
         tx.write({
             address: stakingToken,
-            abi: ERC20_ABI,
+            abi: getAbi('erc20'),
             functionName: 'approve',
             args: [pool, maxUint256],
             chainId,
@@ -243,7 +243,7 @@ export function useStartEpoch() {
             if (!deployment) return
             tx.write({
                 address: rewardsToken,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'approve',
                 args: [deployment.factory, maxUint256],
                 chainId,
@@ -302,7 +302,7 @@ export function useCreateStakingPool() {
             if (!deployment) return
             tx.write({
                 address: rewardsToken,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'approve',
                 args: [deployment.factory, maxUint256],
                 chainId,

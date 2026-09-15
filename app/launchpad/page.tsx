@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { TokenList } from '@/components/launchpad/token-list'
 import { CreateTokenDialog } from '@/components/launchpad/create-token-dialog'
 import { ActivityTicker } from '@/components/launchpad/activity-feed'
-import { getBondingCurveDeployment } from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment } from '@/lib/deployments'
 import { bitkub } from '@/lib/wagmi'
 import { Plus, Search } from 'lucide-react'
 

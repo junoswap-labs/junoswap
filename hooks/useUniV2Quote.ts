@@ -4,13 +4,7 @@ import { useMemo } from 'react'
 import { usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { zeroAddress, type Address } from 'viem'
-import {
-    getV2Quotes,
-    getSupportedDexs,
-    getDexConfig,
-    ProtocolType,
-    type V2QuoteOutcome,
-} from '@coshi190/juno-moneta-sdk'
+import { getV2Quotes, getDexes } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { QuoteResult } from '@/types/swap'
@@ -50,9 +44,9 @@ export function useUniV2Quote({
 
     const requestedDexIds = useMemo(() => {
         if (!tokenIn) return []
-        const ids =
-            dexId === undefined ? getSupportedDexs(chainId, ProtocolType.V2) : [dexId].flat()
-        return ids.filter((id) => !!getDexConfig(chainId, id, ProtocolType.V2))
+        const enabled = getDexes(chainId, 'v2').map((dex) => dex.dexId)
+        if (dexId === undefined) return enabled
+        return [dexId].flat().filter((id) => enabled.includes(id))
     }, [dexId, tokenIn, chainId])
     const primaryDexId = requestedDexIds[0] ?? null
 
@@ -88,6 +82,9 @@ export function useUniV2Quote({
                 tokenIn: tokenInAddress,
                 tokenOut: tokenOutAddress,
                 amountIn,
+                connectors: [],
+                maxHops: 1,
+                withPriceImpact: true,
             }),
         enabled: isReadyForQuote,
         staleTime: 0,
@@ -104,10 +101,10 @@ export function useUniV2Quote({
             return results
         }
 
-        const data = quoteQuery.data?.direct
+        const data = quoteQuery.data
 
         for (const id of requestedDexIds) {
-            const outcome: V2QuoteOutcome | undefined = data?.get(id)
+            const outcome = data?.find((o) => o.dexId === id)
 
             if (!outcome) {
                 results[id] = {

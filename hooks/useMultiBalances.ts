@@ -3,7 +3,7 @@
 import { useMemo, useRef } from 'react'
 import { useReadContracts } from 'wagmi'
 import { type Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { formatTokenAmount } from '@/lib/tokens'
 export interface TokenHolding {
@@ -27,7 +27,7 @@ export function useMultiBalances(tokens: Token[], addresses: Address[], chainId:
         contracts: addresses.flatMap((addr) =>
             tokens.map((token) => ({
                 address: token.address as Address,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'balanceOf' as const,
                 args: [addr],
                 chainId,

@@ -9,22 +9,17 @@ import {
     type UseSimulateContractParameters,
 } from 'wagmi'
 import type { Address } from 'viem'
-import {
-    encodeSwapCalldata,
-    planSwap,
-    type ProtocolType,
-    type SwapPlan,
-} from '@coshi190/juno-moneta-sdk'
+import { planSwap } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { SwapResult } from '@/types/swap'
-import type { SwapRoute } from '@/types/routing'
+import type { Protocol, SwapRoute } from '@/types/routing'
 import { useSwapStore } from '@/store/swap-store'
 import { toastError } from '@/lib/toast'
 import { useReferrer } from '@/hooks/useReferrer'
 
 interface UseSwapExecutionParams {
-    protocol: ProtocolType
+    protocol: Protocol
     tokenIn: Token
     tokenOut: Token
     amountIn: bigint
@@ -72,7 +67,7 @@ export function useSwapExecution({
     const activeDex = dexId ?? selectedDex
     const chainId = tokenIn.chainId
 
-    const plan = useMemo<SwapPlan | null>(() => {
+    const plan = useMemo<ReturnType<typeof planSwap> | null>(() => {
         if (amountIn <= 0n) return null
         const isMultiHop = !!route?.isMultiHop && route.path.length > 2
         try {
@@ -90,6 +85,7 @@ export function useSwapExecution({
                 fees: isMultiHop ? route!.fees : undefined,
                 fee,
                 forceUnwrapNative,
+                referrer,
             })
         } catch {
             // No config for this dex/chain — surfaced as a toast on submit.
@@ -108,6 +104,7 @@ export function useSwapExecution({
         fee,
         route,
         forceUnwrapNative,
+        referrer,
     ])
 
     const simulateConfig: UseSimulateContractParameters = {
@@ -160,7 +157,7 @@ export function useSwapExecution({
         if (plan.taggable) {
             sendTransaction({
                 to: plan.call.address,
-                data: encodeSwapCalldata(plan, referrer),
+                data: plan.data,
                 value: plan.call.value,
                 chainId,
             })

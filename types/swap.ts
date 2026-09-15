@@ -1,5 +1,4 @@
 import type { Address } from 'viem'
-import { ProtocolType } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { SwapRoute } from './routing'
@@ -28,7 +27,7 @@ export interface DexQuote {
     isLoading: boolean
     isError: boolean
     error: Error | null
-    protocolType: ProtocolType.V2 | ProtocolType.V3
+    protocolType: 'v2' | 'v3'
     fee?: number // For V3 protocols
     priceImpact?: number
     route?: SwapRoute // Route information for multi-hop swaps

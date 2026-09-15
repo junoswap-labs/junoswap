@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAccount, useChainId, useReadContracts } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
 import { zeroAddress, type Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -92,28 +92,28 @@ export function CreateStakingPoolDialog({
         contracts: [
             {
                 address: rewardsToken?.address as Address,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'balanceOf' as const,
                 args: [account ?? zeroAddress] as const,
                 chainId,
             },
             {
                 address: rewardsToken?.address as Address,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'allowance' as const,
                 args: [account ?? zeroAddress, create.factory ?? zeroAddress] as const,
                 chainId,
             },
             {
                 address: stakingToken?.address as Address,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'balanceOf' as const,
                 args: [account ?? zeroAddress] as const,
                 chainId,
             },
             {
                 address: (create.fee?.token ?? zeroAddress) as Address,
-                abi: ERC20_ABI,
+                abi: getAbi('erc20'),
                 functionName: 'allowance' as const,
                 args: [account ?? zeroAddress, create.factory ?? zeroAddress] as const,
                 chainId,

@@ -3,12 +3,8 @@
 import { Fragment, useMemo, useEffect, useRef, useState } from 'react'
 import { useAccount, useChainId } from 'wagmi'
 import { parseUnits, zeroAddress, type Address } from 'viem'
-import {
-    getDexConfig,
-    getSupportedDexs,
-    ProtocolType,
-    getAggRouterDeployment,
-} from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
+import { getAggRouterDeployment } from '@/lib/deployments'
 import type { Token } from '@/types/token'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,9 +16,7 @@ import { useMultiDexQuotes } from '@/hooks/useMultiDexQuotes'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSwapExecution } from '@/hooks/useSwapExecution'
 import { useAggRouterSwapExecution } from '@/hooks/useAggRouterSwapExecution'
-import { useSplitRoute } from '@/hooks/useSplitRoute'
-import { useCrossDexRoute } from '@/hooks/useCrossDexRoute'
-import { splitClearsMargin, pickAggregatePlan } from '@coshi190/juno-moneta-sdk'
+import { useAggregatePlan } from '@/hooks/useAggregatePlan'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useSwapUrlSync } from '@/hooks/useSwapUrlSync'
 import { useChainTokens } from '@/hooks/useChainTokens'
@@ -45,7 +39,6 @@ import { ArrowDownUp, ArrowRightLeft, CandlestickChart } from 'lucide-react'
 import { toast } from 'sonner'
 import { isValidNumberInput, cn } from '@/lib/utils'
 import { getChainMetadata, isNativeToken, shouldSkipUnwrap } from '@/lib/wagmi'
-import { MIN_AGG_IMPROVEMENT_BPS } from '@/lib/routing-config'
 import { useKkubUnwrap } from '@/hooks/useKkubUnwrap'
 
 interface SwapCardProps {
@@ -80,10 +73,11 @@ export function SwapCard({ tokens: tokensOverride, showChart, onToggleChart }: S
         setAggRouteKind,
         setAggPredictedOut,
     } = useSwapStore()
-    const dexConfig = getDexConfig(chainId, selectedDex)
-    const isV2Protocol = dexConfig?.protocolType === ProtocolType.V2
+    const dexes = useMemo(() => getDexes(chainId), [chainId])
+    const dexConfig = dexes.find((dex) => dex.dexId === selectedDex)
+    const isV2Protocol = dexConfig?.protocol === 'v2'
     const hasInitializedTokensRef = useRef(false)
-    const supportedDexs = useMemo(() => getSupportedDexs(chainId), [chainId])
+    const supportedDexs = useMemo(() => dexes.map((dex) => dex.dexId), [dexes])
     useEffect(() => {
         const fallback = supportedDexs[0]
         if (fallback && !supportedDexs.includes(selectedDex)) {
@@ -148,7 +142,7 @@ export function SwapCard({ tokens: tokensOverride, showChart, onToggleChart }: S
             },
             quote: selectedDexQuote.quote,
             dexId: selectedDex,
-            protocolType: isV2Protocol ? ProtocolType.V2 : ProtocolType.V3,
+            protocolType: isV2Protocol ? 'v2' : 'v3',
         }
     }, [
         selectedDexRoute,
@@ -213,48 +207,19 @@ export function SwapCard({ tokens: tokensOverride, showChart, onToggleChart }: S
     const isSameTokenSwap = isSameToken(tokenIn, tokenOut)
     const aggEligible =
         getAggRouterDeployment(chainId) !== undefined && !isWrapUnwrap && settings.autoSelectBestDex
-    const splitRoute = useSplitRoute({
+    const agg = useAggregatePlan({
         tokenIn,
         tokenOut,
         amountIn: amountInBigInt,
         allRoutes,
         enabled: aggEligible,
     })
-    const crossDex = useCrossDexRoute({
-        tokenIn,
-        tokenOut,
-        amountIn: amountInBigInt,
-        enabled: aggEligible,
-    })
     const symbolOf = useMemo(() => {
         const byAddr = new Map(tokens.map((t) => [t.address.toLowerCase(), t.symbol]))
         return (addr: Address) => byAddr.get(addr.toLowerCase()) ?? `${addr.slice(0, 6)}…`
     }, [tokens])
-    const agg = useMemo(
-        () =>
-            pickAggregatePlan({
-                chainId,
-                amountIn: amountInBigInt,
-                aggFeeBps: splitRoute.aggFeeBps,
-                allocation: splitRoute.allocation,
-                crossDexLeg: crossDex.leg,
-                symbolOf,
-            }),
-        [
-            chainId,
-            amountInBigInt,
-            splitRoute.aggFeeBps,
-            splitRoute.allocation,
-            crossDex.leg,
-            symbolOf,
-        ]
-    )
     const aggPlan = agg?.plan ?? null
-    const bestSingleOut = allRoutes[0]?.quote.amountOut ?? null
-    const liveUseAgg =
-        aggEligible &&
-        !!aggPlan &&
-        splitClearsMargin(aggPlan.predictedNetOut, bestSingleOut, MIN_AGG_IMPROVEMENT_BPS)
+    const liveUseAgg = aggEligible && !!agg?.beatsSingle
     const [pinnedUseAgg, setPinnedUseAgg] = useState<boolean | null>(null)
     const useAggPath = (pinnedUseAgg ?? liveUseAgg) && !!aggPlan
     useEffect(() => {
@@ -306,7 +271,7 @@ export function SwapCard({ tokens: tokensOverride, showChart, onToggleChart }: S
     const isKubUnwrapDirect = !!wrapOp && wrapOp === 'unwrap' && shouldSkipUnwrap(chainId)
     const skipSwapSimulation = needsApprovalCheck || isKubUnwrapDirect
     const dexSwap = useSwapExecution({
-        protocol: isV2Protocol ? ProtocolType.V2 : ProtocolType.V3,
+        protocol: isV2Protocol ? 'v2' : 'v3',
         tokenIn: tokenIn ?? tokens[0]!,
         tokenOut: tokenOut ?? tokens[1] ?? tokens[0]!,
         amountIn: amountInBigInt,
@@ -681,7 +646,9 @@ export function SwapCard({ tokens: tokensOverride, showChart, onToggleChart }: S
                                                                     <Fragment key={j}>
                                                                         {j === 0 && (
                                                                             <span>
-                                                                                {h.symbolIn}
+                                                                                {symbolOf(
+                                                                                    h.tokenIn
+                                                                                )}
                                                                             </span>
                                                                         )}
                                                                         <span className="text-muted-foreground">
@@ -690,7 +657,9 @@ export function SwapCard({ tokens: tokensOverride, showChart, onToggleChart }: S
                                                                         <span className="text-[10px] uppercase text-muted-foreground">
                                                                             {h.dexId}
                                                                         </span>
-                                                                        <span>{h.symbolOut}</span>
+                                                                        <span>
+                                                                            {symbolOf(h.tokenOut)}
+                                                                        </span>
                                                                     </Fragment>
                                                                 ))}
                                                             </span>

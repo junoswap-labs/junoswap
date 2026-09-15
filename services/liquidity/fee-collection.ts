@@ -1,7 +1,7 @@
 import { encodeFunctionData, type Address, type Hex } from 'viem'
 import type { CollectCallParams } from '@/types/earn'
 import { MAX_UINT128 } from '@/types/earn'
-import { NONFUNGIBLE_POSITION_MANAGER_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { getWrappedNativeAddress } from '@/lib/tokens'
 import { shouldSkipUnwrap } from '@/lib/wagmi'
 
@@ -16,7 +16,7 @@ export function buildCollectFeesParams(tokenId: bigint, recipient: Address): Col
 
 function encodeCollect(params: CollectCallParams): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'collect',
         args: [params],
     })
@@ -24,7 +24,7 @@ function encodeCollect(params: CollectCallParams): Hex {
 
 function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'unwrapWETH9',
         args: [amountMinimum, recipient],
     })
@@ -32,7 +32,7 @@ function encodeUnwrapWETH9(amountMinimum: bigint, recipient: Address): Hex {
 
 function encodeSweepToken(token: Address, amountMinimum: bigint, recipient: Address): Hex {
     return encodeFunctionData({
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'sweepToken',
         args: [token, amountMinimum, recipient],
     })

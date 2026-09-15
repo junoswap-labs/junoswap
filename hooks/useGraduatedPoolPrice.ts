@@ -2,7 +2,7 @@
 
 import { useReadContract } from 'wagmi'
 import type { Address } from 'viem'
-import { V3_POOL_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { computePoolPrice } from '@/lib/tick-math'
 import { TOTAL_SUPPLY } from '@/lib/launchpad-curve'
 
@@ -31,7 +31,7 @@ export function useGraduatedPoolPrice({
 }: UseGraduatedPoolPriceParams): UseGraduatedPoolPriceResult {
     const { data: slot0 } = useReadContract({
         address: poolAddress,
-        abi: V3_POOL_ABI,
+        abi: getAbi('v3Pool'),
         functionName: 'slot0' as const,
         chainId,
         query: {

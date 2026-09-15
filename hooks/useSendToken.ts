@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { useWriteContract, useSimulateContract, useSendTransaction, usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { zeroAddress, type Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { isNativeToken } from '@/lib/wagmi'
 import { parseTokenAmount } from '@/lib/tokens'
@@ -37,7 +37,7 @@ export function useSendToken({ token, recipient, amount }: UseSendTokenParams): 
 
     const { data: simulationData, isLoading: isPreparing } = useSimulateContract({
         address: token?.address as Address,
-        abi: ERC20_ABI,
+        abi: getAbi('erc20'),
         functionName: 'transfer',
         args: [recipient ?? zeroAddress, rawAmount],
         chainId: token?.chainId,

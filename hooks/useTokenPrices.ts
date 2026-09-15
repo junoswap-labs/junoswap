@@ -6,11 +6,8 @@ import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { hasSettled } from '@/lib/query-status'
-import {
-    getBondingCurveDeployment,
-    fetchTokenSnapshots,
-    fetchV3TokenSnapshots,
-} from '@coshi190/juno-moneta-sdk'
+import { fetchTokenSnapshots, fetchV3TokenSnapshots } from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment } from '@/lib/deployments'
 import type { Token } from '@/types/token'
 import type { TokenType } from '@/types/portfolio'
 

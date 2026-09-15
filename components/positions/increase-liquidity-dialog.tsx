@@ -10,7 +10,7 @@ import { useIncreaseLiquidity } from '@/hooks/useLiquidity'
 import { useTokenApproval } from '@/hooks/useTokenApproval'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { usePool } from '@/hooks/usePools'
-import { ProtocolType, getDexConfig } from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
 import { computeDependentAmount } from '@/lib/liquidity-helpers'
 import { isInRange } from '@/lib/tick-math'
 import { getChainMetadata } from '@/lib/wagmi'
@@ -34,7 +34,7 @@ export function IncreaseLiquidityDialog({
 }: IncreaseLiquidityDialogProps) {
     const { address } = useAccount()
     const chainId = useChainId()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const [amount0, setAmount0] = useState('')
     const [amount1, setAmount1] = useState('')
     const [activeInput, setActiveInput] = useState<'token0' | 'token1' | null>(null)

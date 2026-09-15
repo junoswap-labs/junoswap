@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useChainId } from 'wagmi'
-import { getSupportedDexs, ProtocolType } from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { DexQuote } from '@/types/swap'
@@ -44,8 +44,8 @@ export function useMultiDexQuotes({
         enabled,
         preferMultiHop: true,
     })
-    const v3Dexs = getSupportedDexs(chainId, ProtocolType.V3)
-    const v2Dexs = getSupportedDexs(chainId, ProtocolType.V2)
+    const v3Dexs = getDexes(chainId, 'v3').map((dex) => dex.dexId)
+    const v2Dexs = getDexes(chainId, 'v2').map((dex) => dex.dexId)
     const v3Result = useUniV3Quote({
         tokenIn,
         tokenOut,
@@ -76,7 +76,7 @@ export function useMultiDexQuotes({
                 isLoading: false,
                 isError: false,
                 error: null,
-                protocolType: ProtocolType.V3,
+                protocolType: 'v3',
             }
         }
         for (const dexId of v2Dexs) {
@@ -86,7 +86,7 @@ export function useMultiDexQuotes({
                 isLoading: false,
                 isError: false,
                 error: null,
-                protocolType: ProtocolType.V2,
+                protocolType: 'v2',
             }
         }
         if (v3Result.primaryDexId && results[v3Result.primaryDexId]) {
@@ -96,7 +96,7 @@ export function useMultiDexQuotes({
                 isLoading: v3Result.isLoading,
                 isError: v3Result.isError,
                 error: v3Result.error,
-                protocolType: ProtocolType.V3,
+                protocolType: 'v3',
                 fee: v3Result.fee ?? undefined,
                 priceImpact: v3Result.priceImpact,
             }
@@ -108,7 +108,7 @@ export function useMultiDexQuotes({
                 isLoading: v3Result2.isLoading,
                 isError: v3Result2.isError,
                 error: v3Result2.error,
-                protocolType: ProtocolType.V3,
+                protocolType: 'v3',
                 fee: v3Result2.fee ?? undefined,
                 priceImpact: v3Result2.priceImpact,
             }
@@ -122,7 +122,7 @@ export function useMultiDexQuotes({
                     isLoading: v2Quote.isLoading,
                     isError: v2Quote.isError,
                     error: v2Quote.error,
-                    protocolType: ProtocolType.V2,
+                    protocolType: 'v2',
                     priceImpact: v2Quote.priceImpact,
                 }
             }
@@ -160,9 +160,7 @@ export function useMultiDexQuotes({
                         isLoading: false,
                         isError: false,
                         error: null,
-                        protocolType: routing.bestRoute.protocolType as
-                            | ProtocolType.V2
-                            | ProtocolType.V3,
+                        protocolType: routing.bestRoute.protocolType as 'v2' | 'v3',
                     }
                 }
             }

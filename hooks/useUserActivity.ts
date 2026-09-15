@@ -10,13 +10,12 @@ import {
     fetchUserAggSwaps,
     fetchLaunchTokens,
     fetchV3Tokens,
-    getBondingCurveDeployment,
-    getAggRouterDeployment,
-    NATIVE_TOKEN_ADDRESS,
 } from '@coshi190/juno-moneta-sdk'
+import { getBondingCurveDeployment, getAggRouterDeployment } from '@/lib/deployments'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { isLeaderboardSupportedChain } from '@/lib/leaderboard-utils'
 import { findTokenByAddress, getTokensForChain, findWrappedNativeAddress } from '@/lib/tokens'
+import { NATIVE_TOKEN_ADDRESS } from '@/lib/wagmi'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
 import { LAUNCH_TOKEN_META_FIELDS } from '@/lib/ponder-fields'

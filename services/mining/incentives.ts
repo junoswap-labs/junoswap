@@ -1,4 +1,4 @@
-import { getTickSpacing } from '@coshi190/juno-moneta-sdk'
+import { getTickSpacing } from '@/lib/liquidity-helpers'
 import type { Incentive, IncentiveKey, V3PoolData } from '@/types/earn'
 
 /**

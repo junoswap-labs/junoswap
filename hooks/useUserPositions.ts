@@ -5,12 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useReadContract, useChainId, usePublicClient } from 'wagmi'
 import type { Address } from 'viem'
 import type { V3Position, PositionWithTokens, PositionDetails } from '@/types/earn'
-import {
-    ProtocolType,
-    getDexConfig,
-    fetchPositions,
-    NONFUNGIBLE_POSITION_MANAGER_ABI,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi, fetchPositions, getDexes } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { TOKEN_LISTS } from '@/lib/tokens'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
@@ -265,7 +260,7 @@ export function usePositionDetails(
 } {
     const currentChainId = useChainId()
     const effectiveChainId = chainId ?? currentChainId
-    const dexConfig = getDexConfig(effectiveChainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(effectiveChainId, 'v3')[0]
     const positionManager = dexConfig?.positionManager
     const tokenMap = useTokenMap(effectiveChainId)
 
@@ -291,7 +286,7 @@ export function usePositionDetails(
         refetch: refetchFallback,
     } = useReadContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'positions',
         args: needsFallback ? [tokenId!] : undefined,
         chainId: effectiveChainId,

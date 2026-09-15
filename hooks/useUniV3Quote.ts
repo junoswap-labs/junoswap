@@ -4,12 +4,7 @@ import { useMemo } from 'react'
 import { usePublicClient } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import { zeroAddress, type Address } from 'viem'
-import {
-    getV3Quotes,
-    getDexConfig,
-    ProtocolType,
-    type V3QuoteOutcome,
-} from '@coshi190/juno-moneta-sdk'
+import { getV3Quotes, getDexes } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { DEXType } from '@/lib/dex-meta'
 import type { QuoteResult } from '@/types/swap'
@@ -45,7 +40,7 @@ export function useUniV3Quote({
 
     const pinnedDexId = useMemo(() => {
         const first = Array.isArray(dexId) ? (dexId[0] ?? null) : (dexId ?? null)
-        return first && getDexConfig(chainId, first, ProtocolType.V3) ? first : null
+        return first && getDexes(chainId, 'v3').find((dex) => dex.dexId === first) ? first : null
     }, [dexId, chainId])
 
     const wrapOperation = useMemo(() => getWrapOperation(tokenIn, tokenOut), [tokenIn, tokenOut])
@@ -83,21 +78,25 @@ export function useUniV3Quote({
                 tokenIn: tokenInAddress,
                 tokenOut: tokenOutAddress,
                 amountIn,
+                connectors: [],
+                maxHops: 1,
+                withPriceImpact: true,
             }),
         enabled: isReadyForQuote,
         staleTime: 0,
     })
 
     const outcome = useMemo(() => {
-        const data = quoteQuery.data?.direct
-        if (!data || data.size === 0) return null
-        if (pinnedDexId) return data.get(pinnedDexId) ?? null
-        let best: V3QuoteOutcome | null = null
-        for (const o of data.values()) {
+        const data = quoteQuery.data
+        if (!data || data.length === 0) return null
+        const values = pinnedDexId ? data.filter((o) => o.dexId === pinnedDexId) : data
+        let best: (typeof values)[number] | null = null
+        for (const o of values) {
             if (!o.quote) continue
             if (!best?.quote || o.quote.amountOut > best.quote.amountOut) best = o
         }
-        return best
+        if (best) return best
+        return pinnedDexId ? (values[0] ?? null) : null
     }, [quoteQuery.data, pinnedDexId])
 
     const quote: QuoteResult | null = useMemo(() => {
@@ -120,7 +119,7 @@ export function useUniV3Quote({
         isLoading: wrapOperation ? false : quoteQuery.isLoading,
         isError: !!quoteError || hasNoPool,
         error,
-        fee: outcome?.fee ?? null,
+        fee: outcome?.fees[0] ?? null,
         priceImpact: outcome?.priceImpact,
         primaryDexId: pinnedDexId ?? outcome?.dexId ?? null,
     }

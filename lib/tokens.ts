@@ -1,15 +1,17 @@
 import type { Address } from 'viem'
-import {
-    ERC20_ABI,
-    NATIVE_TOKEN_ADDRESS,
-    getSwapAddress,
-    getWrapOperation as getWrapOperationBySdk,
-    getWrappedNativeAddress as getWrappedNativeAddressBySdk,
-    isNativeToken,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { QuoteResult } from '@/types/swap'
-import { kubTestnet, jbc, bitkub, worldchain, base, bsc } from './wagmi'
+import {
+    kubTestnet,
+    jbc,
+    bitkub,
+    worldchain,
+    base,
+    bsc,
+    NATIVE_TOKEN_ADDRESS,
+    isNativeToken,
+} from './wagmi'
 import { resolveLaunchpadLogo } from './logo'
 import tokenData from './tokens.json'
 
@@ -58,6 +60,33 @@ const STABLECOIN_SYMBOLS: Record<number, string> = {
     [base.id]: 'USDC',
 }
 
+/** Addresses are lower-cased so callers can probe with a lower-cased needle. */
+const STABLECOIN_ADDRESSES: Record<number, ReadonlySet<string>> = {
+    [kubTestnet.id]: new Set(['0x70138f1b88bee73dd2cb06f24146f964dde6144e']),
+    [bitkub.id]: new Set([
+        '0x7d984c24d2499d840eb3b7016077164e15e5faa6',
+        '0x21cdc3706b8c7b1836df0e533dd884069521350b',
+        '0x31929a0fd776f971c5dd14bf03e1f9ff69d9c91c',
+    ]),
+    [jbc.id]: new Set([
+        '0x24599b658b57f91e7643f4f154b16bcd2884f9ac',
+        '0xfd8ef75c1cb00a594d02df48addc27414bd07f8a',
+    ]),
+    [worldchain.id]: new Set(['0x79a02482a880bce3f13e09da970dc34db4cd24d1']),
+    [base.id]: new Set([
+        '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+        '0x50c5725949a6f0c72e6c4a641f24049a917db0cb',
+    ]),
+    [bsc.id]: new Set([
+        '0x55d398326f99059ff775485246999027b3197955',
+        '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d',
+    ]),
+}
+
+export function getStablecoins(chainId: number): ReadonlySet<string> | undefined {
+    return STABLECOIN_ADDRESSES[chainId]
+}
+
 export function getDefaultPairTokens(chainId: number): {
     stablecoin: Token | undefined
     nativeTokens: Token[]
@@ -82,7 +111,7 @@ export function findTokenByAddress(chainId: number, address: string): Token | un
 export function buildInfiniteApprovalParams(tokenAddress: Address, spenderAddress: Address) {
     return {
         address: tokenAddress,
-        abi: ERC20_ABI,
+        abi: getAbi('erc20'),
         functionName: 'approve' as const,
         args: [spenderAddress, getMaxUint256()] as const,
     }
@@ -165,8 +194,17 @@ export function isValidTokenAddress(address: string): boolean {
     return /^0x[a-fA-F0-9]{40}$/.test(address)
 }
 
+const WRAPPED_NATIVE_ADDRESSES: Record<number, Address> = {
+    [kubTestnet.id]: '0x700d3ba307e1256e509ed3e45d6f9dff441d6907',
+    [bitkub.id]: '0x67ebd850304c70d983b2d1b93ea79c7cd6c3f6b5',
+    [jbc.id]: '0xc4b7c87510675167643e3de6eeed4d2c06a9e747',
+    [worldchain.id]: '0x4200000000000000000000000000000000000006',
+    [base.id]: '0x4200000000000000000000000000000000000006',
+    [bsc.id]: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
+}
+
 export function findWrappedNativeAddress(chainId: number): Address | undefined {
-    return getWrappedNativeAddressBySdk(chainId)
+    return WRAPPED_NATIVE_ADDRESSES[chainId]
 }
 
 export function getWrappedNativeAddress(chainId: number): Address {
@@ -187,7 +225,16 @@ export function getDisplayToken(token: Token): Token {
     return token
 }
 
-export { getSwapAddress }
+export function getSwapAddress(token: Address, chainId: number): Address {
+    if (!isNativeToken(token)) return token
+    return findWrappedNativeAddress(chainId) ?? token
+}
+
+function isWrappedNative(token: Address, chainId: number): boolean {
+    const wrapped = findWrappedNativeAddress(chainId)
+    if (!wrapped) return false
+    return token.toLowerCase() === wrapped.toLowerCase()
+}
 
 export function isSameToken(tokenA: Token | null, tokenB: Token | null): boolean {
     if (!tokenA || !tokenB) return false
@@ -212,11 +259,13 @@ export function getWrapOperation(
     if (!tokenIn || !tokenOut) return null
     if (tokenIn.chainId !== tokenOut.chainId) return null
 
-    return getWrapOperationBySdk(
-        tokenIn.address as Address,
-        tokenOut.address as Address,
-        tokenIn.chainId
-    )
+    const from = tokenIn.address as Address
+    const to = tokenOut.address as Address
+    const chainId = tokenIn.chainId
+
+    if (isNativeToken(from) && isWrappedNative(to, chainId)) return 'wrap'
+    if (isWrappedNative(from, chainId) && isNativeToken(to)) return 'unwrap'
+    return null
 }
 
 export function wrapQuoteResult(amountIn: bigint, operation: 'wrap' | 'unwrap'): QuoteResult {

@@ -11,11 +11,7 @@ import {
 } from 'wagmi'
 import type { Address } from 'viem'
 import type { IncentiveKey, PositionWithTokens } from '@/types/earn'
-import {
-    ProtocolType,
-    getDexConfig,
-    NONFUNGIBLE_POSITION_MANAGER_ABI,
-} from '@coshi190/juno-moneta-sdk'
+import { getAbi, getDexes } from '@coshi190/juno-moneta-sdk'
 import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import {
     encodeIncentiveKeyData,
@@ -55,21 +51,21 @@ export function useStakePosition(
     hash: `0x${string}` | undefined
 } {
     const chainId = useChainId()
-    const dexConfig = getDexConfig(chainId, undefined, ProtocolType.V3)
+    const dexConfig = getDexes(chainId, 'v3')[0]
     const stakerAddress = getStakerAddress(chainId, program)
     const positionManager = dexConfig?.positionManager
     const isEnabled =
         !!position && !!incentiveKey && !!owner && !!stakerAddress && !!positionManager
     const { data: approvedAddress } = useReadContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'getApproved',
         args: position ? [position.tokenId] : undefined,
         query: { enabled: !!position && !!positionManager },
     })
     const { data: isApprovedForAll } = useReadContract({
         address: positionManager,
-        abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+        abi: getAbi('positionManager'),
         functionName: 'isApprovedForAll',
         args: owner && stakerAddress ? [owner, stakerAddress] : undefined,
         query: { enabled: !!owner && !!stakerAddress && !!positionManager },
@@ -131,7 +127,7 @@ export function useStakePosition(
         if (!positionManager || !stakerAddress || !position) return
         writeContract({
             address: positionManager,
-            abi: NONFUNGIBLE_POSITION_MANAGER_ABI,
+            abi: getAbi('positionManager'),
             functionName: 'approve',
             args: [stakerAddress, position.tokenId],
         })

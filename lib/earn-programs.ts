@@ -1,5 +1,5 @@
 import type { Address } from 'viem'
-import { ProtocolType, getDexConfig } from '@coshi190/juno-moneta-sdk'
+import { getDexes } from '@coshi190/juno-moneta-sdk'
 import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import { JUNO_V3_STAKER_ABI } from '@/lib/abis/juno-v3-staker'
 
@@ -56,7 +56,7 @@ export function getStakingRewards(chainId: number) {
  */
 export function getStakerAddress(chainId: number, program: EarnProgram): Address | undefined {
     if (program === 'juno-v3') return JUNO_STAKER[chainId]?.address
-    return getDexConfig(chainId, undefined, ProtocolType.V3)?.staker
+    return getDexes(chainId, 'v3')[0]?.staker
 }
 
 /** Programs actually deployed on this chain. Anything absent is hidden rather than shown broken. */

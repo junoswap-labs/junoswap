@@ -2,7 +2,7 @@
 
 import { useBalance, useReadContract, useReadContracts, useAccount } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
-import { ERC20_ABI } from '@coshi190/juno-moneta-sdk'
+import { getAbi } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { formatTokenAmount } from '@/lib/tokens'
 import { isNativeToken } from '@/lib/wagmi'
@@ -30,7 +30,7 @@ export function useTokenBalance({ token, address }: UseTokenBalanceParams): UseT
     })
     const erc20Balance = useReadContract({
         address: token?.address as Address,
-        abi: ERC20_ABI,
+        abi: getAbi('erc20'),
         functionName: 'balanceOf',
         args: [address ?? zeroAddress],
         chainId: token?.chainId,
@@ -80,7 +80,7 @@ export function useTokenBalances({
     const erc20Balances = useReadContracts({
         contracts: erc20Tokens.map((token) => ({
             address: token.address as Address,
-            abi: ERC20_ABI,
+            abi: getAbi('erc20'),
             functionName: 'balanceOf',
             args: [address as Address],
             chainId: token.chainId,

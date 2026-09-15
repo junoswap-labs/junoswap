@@ -5,7 +5,7 @@ import { useReadContracts, useChainId } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
 import type { Incentive } from '@/types/earn'
-import { fetchIncentives, ProtocolType, getDexConfig } from '@coshi190/juno-moneta-sdk'
+import { fetchIncentives, getDexes } from '@coshi190/juno-moneta-sdk'
 import type { V3PoolRow } from '@/types/pools'
 import { UNISWAP_V3_STAKER_ABI } from '@/lib/abis/uniswap-v3-staker'
 import type { Token } from '@/types/token'
@@ -52,7 +52,7 @@ function useUniswapIncentives(enabled: boolean): {
 } {
     const chainId = useChainId()
     const isIndexed = PONDER_INDEXED_CHAINS.has(chainId)
-    const stakerAddress = getDexConfig(chainId, undefined, ProtocolType.V3)?.staker
+    const stakerAddress = getDexes(chainId, 'v3')[0]?.staker
 
     const {
         data: incentiveRows,
