@@ -96,6 +96,8 @@ export const MAX_HOPS = 3
 
 export const MAX_DEEP_CONNECTORS = 3
 
+// Every address must already be in its swap form: an unresolved native sentinel never
+// compares equal to its own wrapped token, so that token would survive as a connector.
 export function enumerateHopPaths(
     tokenIn: Address,
     tokenOut: Address,
@@ -121,5 +123,6 @@ export function enumerateHopPaths(
             }
         }
     }
-    return paths
+
+    return paths.filter((p) => new Set(p.map((t) => t.toLowerCase())).size === p.length)
 }

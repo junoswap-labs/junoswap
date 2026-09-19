@@ -46,6 +46,19 @@ describe('enumerateHopPaths', () => {
         expect(paths).toEqual([[IN, C1, OUT]])
     })
 
+    it('never returns a path that visits the same token twice', async () => {
+        const { enumerateHopPaths } = await import('@/lib/routing-config')
+        const paths = enumerateHopPaths(IN, OUT, [C1, OUT.toUpperCase() as Address, C2], 3)
+        for (const p of paths) {
+            expect(new Set(p.map((t) => t.toLowerCase())).size).toBe(p.length)
+        }
+    })
+
+    it('returns no paths when both endpoints are the same token', async () => {
+        const { enumerateHopPaths } = await import('@/lib/routing-config')
+        expect(enumerateHopPaths(IN, IN, [C1, C2], 3)).toEqual([])
+    })
+
     it('caps the quadratic 3-hop expansion to the top connectors', async () => {
         const { enumerateHopPaths, MAX_DEEP_CONNECTORS } = await import('@/lib/routing-config')
         const paths = enumerateHopPaths(IN, OUT, [C1, C2, C3, C4], 3)
