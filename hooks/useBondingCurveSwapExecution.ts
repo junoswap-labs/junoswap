@@ -24,6 +24,8 @@ interface UseBondingCurveSwapExecutionParams {
     nativeReserve: bigint
     tokenReserve: bigint
     virtualAmount: bigint
+    /** Which curve deployment this token trades on. Defaults to the chain's primary launchpad. */
+    launchpadId?: string
     enabled?: boolean
 }
 
@@ -48,13 +50,18 @@ export function useBondingCurveSwapExecution({
     nativeReserve,
     tokenReserve,
     virtualAmount,
+    launchpadId,
     enabled = true,
 }: UseBondingCurveSwapExecutionParams): UseBondingCurveSwapExecutionResult {
     const isBuy = side === 'buy'
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
     const { address } = useAccount()
-    const { chainId, address: bondingCurveAddress } = useLaunchpadContract()
+    const {
+        chainId,
+        address: bondingCurveAddress,
+        launchpadId: resolvedLaunchpadId,
+    } = useLaunchpadContract(launchpadId)
     const publicClient = usePublicClient({ chainId })
 
     const { data: allowance = 0n } = useReadContract({
@@ -88,9 +95,10 @@ export function useBondingCurveSwapExecution({
             chainId,
             isBuy
                 ? { kind: 'buy', token: tokenAddr, minOut, value: amount }
-                : { kind: 'sell', token: tokenAddr, amountIn: amount, minOut }
+                : { kind: 'sell', token: tokenAddr, amountIn: amount, minOut },
+            resolvedLaunchpadId
         )
-    }, [chainId, isBuy, tokenAddr, bondingCurveAddress, amount, minOut])
+    }, [chainId, isBuy, tokenAddr, bondingCurveAddress, amount, minOut, resolvedLaunchpadId])
 
     const simulateConfig: UseSimulateContractParameters = {
         address: call?.address,

@@ -19,6 +19,9 @@ export interface LaunchToken {
     isGraduated?: boolean
     /** Which launchpad minted this token. Absent means 'junoswap' (the original source). */
     platform?: LaunchpadPlatform
+    /** The indexer's launchpad id, which names the exact curve deployment this token trades on.
+     *  Several ids (junoswap, junoswap-v1_1) share the 'junoswap' platform. */
+    launchpadId?: string
     /** Third-party bonding-curve market contract for this token, pre-graduation. */
     market?: Address
     /** Graduated pool address, indexed for any platform — read this instead of guessing a

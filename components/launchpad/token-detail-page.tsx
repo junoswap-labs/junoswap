@@ -2,6 +2,7 @@
 
 import { formatEther } from 'viem'
 import type { Address } from 'viem'
+import { getGraduationMode } from '@/lib/launchpad-curve'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
@@ -44,6 +45,10 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
 
     const isGraduated = !!tokenInfo?.isGraduated
     const isDurianfun = tokenInfo?.platform === 'durianfun'
+    const launchpadId = tokenInfo?.launchpadId
+    // V1.1 caps buys at the graduation amount and graduates on a flat native reserve, so its
+    // progress is measured against that amount rather than a solved-for threshold.
+    const graduationMode = getGraduationMode(launchpadId)
     // Not-yet-graduated Durianfun tokens trade on their own per-token market contract, not
     // Junoswap's shared bonding curve — Junoswap's reserve/graduation reads don't apply to them.
     const isThirdPartyCurve = usesThirdPartyCurveUI(tokenInfo?.platform, isGraduated)
@@ -60,6 +65,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
         tokenAddr: isDurianfun ? null : tokenAddr,
         isGraduated,
         chainId,
+        launchpadId,
     })
 
     const wrappedNative = INTERMEDIARY_TOKENS[chainId]?.wrappedNative
@@ -394,6 +400,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                         : undefined
                                 }
                                 isPoolLoading={isPoolLoading}
+                                launchpadId={launchpadId}
                                 dexId={
                                     isGraduated
                                         ? getGraduatedPoolConfig(tokenInfo?.platform).dexId
@@ -415,6 +422,7 @@ export function TokenDetailPage({ tokenAddr }: TokenDetailPageProps) {
                                             graduationAmount={graduationAmount}
                                             virtualAmount={virtualAmount}
                                             isGraduated={!!isGraduated}
+                                            graduationMode={graduationMode}
                                         />
                                     </CardContent>
                                 </Card>

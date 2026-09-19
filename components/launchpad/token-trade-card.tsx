@@ -21,6 +21,7 @@ import { TxFlowDialog, actionStep, approvalStep, type TxStep } from '@/component
 import { TxStageFlow } from '@/components/ui/tx-stage'
 import { getAbi, getDexes } from '@coshi190/juno-moneta-sdk'
 import { getBondingCurveDeployment } from '@/lib/deployments'
+import { getGraduationMode } from '@/lib/launchpad-curve'
 import type { Token } from '@/types/token'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { isValidNumberInput } from '@/lib/utils'
@@ -42,6 +43,8 @@ interface TokenTradeCardProps {
     poolAddress?: Address
     poolFee?: number
     isPoolLoading?: boolean
+    /** Which curve deployment this token trades on. Defaults to the chain's primary launchpad. */
+    launchpadId?: string
     dexId?: string
 }
 
@@ -93,6 +96,7 @@ export function TokenTradeCard({
     poolAddress,
     poolFee,
     isPoolLoading = false,
+    launchpadId,
     dexId,
 }: TokenTradeCardProps) {
     const { address, isConnected } = useAccount()
@@ -108,7 +112,7 @@ export function TokenTradeCard({
     const { settings, setSlippage, setDeadlineMinutes } = useSwapStore()
 
     const chainId = useLaunchpadChainId()
-    const bondingCurveAddress = getBondingCurveDeployment(chainId)?.address
+    const bondingCurveAddress = getBondingCurveDeployment(chainId, launchpadId)?.address
 
     const walletChainId = useChainId()
     const { switchChain, isPending: isSwitchingChain } = useSwitchChain()
@@ -122,7 +126,12 @@ export function TokenTradeCard({
         virtualAmount,
         graduationAmount,
         refetch: refetchReserves,
-    } = useTokenReserves({ tokenAddr, isGraduated: _initialIsGraduated, chainId })
+    } = useTokenReserves({
+        tokenAddr,
+        isGraduated: _initialIsGraduated,
+        chainId,
+        launchpadId,
+    })
 
     const { graduation } = computeCurve({
         nativeReserve,
@@ -130,6 +139,7 @@ export function TokenTradeCard({
         virtualAmount,
         graduationAmount,
         isGraduated,
+        graduationMode: getGraduationMode(launchpadId),
     })
     const readyToGraduate = graduation.isReady
 
@@ -146,6 +156,7 @@ export function TokenTradeCard({
         hash: graduateHash,
     } = useGraduate({
         tokenAddr,
+        launchpadId,
         enabled: readyToGraduate,
     })
 
@@ -200,6 +211,7 @@ export function TokenTradeCard({
         nativeReserve,
         tokenReserve,
         virtualAmount,
+        launchpadId,
         enabled: !isGraduated && !readyToGraduate,
     })
 
@@ -289,6 +301,7 @@ export function TokenTradeCard({
         nativeReserve,
         tokenReserve,
         virtualAmount,
+        launchpadId,
         enabled: !isGraduated,
     })
 

@@ -10,3 +10,14 @@ export const DURIANFUN_MCAP_SUPPLY = 2_000_000_000
 
 // Wei. The full supply a curve holds before any buys.
 export const INITIAL_TOKEN_SUPPLY = 1000000000n * 10n ** 18n
+
+// Mirrors the SDK's internal curve union. V1 graduates on an implicit price threshold; V1.1
+// graduates at a flat native reserve.
+export type GraduationMode = 'implicit' | 'flat'
+
+// The indexer's id for the V1.1 curve, which is the only curve that differs from V1 here.
+export const LAUNCHPAD_V1_1_ID = 'junoswap-v1_1'
+
+export function getGraduationMode(launchpadId?: string): GraduationMode {
+    return launchpadId === LAUNCHPAD_V1_1_ID ? 'flat' : 'implicit'
+}

@@ -10,6 +10,8 @@ interface UseTokenReservesParams {
     tokenAddr: Address | null
     isGraduated?: boolean
     chainId?: number
+    /** Which curve deployment this token trades on. Defaults to the chain's primary launchpad. */
+    launchpadId?: string
 }
 
 interface UseTokenReservesResult {
@@ -26,13 +28,14 @@ export function useTokenReserves({
     tokenAddr,
     isGraduated: isGraduatedProp,
     chainId = DEFAULT_LAUNCHPAD_CHAIN_ID,
+    launchpadId,
 }: UseTokenReservesParams): UseTokenReservesResult {
     const client = usePublicClient({ chainId })
     const skip = !tokenAddr || !!isGraduatedProp || !client
 
     const { data, isLoading, refetch } = useQuery({
-        queryKey: ['curve-state', chainId, tokenAddr],
-        queryFn: () => getCurveState(client!, { chainId, token: tokenAddr! }),
+        queryKey: ['curve-state', chainId, launchpadId, tokenAddr],
+        queryFn: () => getCurveState(client!, { chainId, token: tokenAddr!, launchpadId }),
         enabled: !skip,
         staleTime: 0,
     })

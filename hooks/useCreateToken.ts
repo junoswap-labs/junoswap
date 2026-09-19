@@ -39,7 +39,7 @@ interface UseCreateTokenResult {
 export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenResult {
     const { settings } = useSwapStore()
     const slippageBps = Math.round(settings.slippage * 100)
-    const { chainId, address: bondingCurveAddress } = useLaunchpadContract()
+    const { chainId, address: bondingCurveAddress, launchpadId } = useLaunchpadContract()
     const publicClient = usePublicClient({ chainId })
 
     const [phase, setPhase] = useState<CreatePhase>('idle')
@@ -53,8 +53,8 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
     } | null>(null)
 
     const { data: curve } = useQuery({
-        queryKey: ['curve-config', chainId],
-        queryFn: () => getCurveState(publicClient!, { chainId }),
+        queryKey: ['curve-config', chainId, launchpadId],
+        queryFn: () => getCurveState(publicClient!, { chainId, launchpadId }),
         enabled: !!publicClient,
     })
 
@@ -73,7 +73,7 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         if (upfrontBuyNative <= 0n || !curve) return 0n
         return computeCurve({
             nativeReserve: curve.initialNative,
-            tokenReserve: INITIAL_TOKEN_SUPPLY,
+            tokenReserve: curve.curveReserve ?? INITIAL_TOKEN_SUPPLY,
             virtualAmount: curve.virtualAmount,
             buyAmountIn: upfrontBuyNative,
         }).buyOutput
@@ -176,7 +176,11 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     setPhase('error')
                     return
                 }
-                const state = await getCurveState(publicClient, { chainId, token: tokenAddr })
+                const state = await getCurveState(publicClient, {
+                    chainId,
+                    token: tokenAddr,
+                    launchpadId,
+                })
                 if (!state || state.tokenReserve <= 0n) {
                     setPhaseError(new Error('Token reserves not yet available'))
                     setPhase('error')
@@ -197,12 +201,16 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
                     buyAmount: upfrontBuyNative,
                 }
                 writeBuy({
-                    ...planCurveCall(chainId, {
-                        kind: 'buy',
-                        token: tokenAddr,
-                        minOut: actualMinOut,
-                        value: upfrontBuyNative,
-                    }),
+                    ...planCurveCall(
+                        chainId,
+                        {
+                            kind: 'buy',
+                            token: tokenAddr,
+                            minOut: actualMinOut,
+                            value: upfrontBuyNative,
+                        },
+                        launchpadId
+                    ),
                     chainId: chainId,
                 })
             })
@@ -212,7 +220,15 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
             })
             setPhase('success')
         }
-    }, [isCreateSuccess, createHash, upfrontBuyNative, minTokenOut, writeBuy, bondingCurveAddress])
+    }, [
+        isCreateSuccess,
+        createHash,
+        upfrontBuyNative,
+        minTokenOut,
+        writeBuy,
+        bondingCurveAddress,
+        launchpadId,
+    ])
 
     useEffect(() => {
         if (isBuySuccess) {
@@ -248,19 +264,23 @@ export function useCreateToken({ form }: UseCreateTokenParams): UseCreateTokenRe
         didTriggerBuy.current = false
         buyParamsRef.current = null
         writeCreate({
-            ...planCurveCall(chainId, {
-                kind: 'create',
-                metadata: {
-                    name: form.name,
-                    symbol: form.symbol,
-                    logo: logoOverride ?? form.logo,
-                    description: form.description,
-                    link1: form.link1,
-                    link2: form.link2,
-                    link3: form.link3,
+            ...planCurveCall(
+                chainId,
+                {
+                    kind: 'create',
+                    metadata: {
+                        name: form.name,
+                        symbol: form.symbol,
+                        logo: logoOverride ?? form.logo,
+                        description: form.description,
+                        link1: form.link1,
+                        link2: form.link2,
+                        link3: form.link3,
+                    },
+                    value: createCost,
                 },
-                value: createCost,
-            }),
+                launchpadId
+            ),
             chainId: chainId,
         })
     }

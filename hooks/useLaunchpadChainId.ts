@@ -2,7 +2,11 @@
 
 import { createContext, createElement, useContext, type ReactNode } from 'react'
 import { useChainId } from 'wagmi'
-import { getBondingCurveDeployment } from '@/lib/deployments'
+import {
+    getBondingCurveDeployment,
+    getPrimaryLaunchpadId,
+    hasBondingCurve,
+} from '@/lib/deployments'
 import type { Address } from 'viem'
 import { kubTestnet } from '@/lib/wagmi'
 
@@ -24,10 +28,22 @@ export function useLaunchpadChainId(): number {
     const override = useContext(LaunchpadChainContext)
     const chainId = useChainId()
     if (override !== undefined) return override
-    return getBondingCurveDeployment(chainId) !== undefined ? chainId : DEFAULT_LAUNCHPAD_CHAIN_ID
+    return hasBondingCurve(chainId) ? chainId : DEFAULT_LAUNCHPAD_CHAIN_ID
 }
 
-export function useLaunchpadContract(): { chainId: number; address: Address | undefined } {
+/** Resolves the curve a token trades on. Omitting `launchpadId` gives the chain's primary
+ *  curve, which is where new tokens are created. The resolved id comes back so callers pass the
+ *  same one to the SDK, whose own default is the original 'junoswap' curve. */
+export function useLaunchpadContract(launchpadId?: string): {
+    chainId: number
+    address: Address | undefined
+    launchpadId: string
+} {
     const chainId = useLaunchpadChainId()
-    return { chainId, address: getBondingCurveDeployment(chainId)?.address }
+    const resolved = launchpadId ?? getPrimaryLaunchpadId(chainId)
+    return {
+        chainId,
+        address: getBondingCurveDeployment(chainId, resolved)?.address,
+        launchpadId: resolved,
+    }
 }

@@ -41,6 +41,8 @@ type GraduationStep =
 
 interface UseGraduateParams {
     tokenAddr: Address | null
+    /** Which curve deployment this token lives on. Defaults to the chain's primary launchpad. */
+    launchpadId?: string
     enabled?: boolean
 }
 
@@ -76,9 +78,14 @@ const STEP_LABELS: Record<GraduationStep, string> = {
 
 export function useGraduate({
     tokenAddr,
+    launchpadId,
     enabled: _enabled = true,
 }: UseGraduateParams): UseGraduateResult {
-    const { chainId, address: bondingCurveAddress } = useLaunchpadContract()
+    const {
+        chainId,
+        address: bondingCurveAddress,
+        launchpadId: resolvedLaunchpadId,
+    } = useLaunchpadContract(launchpadId)
     const publicClient = usePublicClient({ chainId })
     const { address } = useAccount()
     const v3Config = getDexes(chainId, 'v3')[0]
@@ -143,7 +150,11 @@ export function useGraduate({
             const positionManager = v3Config.positionManager!
             const swapRouter = v3Config.swapRouter!
 
-            const curve = await getCurveState(publicClient, { chainId, token: tokenAddr })
+            const curve = await getCurveState(publicClient, {
+                chainId,
+                token: tokenAddr,
+                launchpadId: resolvedLaunchpadId,
+            })
             if (!curve) throw new Error('Bonding curve state unavailable')
             const { nativeReserve, tokenReserve } = curve
 
@@ -228,12 +239,16 @@ export function useGraduate({
                 if (tokenBalBefore === 0n) {
                     setStep('buying-tokens')
                     await sendTx(
-                        planCurveCall(chainId, {
-                            kind: 'buy',
-                            token: tokenAddr,
-                            minOut: 0n,
-                            value: parseEther('0.006'),
-                        })
+                        planCurveCall(
+                            chainId,
+                            {
+                                kind: 'buy',
+                                token: tokenAddr,
+                                minOut: 0n,
+                                value: parseEther('0.006'),
+                            },
+                            resolvedLaunchpadId
+                        )
                     )
                 }
 
@@ -538,7 +553,9 @@ export function useGraduate({
             }
 
             setStep('graduating')
-            await sendTx(planCurveCall(chainId, { kind: 'graduate', token: tokenAddr }))
+            await sendTx(
+                planCurveCall(chainId, { kind: 'graduate', token: tokenAddr }, resolvedLaunchpadId)
+            )
 
             if (rescue) {
                 setStep('unwrapping')
@@ -575,6 +592,7 @@ export function useGraduate({
         wrappedNative,
         address,
         bondingCurveAddress,
+        resolvedLaunchpadId,
         sendTx,
     ])
 
