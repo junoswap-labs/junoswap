@@ -6,6 +6,7 @@ import type { Address } from 'viem'
 import { maxUint256, maxUint128, parseEther } from 'viem'
 import { getAbi, planCurveCall, computeCurve, getDexes } from '@coshi190/juno-moneta-sdk'
 import { getCurveState } from '@/lib/curve-state'
+import { getGraduationMode } from '@/lib/launchpad-curve'
 import { useLaunchpadContract } from '@/hooks/useLaunchpadChainId'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { findEventArgs } from '@/services/launchpad/receipt'
@@ -20,14 +21,15 @@ function isSqrtPriceWithinTolerance(
     return diff <= (target * toleranceBps) / 10000n
 }
 
-const PRICE_TOLERANCE_BPS = 400n
+// graduate() mints full range with 99% (V1.1) / 95% (V1) minimums, which only admit ~0.5% / ~2.5%
+// of sqrtPrice skew. Stay inside the tighter one.
+const PRICE_TOLERANCE_BPS = 25n
 
 type PoolStatus = 'no_pool' | 'not_initialized' | 'correct' | 'wrong'
 
 type GraduationStep =
     | 'idle'
     | 'checking-pool'
-    | 'initializing-pool'
     | 'buying-tokens'
     | 'wrapping-kub'
     | 'approving'
@@ -63,7 +65,6 @@ interface UseGraduateResult {
 const STEP_LABELS: Record<GraduationStep, string> = {
     idle: '',
     'checking-pool': 'Checking pool state...',
-    'initializing-pool': 'Initializing pool...',
     'buying-tokens': 'Buying tokens from curve...',
     'wrapping-kub': 'Wrapping KUB...',
     approving: 'Approving tokens...',
@@ -163,6 +164,7 @@ export function useGraduate({
                 tokenReserve,
                 virtualAmount: curve.virtualAmount,
                 graduationAmount: curve.graduationAmount,
+                graduationMode: getGraduationMode(resolvedLaunchpadId),
                 token: tokenAddr,
                 wrappedNative,
             })
@@ -216,18 +218,13 @@ export function useGraduate({
             const rescue = poolStatus === 'wrong'
             setNeedsRescue(rescue)
 
-            if (poolStatus === 'no_pool' || poolStatus === 'not_initialized') {
-                setStep('initializing-pool')
-                await sendTx({
-                    address: positionManager,
-                    abi: getAbi('positionManager'),
-                    functionName: 'createAndInitializePoolIfNecessary',
-                    args: [token0, token1, 10000, correctSqrtPrice],
-                })
-            }
-
+            // A missing or uninitialized pool is left to graduate(), which creates and initializes
+            // it atomically with the mint at the curve's closing price.
             if (rescue) {
                 const priceTooHigh = currentSqrtPrice > correctSqrtPrice
+                // Lowering sqrtPrice sells token0 into the pool; raising it sells token1
+                const swapTokenIn = priceTooHigh ? token0 : token1
+                const swapTokenOut = priceTooHigh ? token1 : token0
 
                 const tokenBalBefore = (await publicClient.readContract({
                     address: tokenAddr,
@@ -237,6 +234,12 @@ export function useGraduate({
                 })) as bigint
 
                 if (tokenBalBefore === 0n) {
+                    // V1.1 closes buys once the curve is complete, so the rescue can't source tokens
+                    if (getGraduationMode(resolvedLaunchpadId) === 'flat') {
+                        throw new Error(
+                            'The pool price must be corrected before graduating, which needs some of this token in your wallet'
+                        )
+                    }
                     setStep('buying-tokens')
                     await sendTx(
                         planCurveCall(
@@ -303,9 +306,11 @@ export function useGraduate({
                     await Promise.all([
                         needsApprove(tokenAddr, positionManager, tokenForLiq),
                         needsApprove(wrappedNative, positionManager, wkubForLiq),
-                        priceTooHigh
-                            ? needsApprove(tokenAddr, swapRouter, tokenBal)
-                            : needsApprove(wrappedNative, swapRouter, wkubBal),
+                        needsApprove(
+                            swapTokenIn,
+                            swapRouter,
+                            swapTokenIn === tokenAddr ? tokenBal : wkubBal
+                        ),
                     ])
                 ).some(Boolean)
 
@@ -327,24 +332,19 @@ export function useGraduate({
                             args: [positionManager, maxUint256],
                         })
                     }
-                    if (priceTooHigh) {
-                        if (await needsApprove(tokenAddr, swapRouter, tokenBal)) {
-                            await sendTx({
-                                address: tokenAddr,
-                                abi: getAbi('erc20'),
-                                functionName: 'approve',
-                                args: [swapRouter, maxUint256],
-                            })
-                        }
-                    } else {
-                        if (await needsApprove(wrappedNative, swapRouter, wkubBal)) {
-                            await sendTx({
-                                address: wrappedNative,
-                                abi: getAbi('erc20'),
-                                functionName: 'approve',
-                                args: [swapRouter, maxUint256],
-                            })
-                        }
+                    if (
+                        await needsApprove(
+                            swapTokenIn,
+                            swapRouter,
+                            swapTokenIn === tokenAddr ? tokenBal : wkubBal
+                        )
+                    ) {
+                        await sendTx({
+                            address: swapTokenIn,
+                            abi: getAbi('erc20'),
+                            functionName: 'approve',
+                            args: [swapRouter, maxUint256],
+                        })
                     }
                 }
 
@@ -408,8 +408,8 @@ export function useGraduate({
                                 fee: 10000,
                                 tickLower: -887200,
                                 tickUpper: 887200,
-                                amount0Desired: tokenForLiq,
-                                amount1Desired: wkubForLiq,
+                                amount0Desired: tokenIsToken0 ? tokenForLiq : wkubForLiq,
+                                amount1Desired: tokenIsToken0 ? wkubForLiq : tokenForLiq,
                                 amount0Min: 0n,
                                 amount1Min: 0n,
                                 recipient: address,
@@ -445,56 +445,29 @@ export function useGraduate({
                 if (!priceAlreadyCorrect) {
                     setStep('correcting-price')
 
-                    if (priceTooHigh) {
-                        const swapAmount = (await publicClient.readContract({
-                            address: tokenAddr,
-                            abi: getAbi('erc20'),
-                            functionName: 'balanceOf',
-                            args: [address],
-                        })) as bigint
-                        if (swapAmount > 0n) {
-                            await sendTx({
-                                address: swapRouter,
-                                abi: getAbi('v3SwapRouter'),
-                                functionName: 'exactInputSingle',
-                                args: [
-                                    {
-                                        tokenIn: token0,
-                                        tokenOut: token1,
-                                        fee: 10000,
-                                        recipient: address,
-                                        amountIn: swapAmount,
-                                        amountOutMinimum: 0n,
-                                        sqrtPriceLimitX96: correctSqrtPrice,
-                                    },
-                                ],
-                            })
-                        }
-                    } else {
-                        const swapAmount = (await publicClient.readContract({
-                            address: wrappedNative,
-                            abi: getAbi('erc20'),
-                            functionName: 'balanceOf',
-                            args: [address],
-                        })) as bigint
-                        if (swapAmount > 0n) {
-                            await sendTx({
-                                address: swapRouter,
-                                abi: getAbi('v3SwapRouter'),
-                                functionName: 'exactInputSingle',
-                                args: [
-                                    {
-                                        tokenIn: token1,
-                                        tokenOut: token0,
-                                        fee: 10000,
-                                        recipient: address,
-                                        amountIn: swapAmount,
-                                        amountOutMinimum: 0n,
-                                        sqrtPriceLimitX96: correctSqrtPrice,
-                                    },
-                                ],
-                            })
-                        }
+                    const swapAmount = (await publicClient.readContract({
+                        address: swapTokenIn,
+                        abi: getAbi('erc20'),
+                        functionName: 'balanceOf',
+                        args: [address],
+                    })) as bigint
+                    if (swapAmount > 0n) {
+                        await sendTx({
+                            address: swapRouter,
+                            abi: getAbi('v3SwapRouter'),
+                            functionName: 'exactInputSingle',
+                            args: [
+                                {
+                                    tokenIn: swapTokenIn,
+                                    tokenOut: swapTokenOut,
+                                    fee: 10000,
+                                    recipient: address,
+                                    amountIn: swapAmount,
+                                    amountOutMinimum: 0n,
+                                    sqrtPriceLimitX96: correctSqrtPrice,
+                                },
+                            ],
+                        })
                     }
                 }
 
