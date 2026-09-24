@@ -10,15 +10,11 @@ import { useReferralRewards } from '@/hooks/useReferralRewards'
 import { formatAddress } from '@/lib/utils'
 import { formatCompact } from '@/services/launchpad/launchpad'
 
-interface ReferralRewardsPanelProps {
-    nativeUsdPrice: number | null
-}
-
-export function ReferralRewardsPanel({ nativeUsdPrice }: ReferralRewardsPanelProps) {
+export function ReferralRewardsPanel() {
     const [shareOpen, setShareOpen] = useState(false)
     const [expanded, setExpanded] = useState(false)
     const { referralPoints, refereeCount, referees, isLoading, isSupportedChain } =
-        useReferralRewards(nativeUsdPrice)
+        useReferralRewards()
 
     if (!isSupportedChain) return null
 

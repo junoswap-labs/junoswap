@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { useNativeUsdPriceContext } from '@/components/launchpad/native-usd-price-provider'
 import { usePointsData } from '@/hooks/usePointsData'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ShareablePointsBanner } from './shareable-points-banner'
@@ -39,7 +38,6 @@ export function PointsContent() {
     }
 
     const debouncedSearch = useDebounce(searchQuery, 300)
-    const { nativeUsdPrice } = useNativeUsdPriceContext()
     const { address } = useAccount()
 
     const {
@@ -50,14 +48,7 @@ export function PointsContent() {
         totalVolumeUsd,
         userSummary,
         isLoading,
-    } = usePointsData(
-        'all',
-        settings.sortKey,
-        settings.sortDirection,
-        debouncedSearch,
-        page,
-        nativeUsdPrice
-    )
+    } = usePointsData('all', settings.sortKey, settings.sortDirection, debouncedSearch, page)
 
     function handleSort(key: PointsSortKey) {
         if (settings.sortKey === key) {
@@ -93,7 +84,7 @@ export function PointsContent() {
                     isConnected={!!address}
                 />
 
-                {address && <ReferralRewardsPanel nativeUsdPrice={nativeUsdPrice} />}
+                {address && <ReferralRewardsPanel />}
 
                 <Card>
                     <CardContent className="p-0">

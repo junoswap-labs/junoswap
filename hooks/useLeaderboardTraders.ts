@@ -21,7 +21,7 @@ export interface TraderAgg {
     netWorthNative: number
     pnlUsd: number
     pnlPercent: number
-    volumeNative: number
+    volumeUsd: number
     tradeCount: number
     buyCount: number
     sellCount: number
@@ -173,7 +173,7 @@ export function useLeaderboardTraders(
                 netWorthNative: netWorth,
                 pnlUsd: stats?.pnlUsd ?? 0,
                 pnlPercent: stats?.pnlPercent ?? 0,
-                volumeNative: stats?.volumeNative ?? 0,
+                volumeUsd: stats?.volumeUsd ?? 0,
                 tradeCount: stats?.tradeCount ?? 0,
                 buyCount: stats?.buyCount ?? 0,
                 sellCount: stats?.sellCount ?? 0,
@@ -192,8 +192,8 @@ export function useLeaderboardTraders(
                     bVal = b.pnlUsd
                     break
                 case 'volume':
-                    aVal = a.volumeNative
-                    bVal = b.volumeNative
+                    aVal = a.volumeUsd
+                    bVal = b.volumeUsd
                     break
                 case 'trades':
                     aVal = a.tradeCount

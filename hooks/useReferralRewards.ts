@@ -23,21 +23,17 @@ export interface ReferralRewards {
 
 const EMPTY = { referralPoints: 0, refereeCount: 0, referees: [] as ReferredTrader[] }
 
-export function useReferralRewards(nativeUsdPrice: number | null): ReferralRewards {
+export function useReferralRewards(): ReferralRewards {
     const { address } = useAccount()
     const chainId = useChainId()
     const isSupportedChain = isLeaderboardSupportedChain(chainId)
     const enabled = isSupportedChain && !!address
 
     const { data, isLoading } = useQuery({
-        queryKey: ['referral-rewards', address?.toLowerCase(), chainId, nativeUsdPrice],
+        queryKey: ['referral-rewards', address?.toLowerCase(), chainId],
         queryFn: async () => {
             try {
-                return await fetchReferralRewards(ponderClient, {
-                    chainId,
-                    referrer: address!,
-                    nativeUsdPrice,
-                })
+                return await fetchReferralRewards(ponderClient, { chainId, referrer: address! })
             } catch (e) {
                 if (isPonderError(e)) return EMPTY
                 throw e

@@ -29,6 +29,7 @@ export interface LeaderboardTraderStat {
     volumeNative: number
     junoVolumeNative: number
     externalVolumeNative: number
+    volumeUsd: number
     points: number
     referredPoints: number
     tradeCount: number

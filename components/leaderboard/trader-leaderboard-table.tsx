@@ -216,7 +216,7 @@ export function TraderLeaderboardTable({
                             </TableCell>
 
                             <TableCell className="py-2.5 font-mono tracking-tight text-sm text-muted-foreground">
-                                {formatUsd(trader.volumeNative, nativeUsdPrice)}
+                                ${formatCompact(trader.volumeUsd)}
                             </TableCell>
 
                             <TableCell className="py-2.5 font-mono tracking-tight text-sm">

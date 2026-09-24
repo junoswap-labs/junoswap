@@ -40,8 +40,7 @@ export function usePointsData(
     sortKey: PointsSortKey,
     sortDirection: SortDirection,
     searchQuery: string,
-    page: number,
-    nativeUsdPrice: number | null
+    page: number
 ) {
     const { address: userAddress } = useAccount()
     const chainId = useChainId()
@@ -82,15 +81,13 @@ export function usePointsData(
             }
         }
 
-        const effectiveNativeUsdPrice = nativeUsdPrice ?? 0
-
         const allTraders: PointsTrader[] = traderStats.map((t) => {
             const addr = t.address.toLowerCase()
             return {
                 rank: 0,
                 address: addr,
                 volumeNative: t.volumeNative,
-                volumeUsd: t.volumeNative * effectiveNativeUsdPrice,
+                volumeUsd: t.volumeUsd,
                 points: t.points,
                 referredPoints: t.referredPoints ?? 0,
                 tradeCount: t.tradeCount,
@@ -164,14 +161,5 @@ export function usePointsData(
             isLoading: false,
             isSupportedChain,
         }
-    }, [
-        traderStats,
-        nativeUsdPrice,
-        sortKey,
-        sortDirection,
-        searchQuery,
-        page,
-        userAddress,
-        isSupportedChain,
-    ])
+    }, [traderStats, sortKey, sortDirection, searchQuery, page, userAddress, isSupportedChain])
 }
