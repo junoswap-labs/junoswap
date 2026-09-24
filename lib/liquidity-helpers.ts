@@ -139,6 +139,34 @@ function getAmount1ForLiquidity(
     return (liquidity * (sqrtPriceBX96 - sqrtPriceAX96)) / Q96
 }
 
+export function getAmountsForLiquidity(
+    sqrtPriceX96: bigint,
+    sqrtPriceAX96: bigint,
+    sqrtPriceBX96: bigint,
+    liquidity: bigint
+): { amount0: bigint; amount1: bigint } {
+    if (sqrtPriceAX96 > sqrtPriceBX96) {
+        ;[sqrtPriceAX96, sqrtPriceBX96] = [sqrtPriceBX96, sqrtPriceAX96]
+    }
+
+    if (sqrtPriceX96 <= sqrtPriceAX96) {
+        return {
+            amount0: getAmount0ForLiquidity(sqrtPriceAX96, sqrtPriceBX96, liquidity),
+            amount1: 0n,
+        }
+    }
+    if (sqrtPriceX96 < sqrtPriceBX96) {
+        return {
+            amount0: getAmount0ForLiquidity(sqrtPriceX96, sqrtPriceBX96, liquidity),
+            amount1: getAmount1ForLiquidity(sqrtPriceAX96, sqrtPriceX96, liquidity),
+        }
+    }
+    return {
+        amount0: 0n,
+        amount1: getAmount1ForLiquidity(sqrtPriceAX96, sqrtPriceBX96, liquidity),
+    }
+}
+
 function calculateAmount1FromAmount0(
     sqrtPriceX96: bigint,
     sqrtPriceLowerX96: bigint,

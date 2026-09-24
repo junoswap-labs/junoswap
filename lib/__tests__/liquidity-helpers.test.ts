@@ -3,6 +3,7 @@ import {
     computeDependentAmount,
     defaultFeeTier,
     formatFeeTier,
+    getAmountsForLiquidity,
     v3FeeTiers,
 } from '@/lib/liquidity-helpers'
 
@@ -109,6 +110,64 @@ describe('lib/liquidity-helpers', () => {
             })
             expect(inverted).toBe(
                 computeDependentAmount({ ...inRange, amount: 10n ** 18n, side: 'token0' })
+            )
+        })
+    })
+
+    describe('getAmountsForLiquidity', () => {
+        const LIQUIDITY = 10n ** 18n
+
+        it('holds only token0 when the price is at or below the range', () => {
+            const { amount0, amount1 } = getAmountsForLiquidity(
+                SQRT_PRICE_AT_LOWER,
+                SQRT_PRICE_AT_LOWER,
+                SQRT_PRICE_AT_UPPER,
+                LIQUIDITY
+            )
+            expect(amount0).toBeGreaterThan(0n)
+            expect(amount1).toBe(0n)
+        })
+
+        it('holds only token1 when the price is at or above the range', () => {
+            const { amount0, amount1 } = getAmountsForLiquidity(
+                SQRT_PRICE_AT_UPPER,
+                SQRT_PRICE_AT_LOWER,
+                SQRT_PRICE_AT_UPPER,
+                LIQUIDITY
+            )
+            expect(amount0).toBe(0n)
+            expect(amount1).toBeGreaterThan(0n)
+        })
+
+        // At tick 0 in a range symmetric around it, both sides are worth the same, so the raw
+        // amounts land within rounding of each other.
+        it('splits across both tokens inside the range', () => {
+            const { amount0, amount1 } = getAmountsForLiquidity(
+                SQRT_PRICE_AT_TICK_0,
+                SQRT_PRICE_AT_LOWER,
+                SQRT_PRICE_AT_UPPER,
+                LIQUIDITY
+            )
+            const diff = amount0 > amount1 ? amount0 - amount1 : amount1 - amount0
+            expect(amount0).toBeGreaterThan(0n)
+            expect(diff).toBeLessThanOrEqual(1n)
+        })
+
+        it('accepts the bounds in either order', () => {
+            expect(
+                getAmountsForLiquidity(
+                    SQRT_PRICE_AT_TICK_0,
+                    SQRT_PRICE_AT_UPPER,
+                    SQRT_PRICE_AT_LOWER,
+                    LIQUIDITY
+                )
+            ).toEqual(
+                getAmountsForLiquidity(
+                    SQRT_PRICE_AT_TICK_0,
+                    SQRT_PRICE_AT_LOWER,
+                    SQRT_PRICE_AT_UPPER,
+                    LIQUIDITY
+                )
             )
         })
     })

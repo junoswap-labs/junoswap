@@ -2,6 +2,7 @@ import type { Abi, Address, PublicClient } from 'viem'
 import { getAbi } from '@coshi190/juno-moneta-sdk'
 import { getBondingCurveDeployment } from '@/lib/deployments'
 import { LAUNCHPAD_V1_1_ID } from '@/lib/launchpad-curve'
+import { batchRead, type ReadCall } from '@/lib/batch-read'
 
 export interface CurveState {
     createFee: bigint
@@ -24,28 +25,6 @@ export interface CurveStateParams {
 
 const CURVE_GLOBALS = ['createFee', 'initialNative', 'virtualAmount', 'graduationAmount'] as const
 
-interface CurveCall {
-    address: Address
-    abi: Abi
-    functionName: string
-    args: readonly unknown[]
-}
-
-// kubTestnet has no multicall3 in its chain definition, so viem's multicall throws there.
-// Fall back to one read per call rather than losing the whole curve state.
-async function batchRead(
-    client: PublicClient,
-    calls: readonly CurveCall[]
-): Promise<(unknown | undefined)[]> {
-    try {
-        const results = await client.multicall({ contracts: calls, allowFailure: true })
-        return results.map((r) => (r.status === 'success' ? r.result : undefined))
-    } catch {
-        const settled = await Promise.allSettled(calls.map((call) => client.readContract(call)))
-        return settled.map((o) => (o.status === 'fulfilled' ? o.value : undefined))
-    }
-}
-
 export async function getCurveState(
     client: PublicClient,
     params: CurveStateParams
@@ -55,7 +34,7 @@ export async function getCurveState(
 
     const hasCurveReserve = params.launchpadId === LAUNCHPAD_V1_1_ID
     const abi = getAbi(hasCurveReserve ? 'bondingCurveV1_1' : 'bondingCurveV1') as Abi
-    const contracts: CurveCall[] = CURVE_GLOBALS.map((functionName) => ({
+    const contracts: ReadCall[] = CURVE_GLOBALS.map((functionName) => ({
         address: deployment.address,
         abi,
         functionName,
