@@ -82,7 +82,7 @@ function useNativeCandles(
                     high: r.high,
                     low: r.low,
                     close: r.close,
-                    volume: r.volumeNative,
+                    volume: 0,
                 }))
             }
 
