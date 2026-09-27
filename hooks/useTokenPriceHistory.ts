@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { fetchBondingCurveHistory, fetchV3History } from '@coshi190/juno-moneta-sdk'
+import { fetchBondingCurveSwaps, fetchTokenV3Swaps } from '@coshi190/juno-moneta-sdk'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderClient } from '@/lib/ponder-client'
@@ -49,8 +49,10 @@ export function useTokenPriceHistory(
         queryFn: async () => {
             if (!tokenAddr) return []
 
-            const items = await fetchBondingCurveHistory(ponderClient, {
+            const { items } = await fetchBondingCurveSwaps(ponderClient, {
                 tokenAddr: tokenAddr.toLowerCase(),
+                orderDirection: 'asc',
+                page: 'all',
             })
 
             return items.map((e) => ({
@@ -74,9 +76,11 @@ export function useTokenPriceHistory(
             if (!tokenAddr) return []
 
             try {
-                const items = await fetchV3History(ponderClient, {
+                const { items } = await fetchTokenV3Swaps(ponderClient, {
                     tokenAddr: tokenAddr.toLowerCase(),
                     chainId,
+                    orderDirection: 'asc',
+                    page: 'all',
                 })
 
                 return items.map((e) => ({

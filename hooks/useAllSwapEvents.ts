@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { fetchRecentSwaps } from '@coshi190/juno-moneta-sdk'
+import { fetchBondingCurveSwaps, fetchLaunchTokens } from '@coshi190/juno-moneta-sdk'
 import { getBondingCurveDeployment } from '@/lib/deployments'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { v3SwapToSwapEvent } from '@/services/launchpad/platform-adapter'
@@ -12,10 +12,11 @@ import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
 const LIVE_WINDOW_SECONDS = 86400
-const V3_LIMIT = 50
+const RECENT_LIMIT = 50
 
-// fetchRecentSwaps only covers bonding-curve swapEvents; graduated tokens trade on their V3 pool,
-// so those are queried separately and merged, keeping the ticker in line with the Last Trade sort.
+// fetchBondingCurveSwaps only covers bonding-curve swapEvents; graduated tokens trade on their V3
+// pool, so those are queried separately and merged, keeping the ticker in line with the Last Trade
+// sort.
 const RECENT_V3_SWAPS_QUERY = `query RecentV3Swaps($chainId: Int!, $tokens: [String!], $since: Int!, $limit: Int!) {
     v3SwapEvents(
         where: { chainId: $chainId, tokenAddr_in: $tokens, timestamp_gte: $since }
@@ -48,25 +49,27 @@ export function useAllSwapEvents() {
         queryKey: ['all-swap-events', chainId],
         queryFn: async (): Promise<EnrichedSwapEvent[]> => {
             const since = Math.floor(Date.now() / 1000) - LIVE_WINDOW_SECONDS
-            const [{ swaps, tokens }, graduated] = await Promise.all([
-                fetchRecentSwaps(ponderClient, { chainId }),
-                ponderClient.request<{ launchTokens: { items: { tokenAddr: string }[] } }>(
-                    `query GraduatedTokens($chainId: Int!) {
-                        launchTokens(where: { chainId: $chainId, isGraduated: 1 }, limit: 1000) {
-                            items { tokenAddr }
-                        }
-                    }`,
-                    { chainId }
-                ),
+            const [{ items: swaps }, tokens] = await Promise.all([
+                fetchBondingCurveSwaps(ponderClient, {
+                    chainId,
+                    page: { limit: RECENT_LIMIT, offset: 0 },
+                }),
+                fetchLaunchTokens(ponderClient, { chainId }, [
+                    'tokenAddr',
+                    'name',
+                    'symbol',
+                    'logo',
+                    'isGraduated',
+                ] as const),
             ])
-            const graduatedAddrs = graduated.launchTokens.items.map((t) =>
-                t.tokenAddr.toLowerCase()
-            )
+            const graduatedAddrs = tokens
+                .filter((t) => t.isGraduated === 1)
+                .map((t) => t.tokenAddr.toLowerCase())
             const v3Swaps = graduatedAddrs.length
                 ? (
                       await ponderClient.request<{ v3SwapEvents: { items: RecentV3SwapRow[] } }>(
                           RECENT_V3_SWAPS_QUERY,
-                          { chainId, tokens: graduatedAddrs, since, limit: V3_LIMIT }
+                          { chainId, tokens: graduatedAddrs, since, limit: RECENT_LIMIT }
                       )
                   ).v3SwapEvents.items
                 : []

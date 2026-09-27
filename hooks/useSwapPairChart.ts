@@ -7,7 +7,7 @@ import type { Address } from 'viem'
 import {
     fetchNativeUsdPriceSnapshots,
     fetchTokenCandles,
-    fetchV3History,
+    fetchTokenV3Swaps,
 } from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import type { Timeframe, CandlestickData } from '@/types/chart'
@@ -86,9 +86,14 @@ function useNativeCandles(
                 }))
             }
 
-            const events = await fetchV3History(ponderClient, { tokenAddr: addr, chainId }).catch(
-                () => []
-            )
+            const events = await fetchTokenV3Swaps(ponderClient, {
+                tokenAddr: addr,
+                chainId,
+                orderDirection: 'asc',
+                page: 'all',
+            })
+                .then((r) => r.items)
+                .catch(() => [])
             const tokenIsToken0 = addr < (wrappedNative?.toLowerCase() ?? '')
             const raw = aggregateV3Candlesticks(events, timeframe, 'price', tokenIsToken0)
             const factor = 10 ** (tokenDecimals - NATIVE_DECIMALS)

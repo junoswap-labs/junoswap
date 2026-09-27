@@ -1,6 +1,6 @@
 import type { Address } from 'viem'
 import {
-    fetchTokenBondingCurveSwaps,
+    fetchBondingCurveSwaps,
     fetchTokenV3Swaps,
     fetchTokenHolders,
     fetchTokenSnapshots,
@@ -121,18 +121,16 @@ const ponderAdapter: LaunchpadPlatformAdapter = {
 
         if (isGraduated) {
             const [bcResult, v3Result] = await Promise.all([
-                fetchTokenBondingCurveSwaps(ponderClient, {
+                fetchBondingCurveSwaps(ponderClient, {
                     tokenAddr: tokenAddr.toLowerCase(),
-                    limit: 1000,
-                    offset: 0,
+                    page: { limit: 1000, offset: 0 },
                     isBuy: toIsBuy(filters?.isBuy),
                     sender: filters?.sender?.toLowerCase(),
                 }),
                 fetchTokenV3Swaps(ponderClient, {
                     tokenAddr: tokenAddr.toLowerCase(),
                     chainId,
-                    limit: pageSize,
-                    offset,
+                    page: { limit: pageSize, offset },
                     txFrom: filters?.sender?.toLowerCase(),
                 }),
             ])
@@ -166,10 +164,9 @@ const ponderAdapter: LaunchpadPlatformAdapter = {
             return { data, totalCount }
         }
 
-        const result = await fetchTokenBondingCurveSwaps(ponderClient, {
+        const result = await fetchBondingCurveSwaps(ponderClient, {
             tokenAddr: tokenAddr.toLowerCase(),
-            limit: pageSize,
-            offset,
+            page: { limit: pageSize, offset },
             isBuy: toIsBuy(filters?.isBuy),
             sender: filters?.sender?.toLowerCase(),
         })

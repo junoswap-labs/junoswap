@@ -6,7 +6,7 @@ import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { isNativeToken } from '@/lib/wagmi'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { hasSettled } from '@/lib/query-status'
-import { fetchTokenSnapshots, fetchV3TokenSnapshots } from '@coshi190/juno-moneta-sdk'
+import { fetchTokenSnapshots, fetchV3Tokens } from '@coshi190/juno-moneta-sdk'
 import { getBondingCurveDeployment } from '@/lib/deployments'
 import type { Token } from '@/types/token'
 import type { TokenType } from '@/types/portfolio'
@@ -68,7 +68,7 @@ export function useTokenPrices(
         queryKey: ['v3-token-snapshots', chainId],
         queryFn: async () => {
             try {
-                return await fetchV3TokenSnapshots(ponderClient, { chainId })
+                return await fetchV3Tokens(ponderClient, { chainId, prices: true })
             } catch (e) {
                 if (isPonderError(e)) return []
                 throw e
@@ -92,7 +92,7 @@ export function useTokenPrices(
         const map = new Map<string, number>()
         for (const s of v3Snapshots ?? []) {
             const price = parseFloat(s.lastPriceUsd ?? '0')
-            if (price > 0) map.set(s.tokenAddr.toLowerCase(), price)
+            if (price > 0) map.set(s.address.toLowerCase(), price)
         }
         return map
     }, [v3Snapshots])
