@@ -2,19 +2,21 @@
 
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { fetchRecentSwaps } from '@coshi190/juno-moneta-sdk'
+import { fetchBondingCurveSwaps, fetchLaunchTokens } from '@coshi190/juno-moneta-sdk'
 import { getBondingCurveDeployment } from '@/lib/deployments'
 import { useLaunchpadChainId } from '@/hooks/useLaunchpadChainId'
 import { v3SwapToSwapEvent } from '@/services/launchpad/platform-adapter'
 import { ponderClient } from '@/lib/ponder-client'
 import { resolveLaunchpadLogo } from '@/lib/logo'
 import { applyLaunchpadTokenOverride } from '@/lib/launchpad-token-config'
+import { LAUNCH_TOKEN_META_FIELDS } from '@/lib/ponder-fields'
 import type { EnrichedSwapEvent } from '@/types/launchpad'
 
 const LIVE_WINDOW_SECONDS = 86400
 const V3_LIMIT = 50
+const BC_LIMIT = 200
 
-// fetchRecentSwaps only covers bonding-curve swapEvents; graduated tokens trade on their V3 pool,
+// fetchBondingCurveSwaps only covers bonding-curve swapEvents; graduated tokens trade on their V3 pool,
 // so those are queried separately and merged, keeping the ticker in line with the Last Trade sort.
 const RECENT_V3_SWAPS_QUERY = `query RecentV3Swaps($chainId: Int!, $tokens: [String!], $since: Int!, $limit: Int!) {
     v3SwapEvents(
@@ -48,8 +50,12 @@ export function useAllSwapEvents() {
         queryKey: ['all-swap-events', chainId],
         queryFn: async (): Promise<EnrichedSwapEvent[]> => {
             const since = Math.floor(Date.now() / 1000) - LIVE_WINDOW_SECONDS
-            const [{ swaps, tokens }, graduated] = await Promise.all([
-                fetchRecentSwaps(ponderClient, { chainId }),
+            const [{ items: swaps }, tokens, graduated] = await Promise.all([
+                fetchBondingCurveSwaps(ponderClient, {
+                    chainId,
+                    page: { limit: BC_LIMIT, offset: 0 },
+                }),
+                fetchLaunchTokens(ponderClient, { chainId }, LAUNCH_TOKEN_META_FIELDS),
                 ponderClient.request<{ launchTokens: { items: { tokenAddr: string }[] } }>(
                     `query GraduatedTokens($chainId: Int!) {
                         launchTokens(where: { chainId: $chainId, isGraduated: 1 }, limit: 1000) {
@@ -59,7 +65,7 @@ export function useAllSwapEvents() {
                     { chainId }
                 ),
             ])
-            const graduatedAddrs = graduated.launchTokens.items.map((t) =>
+            const graduatedAddrs = graduated.launchTokens.items.map((t: { tokenAddr: string }) =>
                 t.tokenAddr.toLowerCase()
             )
             const v3Swaps = graduatedAddrs.length

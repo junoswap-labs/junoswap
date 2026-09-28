@@ -3,18 +3,29 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useReadContract, useChainId, usePublicClient } from 'wagmi'
-import type { Address } from 'viem'
+import { zeroAddress, type Address, type PublicClient } from 'viem'
 import type { V3Position, PositionWithTokens, PositionDetails } from '@/types/earn'
-import { getAbi, fetchPositions, getDexes } from '@coshi190/juno-moneta-sdk'
+import {
+    getAbi,
+    getDexes,
+    fetchUserPositions as fetchIndexedPositions,
+    fetchPositionsByTokenIds as fetchIndexedPositionsByIds,
+} from '@coshi190/juno-moneta-sdk'
 import type { Token } from '@/types/token'
 import { TOKEN_LISTS } from '@/lib/tokens'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 import { useGraduatedTokens } from '@/hooks/useGraduatedTokens'
 import { formatPoolPrice } from '@/lib/liquidity-helpers'
+import {
+    getAmountsForLiquidity,
+    tickToSqrtPriceX96,
+    computeTickPrice,
+    isInRange,
+} from '@/lib/tick-math'
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address
 
-/** What fetchPositions is handed for a position the indexer hasn't caught up to yet. */
+/** What describePositions is handed for a position the indexer hasn't caught up to yet. */
 interface PositionInput {
     tokenId: bigint
     owner: string
@@ -28,7 +39,7 @@ interface PositionInput {
     tokensOwed1: bigint
 }
 
-/** The slice of what fetchPositions returns that the position UIs actually read. */
+/** The slice of what describePositions returns that the position UIs actually read. */
 interface DescribedPosition extends PositionInput {
     poolAddress: Address
     amount0: bigint
@@ -136,6 +147,184 @@ function toPositionDetails(
     }
 }
 
+function positionPoolKey(token0: string, token1: string, fee: number): string {
+    return `${token0.toLowerCase()}-${token1.toLowerCase()}-${fee}`
+}
+
+function toPositionInput(row: {
+    tokenId: string | bigint
+    owner: string
+    token0: string
+    token1: string
+    fee: number
+    tickLower: number
+    tickUpper: number
+    liquidity: string | bigint
+    tokensOwed0: string | bigint
+    tokensOwed1: string | bigint
+}): PositionInput {
+    return {
+        tokenId: BigInt(row.tokenId),
+        owner: row.owner,
+        token0: row.token0,
+        token1: row.token1,
+        fee: row.fee,
+        tickLower: row.tickLower,
+        tickUpper: row.tickUpper,
+        liquidity: BigInt(row.liquidity),
+        tokensOwed0: BigInt(row.tokensOwed0),
+        tokensOwed1: BigInt(row.tokensOwed1),
+    }
+}
+
+const MAX_UINT128 = 2n ** 128n - 1n
+
+/** Live uncollected fees via a `collect()` simulation -- the indexer's tokensOwed only reflects
+ *  fees already checkpointed on-chain, not fees accrued since the last mint/burn/collect. */
+async function collectFees(
+    publicClient: PublicClient,
+    positionManager: Address,
+    positions: PositionInput[]
+): Promise<Map<string, { fees0: bigint; fees1: bigint }>> {
+    const settled = await Promise.allSettled(
+        positions.map((position) =>
+            publicClient.simulateContract({
+                address: positionManager,
+                abi: getAbi('positionManager'),
+                functionName: 'collect',
+                account: position.owner as Address,
+                args: [
+                    {
+                        tokenId: position.tokenId,
+                        recipient: position.owner as Address,
+                        amount0Max: MAX_UINT128,
+                        amount1Max: MAX_UINT128,
+                    },
+                ],
+            })
+        )
+    )
+    const map = new Map<string, { fees0: bigint; fees1: bigint }>()
+    settled.forEach((outcome, i) => {
+        const position = positions[i]
+        if (!position || outcome.status !== 'fulfilled') return
+        const result = outcome.value.result as readonly [bigint, bigint] | undefined
+        if (!result) return
+        map.set(position.tokenId.toString(), { fees0: result[0], fees1: result[1] })
+    })
+    return map
+}
+
+/** Ported from the SDK's fetchPositions (removed upstream in 0.56.0, which now only publishes
+ *  chain-facing primitives): resolves each position's pool via the factory, reads pool state and
+ *  simulates fee collection, then folds it all into the shape the position UIs read. */
+async function describePositions(
+    publicClient: PublicClient,
+    factory: Address,
+    positionManager: Address | undefined,
+    positions: PositionInput[],
+    decimals: Map<string, number>
+): Promise<DescribedPosition[]> {
+    if (positions.length === 0) return []
+
+    const keys = new Map<string, { token0: Address; token1: Address; fee: number }>()
+    for (const p of positions) {
+        const key = positionPoolKey(p.token0, p.token1, p.fee)
+        if (!keys.has(key)) {
+            keys.set(key, { token0: p.token0 as Address, token1: p.token1 as Address, fee: p.fee })
+        }
+    }
+    const keyEntries = [...keys.entries()]
+
+    const poolAddressResults = await publicClient.multicall({
+        contracts: keyEntries.map(([, k]) => ({
+            address: factory,
+            abi: getAbi('v3Factory'),
+            functionName: 'getPool' as const,
+            args: [k.token0, k.token1, k.fee] as const,
+        })),
+        allowFailure: true,
+    })
+    const poolAddresses = new Map<string, Address>()
+    keyEntries.forEach(([key], i) => {
+        const result = poolAddressResults[i]
+        if (result?.status !== 'success') return
+        const address = result.result as Address
+        if (address && address !== zeroAddress) poolAddresses.set(key, address)
+    })
+
+    const pools = [...new Set(poolAddresses.values())]
+    const stateResults = pools.length
+        ? await publicClient.multicall({
+              contracts: pools.flatMap((pool) => [
+                  {
+                      address: pool,
+                      abi: getAbi('v3Pool'),
+                      functionName: 'slot0' as const,
+                      args: [],
+                  },
+                  {
+                      address: pool,
+                      abi: getAbi('v3Pool'),
+                      functionName: 'liquidity' as const,
+                      args: [],
+                  },
+              ]),
+              allowFailure: true,
+          })
+        : []
+    const poolStates = new Map<string, { sqrtPriceX96: bigint; tick: number; liquidity: bigint }>()
+    pools.forEach((pool, i) => {
+        const slot0 = stateResults[i * 2]
+        const liquidityResult = stateResults[i * 2 + 1]
+        if (slot0?.status !== 'success') return
+        const decoded = slot0.result as readonly [bigint, number, ...unknown[]]
+        poolStates.set(pool.toLowerCase(), {
+            sqrtPriceX96: decoded[0],
+            tick: decoded[1],
+            liquidity:
+                liquidityResult?.status === 'success' ? (liquidityResult.result as bigint) : 0n,
+        })
+    })
+
+    const fees = positionManager
+        ? await collectFees(publicClient, positionManager, positions)
+        : new Map<string, { fees0: bigint; fees1: bigint }>()
+
+    return positions.map((position) => {
+        const key = positionPoolKey(position.token0, position.token1, position.fee)
+        const poolAddress = poolAddresses.get(key)
+        const state = poolAddress ? poolStates.get(poolAddress.toLowerCase()) : undefined
+        const decimals0 = decimals.get(position.token0.toLowerCase()) ?? 18
+        const decimals1 = decimals.get(position.token1.toLowerCase()) ?? 18
+        const amounts = state
+            ? getAmountsForLiquidity(
+                  state.sqrtPriceX96,
+                  tickToSqrtPriceX96(position.tickLower),
+                  tickToSqrtPriceX96(position.tickUpper),
+                  position.liquidity
+              )
+            : { amount0: 0n, amount1: 0n }
+        const currentTick = state?.tick ?? position.tickLower
+        const fee = fees.get(position.tokenId.toString())
+        return {
+            ...position,
+            poolAddress: poolAddress ?? ZERO_ADDRESS,
+            amount0: amounts.amount0,
+            amount1: amounts.amount1,
+            uncollectedFees0: fee?.fees0 ?? position.tokensOwed0,
+            uncollectedFees1: fee?.fees1 ?? position.tokensOwed1,
+            currentTick,
+            sqrtPriceX96: state?.sqrtPriceX96 ?? 0n,
+            poolLiquidity: state?.liquidity ?? 0n,
+            inRange: state ? isInRange(currentTick, position.tickLower, position.tickUpper) : false,
+            priceLower: computeTickPrice({ tick: position.tickLower, decimals0, decimals1 }),
+            priceUpper: computeTickPrice({ tick: position.tickUpper, decimals0, decimals1 }),
+            currentPrice: state ? computeTickPrice({ tick: currentTick, decimals0, decimals1 }) : 0,
+        }
+    })
+}
+
 interface DescribeOptions {
     chainId: number
     owner?: Address | undefined
@@ -147,7 +336,7 @@ interface DescribeOptions {
 
 /**
  * One round trip per position view: the indexer rows, the factory/pool reads they imply and the
- * collect() fee simulation all resolve inside fetchPositions.
+ * collect() fee simulation all resolve inside describePositions.
  */
 function useDescribedPositions(options: DescribeOptions): {
     described: DescribedPosition[]
@@ -174,14 +363,30 @@ function useDescribedPositions(options: DescribeOptions): {
         queryFn: async () => {
             if (!publicClient) return []
             try {
-                return await fetchPositions(ponderClient, publicClient, {
-                    chainId,
-                    ...(owner ? { owner } : {}),
-                    ...(tokenIds ? { tokenIds } : {}),
-                    ...(positions ? { positions } : {}),
-                    simulate: publicClient,
-                    decimals,
-                })
+                const config = getDexes(chainId, 'v3')[0]
+                if (!config) return []
+
+                let inputPositions: PositionInput[]
+                if (positions) {
+                    inputPositions = positions
+                } else if (owner) {
+                    const rows = await fetchIndexedPositions(ponderClient, { chainId, owner })
+                    inputPositions = rows.map(toPositionInput)
+                } else {
+                    const rows = await fetchIndexedPositionsByIds(ponderClient, {
+                        chainId,
+                        tokenIds: tokenIds ?? [],
+                    })
+                    inputPositions = rows.map(toPositionInput)
+                }
+
+                return await describePositions(
+                    publicClient,
+                    config.factory,
+                    config.positionManager,
+                    inputPositions,
+                    decimals
+                )
             } catch (e) {
                 if (isPonderError(e)) return []
                 throw e

@@ -3,11 +3,7 @@
 import { useMemo } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import {
-    fetchBondingCurvePricesSince,
-    fetchV3History,
-    fetchTokenV3Swaps,
-} from '@coshi190/juno-moneta-sdk'
+import { fetchBondingCurvePricesSince, fetchTokenV3Swaps } from '@coshi190/juno-moneta-sdk'
 import { computePoolPrice } from '@/lib/tick-math'
 import { TOTAL_SUPPLY } from '@/lib/launchpad-curve'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
@@ -44,12 +40,16 @@ async function fetchTokenActivity(
     since: number
 ): Promise<GraduatedTokenActivity> {
     try {
-        // Full history via fetchV3History (auto-paginates, same function the token detail page
-        // uses), not fetchV3PricesSince -- that one is a single unpaginated page capped at 1000
-        // rows ordered oldest-first, so any token with >1000 post-graduation swaps silently lost
-        // everything after the 1000th (breaking both the 24h-change recency and the ATH, which is
-        // why the list page's ATH used to read lower than the detail page's true full-history max).
-        const v3Points = await fetchV3History(ponderClient, { tokenAddr, chainId })
+        // Full history via page: 'all' (auto-paginates), not fetchV3PricesSince -- that one is a
+        // single unpaginated page capped at 1000 rows ordered oldest-first, so any token with
+        // >1000 post-graduation swaps silently lost everything after the 1000th (breaking both
+        // the 24h-change recency and the ATH, which is why the list page's ATH used to read lower
+        // than the detail page's true full-history max).
+        const { items: v3Points } = await fetchTokenV3Swaps(ponderClient, {
+            tokenAddr,
+            chainId,
+            page: 'all',
+        })
         const points: PricePoint[] = v3Points.map((e) => ({
             timestamp: e.timestamp,
             price: computePoolPrice({
@@ -84,8 +84,7 @@ async function fetchTokenActivity(
         const latest = await fetchTokenV3Swaps(ponderClient, {
             tokenAddr,
             chainId,
-            limit: 1,
-            offset: 0,
+            page: { limit: 1, offset: 0 },
         })
         const latestSwap = latest.items[0]
         const lastSwapAt = latestSwap?.timestamp ?? graduatedAt ?? 0

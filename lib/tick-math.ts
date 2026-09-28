@@ -221,3 +221,21 @@ export function invertSqrtPriceX96(sqrtPriceX96: bigint): bigint {
     if (sqrtPriceX96 <= 0n) return 0n
     return (Q96 * Q96) / sqrtPriceX96
 }
+
+/** Token amounts a liquidity position holds at the pool's current price, clamped to the range. */
+export function getAmountsForLiquidity(
+    sqrtPriceX96: bigint,
+    sqrtPriceAX96: bigint,
+    sqrtPriceBX96: bigint,
+    liquidity: bigint
+): { amount0: bigint; amount1: bigint } {
+    const [lower, upper] =
+        sqrtPriceAX96 < sqrtPriceBX96
+            ? [sqrtPriceAX96, sqrtPriceBX96]
+            : [sqrtPriceBX96, sqrtPriceAX96]
+    const price = sqrtPriceX96 < lower ? lower : sqrtPriceX96 > upper ? upper : sqrtPriceX96
+    return {
+        amount0: (liquidity * Q96 * (upper - price)) / upper / price,
+        amount1: (liquidity * (price - lower)) / Q96,
+    }
+}

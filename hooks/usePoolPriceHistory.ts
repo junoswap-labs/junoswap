@@ -3,7 +3,7 @@
 import { useChainId } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
 import type { Address } from 'viem'
-import { fetchPoolPriceHistory, fetchPoolPriceAnchor } from '@coshi190/juno-moneta-sdk'
+import { fetchPoolPriceHistory } from '@coshi190/juno-moneta-sdk'
 import { ponderClient } from '@/lib/ponder-client'
 import { RANGE_CHART_WINDOW_SEC } from '@/lib/position-chart'
 import type { PoolSwapPoint } from '@/lib/position-chart'
@@ -22,18 +22,14 @@ export function usePoolPriceHistory(poolAddress: Address | undefined): PoolPrice
         queryFn: async () => {
             const pool = poolAddress!.toLowerCase()
             const since = Math.floor(Date.now() / 1000) - RANGE_CHART_WINDOW_SEC
-            const [events, anchor] = await Promise.all([
-                fetchPoolPriceHistory(ponderClient, {
-                    poolAddress: pool,
-                    chainId,
-                    since,
-                }).catch(() => [] as PoolSwapPoint[]),
-                fetchPoolPriceAnchor(ponderClient, {
-                    poolAddress: pool,
-                    chainId,
-                    before: since,
-                }).catch(() => null),
-            ])
+            const { events, anchor } = await fetchPoolPriceHistory(ponderClient, {
+                poolAddress: pool,
+                chainId,
+                since,
+            }).catch(() => ({
+                events: [] as PoolSwapPoint[],
+                anchor: null as PoolSwapPoint | null,
+            }))
             return { events, anchor }
         },
         enabled: !!poolAddress,

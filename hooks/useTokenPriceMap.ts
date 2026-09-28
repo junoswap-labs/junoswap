@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchV3TokenSnapshots, fetchNativeUsdPrice } from '@coshi190/juno-moneta-sdk'
+import { fetchV3Tokens, fetchNativeUsdPrice } from '@coshi190/juno-moneta-sdk'
 import { INTERMEDIARY_TOKENS } from '@/lib/routing-config'
 import { ponderClient, isPonderError } from '@/lib/ponder-client'
 
@@ -13,7 +13,7 @@ export function useTokenPriceMap(chainId: number) {
         queryKey: ['v3-token-snapshots', chainId],
         queryFn: async () => {
             try {
-                return await fetchV3TokenSnapshots(ponderClient, { chainId })
+                return await fetchV3Tokens(ponderClient, { chainId, prices: true })
             } catch (e) {
                 if (isPonderError(e)) return []
                 throw e
@@ -46,7 +46,7 @@ export function useTokenPriceMap(chainId: number) {
         for (const s of snapshots ?? []) {
             const price = parseFloat(s.lastPriceUsd ?? '0')
             if (price > 0) {
-                map.set(s.tokenAddr.toLowerCase(), price)
+                map.set(s.address.toLowerCase(), price)
             }
         }
 

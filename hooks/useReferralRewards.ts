@@ -36,7 +36,6 @@ export function useReferralRewards(nativeUsdPrice: number | null): ReferralRewar
                 return await fetchReferralRewards(ponderClient, {
                     chainId,
                     referrer: address!,
-                    nativeUsdPrice,
                 })
             } catch (e) {
                 if (isPonderError(e)) return EMPTY
