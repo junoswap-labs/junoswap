@@ -8,6 +8,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTokenReserves } from '@/hooks/useTokenReserves'
 import { useBondingCurveSwapExecution } from '@/hooks/useBondingCurveSwapExecution'
@@ -34,6 +41,7 @@ import { ConnectModal } from '@/components/web3/connect-modal'
 import { SettingsMenu } from '@/components/swap/settings-menu'
 import { useSwapStore } from '@/store/swap-store'
 import { getDefaultPairTokens } from '@/lib/tokens'
+import { isSlippageRevert, suggestSlippage } from '@/lib/slippage-suggestion'
 interface TokenTradeCardProps {
     tokenAddr: Address
     tokenSymbol?: string
@@ -198,6 +206,7 @@ export function TokenTradeCard({
         expectedOut: bcBuyExpectedOut,
         minOut: bcMinTokenOut,
         isPreparing: isBuyPreparingBC,
+        simulateError: buySimulateErrorBC,
         isExecuting: isBuyExecutingBC,
         isConfirming: isBuyConfirmingBC,
         isSuccess: isBuySuccessBC,
@@ -288,6 +297,7 @@ export function TokenTradeCard({
         expectedOut: bcSellExpectedOut,
         minOut: bcMinNativeOut,
         isPreparing: isSellPreparingBC,
+        simulateError: sellSimulateErrorBC,
         isExecuting: isSellExecutingBC,
         isConfirming: isSellConfirmingBC,
         isSuccess: isSellSuccessBC,
@@ -464,6 +474,19 @@ export function TokenTradeCard({
     useEffect(() => {
         if (isSellError && sellError) toastError(sellError, 'Sell failed')
     }, [isSellError, sellError])
+
+    // The curve simulation reverts when min-out (from the quote) exceeds what the contract pays;
+    // without this the button just stays disabled. Ask once per error and let the user decide.
+    const slippageError = isGraduated
+        ? null
+        : isSlippageRevert(activeTab === 'buy' ? buySimulateErrorBC : sellSimulateErrorBC)
+          ? activeTab === 'buy'
+              ? buySimulateErrorBC
+              : sellSimulateErrorBC
+          : null
+    const [dismissedSlippageError, setDismissedSlippageError] = useState<Error | null>(null)
+    const slippagePromptOpen = !!slippageError && slippageError !== dismissedSlippageError
+    const suggestedSlippage = suggestSlippage(settings.slippage)
 
     useEffect(() => {
         if (isGraduateError && graduateError) toastError(graduateError, 'Graduation failed')
@@ -764,6 +787,36 @@ export function TokenTradeCard({
 
     return (
         <>
+            <Dialog
+                open={slippagePromptOpen}
+                onOpenChange={(open) => !open && setDismissedSlippageError(slippageError)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Price moved past your slippage</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        This {activeTab} would revert with the current slippage of{' '}
+                        {settings.slippage}%. Increase it to {suggestedSlippage}% to continue?
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDismissedSlippageError(slippageError)}
+                        >
+                            Not now
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setSlippage(suggestedSlippage)
+                                setDismissedSlippageError(slippageError)
+                            }}
+                        >
+                            Apply {suggestedSlippage}%
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <Card className="overflow-hidden">
                 <CardContent className="p-4 sm:p-6">
                     <Tabs
