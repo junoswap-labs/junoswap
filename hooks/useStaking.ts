@@ -37,7 +37,9 @@ export function useStakePosition(
     position: PositionWithTokens | null,
     incentiveKey: IncentiveKey | null,
     owner: Address | undefined,
-    program: EarnProgram
+    program: EarnProgram,
+    /** The NFT already sits in this program's staker, so it is staked in place, not transferred. */
+    deposited = false
 ): {
     stake: () => void
     approveAndStake: () => void
@@ -70,7 +72,9 @@ export function useStakePosition(
         query: { enabled: !!owner && !!stakerAddress && !!positionManager },
     })
     const needsApproval =
-        !isApprovedForAll && approvedAddress?.toLowerCase() !== stakerAddress?.toLowerCase()
+        !deposited &&
+        !isApprovedForAll &&
+        approvedAddress?.toLowerCase() !== stakerAddress?.toLowerCase()
     const [justApproved, setJustApproved] = useState(false)
     const stakeCallData = useMemo(() => {
         if (!position || !incentiveKey || !stakerAddress || !positionManager || !owner) {
@@ -84,16 +88,35 @@ export function useStakePosition(
             args: [owner, stakerAddress, position.tokenId, data] as const,
         }
     }, [position, incentiveKey, stakerAddress, positionManager, owner])
-    const {
-        data: stakeSimulation,
-        isLoading: isSimulating,
-        error: simulationError,
-    } = useSimulateContract({
+    const transferSim = useSimulateContract({
         ...stakeCallData!,
         query: {
-            enabled: isEnabled && !!stakeCallData && (!needsApproval || justApproved),
+            enabled: isEnabled && !deposited && !!stakeCallData && (!needsApproval || justApproved),
         },
     })
+    // A deposit is already inside the staker: only the stake call is left, and it needs no approval.
+    const inPlaceSim = useSimulateContract({
+        address: stakerAddress,
+        abi: UNISWAP_V3_STAKER_ABI,
+        functionName: 'stakeToken',
+        args:
+            incentiveKey && position
+                ? [
+                      {
+                          rewardToken: incentiveKey.rewardToken,
+                          pool: incentiveKey.pool,
+                          startTime: BigInt(incentiveKey.startTime),
+                          endTime: BigInt(incentiveKey.endTime),
+                          refundee: incentiveKey.refundee,
+                      },
+                      position.tokenId,
+                  ]
+                : undefined,
+        query: { enabled: isEnabled && deposited },
+    })
+    const activeSim = deposited ? inPlaceSim : transferSim
+    const isSimulating = activeSim.isLoading
+    const simulationError = activeSim.error
     const {
         writeContract,
         data: hash,
@@ -119,9 +142,12 @@ export function useStakePosition(
         }
     }, [isSuccess, hash, needsApproval])
     const stake = useCallback(() => {
-        if (!stakeSimulation?.request) return
-        writeContract(stakeSimulation.request)
-    }, [stakeSimulation, writeContract])
+        if (deposited) {
+            if (inPlaceSim.data?.request) writeContract(inPlaceSim.data.request)
+        } else if (transferSim.data?.request) {
+            writeContract(transferSim.data.request)
+        }
+    }, [deposited, inPlaceSim.data, transferSim.data, writeContract])
     const approveAndStake = useCallback(() => {
         if (!positionManager || !stakerAddress || !position) return
         writeContract({

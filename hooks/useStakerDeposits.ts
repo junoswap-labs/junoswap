@@ -13,6 +13,8 @@ export interface StakerDeposit {
     depositor: Address
     /** Which staker is holding it — the two run side by side. */
     program: EarnProgram
+    /** On-chain count of farms it is staked in; `withdrawToken` reverts unless this is 0. */
+    numberOfStakes: number
 }
 
 /**
@@ -93,7 +95,7 @@ function useStakerDepositsFor(program: EarnProgram): {
                 | undefined
             const depositor = row?.[0]
             if (!depositor || depositor === zeroAddress) return
-            result.push({ position, depositor, program })
+            result.push({ position, depositor, program, numberOfStakes: Number(row[1]) })
         })
         return result
     }, [candidates, data, program])

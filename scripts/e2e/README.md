@@ -51,7 +51,7 @@ REWARD_AMOUNT=10
 ### Juno v3 staker (`e2e:juno-v3`)
 
 ```bash
-JUNO_STAKER=0x9766424962CBB7482AA58f0c9842673515ABec9a
+JUNO_STAKER=0x17Bf4274D5a4AF99c7dfE641894F2bB340C10EF2
 REWARD_TOKEN=0x...                # ERC-20 used as the incentive reward
 POSITION_ID=123                   # optional, otherwise the first usable position is picked
 SECOND_ADDRESS=0x...              # optional, only to exercise transferDeposit

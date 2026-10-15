@@ -1,9 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useAccount, useChainId } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
-import { Plus, Settings2 } from 'lucide-react'
+import {
+    ArrowLeft,
+    Check,
+    Copy,
+    ExternalLink,
+    Maximize2,
+    Plus,
+    Settings2,
+    Share2,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +26,7 @@ import { TokenIcon } from '@/components/ui/token-icon'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { useStakingPools } from '@/hooks/useStakingPools'
+import { useInfiniteList } from '@/hooks/useInfiniteList'
 import { useStakingPoolActions, useClaimAllStaking } from '@/hooks/useStakingActions'
 import { useStakingLots } from '@/hooks/useStakingLots'
 import { StakingCreatorPanel } from '@/components/earn/staking-creator-panel'
@@ -38,7 +49,8 @@ import {
     formatRateAmount,
     formatRewardAmount,
 } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { cn, formatAddress } from '@/lib/utils'
+import { getChainMetadata } from '@/lib/wagmi'
 import { formatBalance, formatTokenAmount, parseTokenAmount } from '@/lib/tokens'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { txPhase } from '@/lib/tx-flow'
@@ -48,6 +60,7 @@ import type { StakingPool, StakingPoolFilter, StakingPoolStatus } from '@/types/
 
 const SECONDS_PER_DAY = 86_400
 const LOTS_PER_PAGE = 4
+const POOLS_PER_BATCH = 9
 
 function min(a: bigint, b: bigint): bigint {
     return a < b ? a : b
@@ -133,27 +146,9 @@ function Metric({
     )
 }
 
-function PoolCard({
-    pool,
-    aprPercent,
-    now,
-    onManage,
-    onCreatorControls,
-    onConnect,
-}: {
-    pool: StakingPool
-    aprPercent: number | null
-    now: number
-    onManage: (pool: StakingPool) => void
-    onCreatorControls: (pool: StakingPool) => void
-    onConnect: () => void
-}) {
-    const { address: account, isConnected } = useAccount()
+/** One pool's claim call, with the toasts and the step list its dialog shows. */
+function usePoolClaim(pool: StakingPool) {
     const chainId = useChainId()
-    const isCreator = !!account && account.toLowerCase() === pool.view.creator.toLowerCase()
-    const status = getStakingStatus(pool.view, now)
-    // Every creator action is only legal between epochs, so the gear stays hidden until then.
-    const canManagePool = status === 'ended' || status === 'closed'
     const claim = useStakingPoolActions(pool.address, pool.view.stakingToken)
     const [claimOpen, setClaimOpen] = useState(false)
     const queryClient = useQueryClient()
@@ -164,24 +159,6 @@ function PoolCard({
     useEffect(() => {
         if (claim.error) toastError(claim.error)
     }, [claim.error])
-    const perDay = rewardPerSecond(pool.view, pool.rewardTokenInfo.decimals) * SECONDS_PER_DAY
-    // A cap is a limit a staker can actually hit, so the card says how close it is.
-    const capPercent =
-        pool.view.maxStakingPower > 0n
-            ? Number((pool.view.totalSupply * 10_000n) / pool.view.maxStakingPower) / 100
-            : null
-    // Share of the pool is what actually sets this account's cut of the daily reward.
-    const sharePercent =
-        pool.user.balance > 0n && pool.view.totalSupply > 0n
-            ? Number((pool.user.balance * 10_000n) / pool.view.totalSupply) / 100
-            : null
-    const endsIn =
-        status === 'active'
-            ? `Ends ${formatRelativeTime(Number(pool.view.periodFinish), now)}`
-            : status === 'pending'
-              ? `Starts ${formatRelativeTime(Number(pool.view.startTime), now)}`
-              : STATUS_LABEL[status]
-
     const claimSteps = [
         actionStep({
             label: 'Claim rewards',
@@ -214,6 +191,50 @@ function PoolCard({
             ),
         }),
     ]
+    return { claim, claimOpen, setClaimOpen, claimSteps }
+}
+
+function PoolCard({
+    pool,
+    aprPercent,
+    now,
+    onManage,
+    onCreatorControls,
+    onConnect,
+    fullPage,
+}: {
+    pool: StakingPool
+    aprPercent: number | null
+    now: number
+    onManage: (pool: StakingPool) => void
+    onCreatorControls: (pool: StakingPool) => void
+    onConnect: () => void
+    fullPage?: boolean
+}) {
+    const { address: account, isConnected } = useAccount()
+    const chainId = useChainId()
+    const isCreator = !!account && account.toLowerCase() === pool.view.creator.toLowerCase()
+    const status = getStakingStatus(pool.view, now)
+    // Every creator action is only legal between epochs, so the gear stays hidden until then.
+    const canManagePool = status === 'ended' || status === 'closed'
+    const { claim, claimOpen, setClaimOpen, claimSteps } = usePoolClaim(pool)
+    const perDay = rewardPerSecond(pool.view, pool.rewardTokenInfo.decimals) * SECONDS_PER_DAY
+    // A cap is a limit a staker can actually hit, so the card says how close it is.
+    const capPercent =
+        pool.view.maxStakingPower > 0n
+            ? Number((pool.view.totalSupply * 10_000n) / pool.view.maxStakingPower) / 100
+            : null
+    // Share of the pool is what actually sets this account's cut of the daily reward.
+    const sharePercent =
+        pool.user.balance > 0n && pool.view.totalSupply > 0n
+            ? Number((pool.user.balance * 10_000n) / pool.view.totalSupply) / 100
+            : null
+    const endsIn =
+        status === 'active'
+            ? `Ends ${formatRelativeTime(Number(pool.view.periodFinish), now)}`
+            : status === 'pending'
+              ? `Starts ${formatRelativeTime(Number(pool.view.startTime), now)}`
+              : STATUS_LABEL[status]
 
     return (
         <Card className="position-card-hover flex flex-col overflow-hidden">
@@ -233,8 +254,20 @@ function PoolCard({
                             size="md"
                         />
                         <div className="min-w-0">
-                            <div className="truncate font-semibold">
-                                Stake {pool.stakingTokenInfo.symbol}
+                            <div className="flex items-center gap-1.5">
+                                <span className="truncate font-semibold">
+                                    Stake {pool.stakingTokenInfo.symbol}
+                                </span>
+                                {!fullPage && (
+                                    <Link
+                                        href={`/earn/staking/${pool.address}?chain=${chainId}`}
+                                        title="Open pool full screen"
+                                        aria-label="Open pool full screen"
+                                        className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                                    >
+                                        <Maximize2 className="h-3.5 w-3.5" />
+                                    </Link>
+                                )}
                             </div>
                             <div className="truncate text-xs text-muted-foreground">
                                 Earn {pool.rewardTokenInfo.symbol} ·{' '}
@@ -243,6 +276,19 @@ function PoolCard({
                                     : 'no lock'}
                             </div>
                             <div className="truncate text-xs text-muted-foreground">{endsIn}</div>
+                            <div className="truncate text-xs text-muted-foreground">
+                                Created by{' '}
+                                <a
+                                    href={`${getChainMetadata(chainId).explorer}/address/${pool.view.creator}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={pool.view.creator}
+                                    className="font-mono hover:text-foreground"
+                                >
+                                    {formatAddress(pool.view.creator)}
+                                </a>
+                                {isCreator && ' (you)'}
+                            </div>
                         </div>
                     </div>
                     <StatusBadge status={status} />
@@ -768,7 +814,350 @@ function CreatorControlsDialog({
     )
 }
 
-export function StakingPools({ onCreate }: { onCreate: () => void }) {
+export function AddressRow({
+    label,
+    address,
+    chainId,
+}: {
+    label: string
+    address: string
+    chainId: number
+}) {
+    const [copied, setCopied] = useState(false)
+    const copy = () => {
+        navigator.clipboard.writeText(address)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
+    return (
+        <div className="flex items-center justify-between gap-3 py-2.5 text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="flex items-center gap-2">
+                <span className="font-mono text-xs">{formatAddress(address)}</span>
+                <button
+                    type="button"
+                    onClick={copy}
+                    title="Copy address"
+                    aria-label={`Copy ${label} address`}
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                    {copied ? (
+                        <Check className="h-3.5 w-3.5 text-positive" />
+                    ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                    )}
+                </button>
+                <a
+                    href={`${getChainMetadata(chainId).explorer}/address/${address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on explorer"
+                    aria-label={`View ${label} on explorer`}
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+            </span>
+        </div>
+    )
+}
+
+function StatTile({
+    label,
+    value,
+    unit,
+    sub,
+}: {
+    label: string
+    value: string
+    unit?: string
+    sub?: string
+}) {
+    return (
+        <div className="rounded-2xl border border-border/50 bg-card/60 p-4">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {label}
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="truncate text-2xl font-bold tracking-tight">{value}</span>
+                {unit && (
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                        {unit}
+                    </span>
+                )}
+            </div>
+            {sub && <div className="mt-1 truncate text-xs text-muted-foreground">{sub}</div>}
+        </div>
+    )
+}
+
+const formatDate = (seconds: bigint) =>
+    new Date(Number(seconds) * 1000).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    })
+
+/** The shareable full-screen view of one pool: the same actions as the card, given room to read. */
+function PoolDetail({
+    pool,
+    aprPercent,
+    now,
+    onManage,
+    onCreatorControls,
+    onConnect,
+}: {
+    pool: StakingPool
+    aprPercent: number | null
+    now: number
+    onManage: (pool: StakingPool) => void
+    onCreatorControls: (pool: StakingPool) => void
+    onConnect: () => void
+}) {
+    const { address: account, isConnected } = useAccount()
+    const chainId = useChainId()
+    const { claim, claimOpen, setClaimOpen, claimSteps } = usePoolClaim(pool)
+    const { view, user, stakingTokenInfo, rewardTokenInfo } = pool
+    const status = getStakingStatus(view, now)
+    const isCreator = !!account && account.toLowerCase() === view.creator.toLowerCase()
+    const canManagePool = status === 'ended' || status === 'closed'
+    const perDay = rewardPerSecond(view, rewardTokenInfo.decimals) * SECONDS_PER_DAY
+    const end = Number(view.periodFinish)
+    // startTime 0 means the pool started on creation, so the epoch begins one duration before it ends.
+    const start = view.startTime > 0n ? Number(view.startTime) : end - Number(view.rewardsDuration)
+    const epochPercent =
+        end > start ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100)) : 0
+    const capPercent =
+        view.maxStakingPower > 0n
+            ? Number((view.totalSupply * 10_000n) / view.maxStakingPower) / 100
+            : null
+    const sharePercent =
+        user.balance > 0n && view.totalSupply > 0n
+            ? Number((user.balance * 10_000n) / view.totalSupply) / 100
+            : null
+    const timeLeft =
+        status === 'active'
+            ? `Ends ${formatRelativeTime(end, now)}`
+            : status === 'pending'
+              ? `Starts ${formatRelativeTime(start, now)}`
+              : STATUS_LABEL[status]
+
+    const copyLink = () => {
+        navigator.clipboard.writeText(window.location.href)
+        toastSuccess('Link copied')
+    }
+
+    return (
+        <div className="space-y-6">
+            <TxFlowDialog
+                open={claimOpen}
+                onOpenChange={setClaimOpen}
+                title="Claim rewards"
+                steps={claimSteps}
+                chainId={chainId}
+            />
+
+            <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-card/60 p-6 sm:p-8">
+                <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
+                        <div className="flex shrink-0 items-end">
+                            <TokenIcon
+                                src={stakingTokenInfo.logo}
+                                symbol={stakingTokenInfo.symbol}
+                                size="xl"
+                            />
+                            <TokenIcon
+                                src={rewardTokenInfo.logo}
+                                symbol={rewardTokenInfo.symbol}
+                                size="md"
+                                className="-ml-6 ring-4 ring-background"
+                            />
+                        </div>
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                                    Stake {stakingTokenInfo.symbol}
+                                </h1>
+                                <StatusBadge status={status} />
+                            </div>
+                            <div className="mt-1 text-sm text-muted-foreground">
+                                Earn {rewardTokenInfo.symbol} · {timeLeft}
+                            </div>
+                            <div className="mt-1 text-sm text-muted-foreground">
+                                Created by{' '}
+                                <a
+                                    href={`${getChainMetadata(chainId).explorer}/address/${view.creator}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={view.creator}
+                                    className="font-mono hover:text-foreground"
+                                >
+                                    {formatAddress(view.creator)}
+                                </a>
+                                {isCreator && ' (you)'}
+                            </div>
+                        </div>
+                    </div>
+                    <Button
+                        variant="outline"
+                        className="shrink-0 self-start sm:self-center"
+                        onClick={copyLink}
+                    >
+                        <Share2 />
+                        Share
+                    </Button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <StatTile
+                    label="APR"
+                    value={formatAprPercent(aprPercent)}
+                    sub={view.totalSupply === 0n ? 'no stakers yet' : undefined}
+                />
+                <StatTile
+                    label="Total staked"
+                    value={formatBalance(view.totalSupply, stakingTokenInfo.decimals)}
+                    unit={stakingTokenInfo.symbol}
+                    sub={
+                        capPercent === null
+                            ? 'no cap'
+                            : `${capPercent.toFixed(capPercent >= 10 ? 0 : 1)}% of ${formatBalance(view.maxStakingPower, stakingTokenInfo.decimals)} cap`
+                    }
+                />
+                <StatTile
+                    label="Daily reward"
+                    value={perDay > 0 ? formatRateAmount(perDay) : '—'}
+                    unit={rewardTokenInfo.symbol}
+                />
+                <StatTile
+                    label="Lock"
+                    value={
+                        view.lockDuration > 0n ? formatDuration(Number(view.lockDuration)) : 'None'
+                    }
+                    sub={view.lockDuration > 0n ? 'per deposit' : 'withdraw any time'}
+                />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+                <div className="space-y-6">
+                    <Card>
+                        <CardContent className="space-y-4 p-5">
+                            <div className="flex items-baseline justify-between">
+                                <h2 className="font-semibold">Reward epoch #{pool.epoch}</h2>
+                                <span className="text-sm text-muted-foreground">{timeLeft}</span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-muted/50">
+                                <div
+                                    className="h-full rounded-full bg-primary transition-all"
+                                    style={{ width: `${epochPercent}%` }}
+                                />
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{formatDate(BigInt(start))}</span>
+                                <span>{formatDate(view.periodFinish)}</span>
+                            </div>
+                            {capPercent !== null && (
+                                <div className="space-y-1.5 pt-2">
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>Staking cap</span>
+                                        <span>{capPercent.toFixed(1)}% filled</span>
+                                    </div>
+                                    <div className="h-2 overflow-hidden rounded-full bg-muted/50">
+                                        <div
+                                            className="h-full rounded-full bg-primary/70"
+                                            style={{ width: `${Math.min(100, capPercent)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-5">
+                            <h2 className="mb-1 font-semibold">Contracts</h2>
+                            <div className="divide-y divide-border/50">
+                                <AddressRow label="Pool" address={pool.address} chainId={chainId} />
+                                <AddressRow
+                                    label={`${stakingTokenInfo.symbol} (stake)`}
+                                    address={view.stakingToken}
+                                    chainId={chainId}
+                                />
+                                <AddressRow
+                                    label={`${rewardTokenInfo.symbol} (reward)`}
+                                    address={view.rewardsToken}
+                                    chainId={chainId}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <Card className="h-fit lg:sticky lg:top-24">
+                    <CardContent className="space-y-5 p-5">
+                        <h2 className="font-semibold">Your position</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Metric
+                                label="Staked"
+                                unit={stakingTokenInfo.symbol}
+                                value={formatBalance(user.balance, stakingTokenInfo.decimals)}
+                                sub={
+                                    sharePercent === null
+                                        ? 'nothing staked yet'
+                                        : `${sharePercent.toFixed(2)}% of the pool`
+                                }
+                                accent={user.balance > 0n}
+                            />
+                            <Metric
+                                label="Earned"
+                                unit={rewardTokenInfo.symbol}
+                                value={formatRewardAmount(user.earned, rewardTokenInfo.decimals)}
+                                accent={user.earned > 0n}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Button
+                                variant={status === 'active' ? 'default' : 'outline'}
+                                onClick={() => (isConnected ? onManage(pool) : onConnect())}
+                            >
+                                {isConnected ? 'Stake / Withdraw' : 'Connect Wallet'}
+                            </Button>
+                            {isConnected && user.earned > 0n && (
+                                <Button
+                                    variant="outline"
+                                    disabled={claim.isPending || claim.isConfirming}
+                                    isLoading={claim.isPending || claim.isConfirming}
+                                    onClick={() => {
+                                        setClaimOpen(true)
+                                        claim.claim()
+                                    }}
+                                >
+                                    Claim rewards
+                                </Button>
+                            )}
+                            {isCreator && canManagePool && (
+                                <Button variant="outline" onClick={() => onCreatorControls(pool)}>
+                                    <Settings2 />
+                                    Creator controls
+                                </Button>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+/** `poolAddress` narrows the list to that one pool, as the shareable full-screen page. */
+export function StakingPools({
+    onCreate,
+    poolAddress,
+}: {
+    onCreate?: () => void
+    poolAddress?: string
+}) {
     const chainId = useChainId()
     const now = useNowSeconds()
     const queryClient = useQueryClient()
@@ -780,9 +1169,14 @@ export function StakingPools({ onCreate }: { onCreate: () => void }) {
     const [isConnectOpen, setIsConnectOpen] = useState(false)
 
     const visible = useMemo(
-        () => sortStakingPools(filterStakingPools(pools, filter, now), now),
-        [pools, filter, now]
+        () =>
+            poolAddress
+                ? pools.filter((p) => p.address.toLowerCase() === poolAddress.toLowerCase())
+                : sortStakingPools(filterStakingPools(pools, filter, now), now),
+        [pools, filter, now, poolAddress]
     )
+
+    const { shown, hasMore, sentinelRef } = useInfiniteList(visible, POOLS_PER_BATCH, filter)
 
     // One transaction for every pool that owes the viewer something.
     const claimable = useMemo(() => pools.filter((p) => p.user.earned > 0n), [pools])
@@ -833,7 +1227,15 @@ export function StakingPools({ onCreate }: { onCreate: () => void }) {
     const managedPool = fresh(managed)
     const creatorControlsPool = fresh(creatorPool)
 
-    const header = (
+    const header = poolAddress ? (
+        <Link
+            href="/earn?tab=token-staking"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+            <ArrowLeft className="h-4 w-4" />
+            All staking pools
+        </Link>
+    ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold sm:text-xl">Staking Pools</h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -909,12 +1311,14 @@ export function StakingPools({ onCreate }: { onCreate: () => void }) {
                 <EmptyState
                     title={pools.length === 0 ? 'No staking pools yet' : 'Nothing matches'}
                     description={
-                        pools.length === 0
-                            ? 'Open the first pool: pick a token to stake, a reward and a schedule.'
-                            : 'No pool matches this filter.'
+                        poolAddress
+                            ? 'This pool was not found on the connected network.'
+                            : pools.length === 0
+                              ? 'Open the first pool: pick a token to stake, a reward and a schedule.'
+                              : 'No pool matches this filter.'
                     }
                     action={
-                        pools.length === 0 ? (
+                        pools.length === 0 && !poolAddress && onCreate ? (
                             <Button variant="outline" onClick={onCreate}>
                                 <Plus />
                                 Create Program
@@ -923,22 +1327,38 @@ export function StakingPools({ onCreate }: { onCreate: () => void }) {
                     }
                 />
             ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {visible.map((pool) => (
-                        <PoolCard
-                            key={pool.address}
-                            pool={pool}
-                            now={now}
-                            aprPercent={getStakingApr(pool, {
-                                stakingUsd: priceMap.get(pool.view.stakingToken.toLowerCase()),
-                                rewardUsd: priceMap.get(pool.view.rewardsToken.toLowerCase()),
-                            })}
-                            onManage={setManaged}
-                            onCreatorControls={setCreatorPool}
-                            onConnect={() => setIsConnectOpen(true)}
-                        />
-                    ))}
-                </div>
+                <>
+                    <div
+                        className={cn(
+                            'grid grid-cols-1 gap-4',
+                            !poolAddress && 'sm:grid-cols-2 lg:grid-cols-3'
+                        )}
+                    >
+                        {shown.map((pool) => {
+                            const Item = poolAddress ? PoolDetail : PoolCard
+                            return (
+                                <Item
+                                    key={pool.address}
+                                    pool={pool}
+                                    now={now}
+                                    aprPercent={getStakingApr(pool, {
+                                        stakingUsd: priceMap.get(
+                                            pool.view.stakingToken.toLowerCase()
+                                        ),
+                                        rewardUsd: priceMap.get(
+                                            pool.view.rewardsToken.toLowerCase()
+                                        ),
+                                    })}
+                                    onManage={setManaged}
+                                    onCreatorControls={setCreatorPool}
+                                    onConnect={() => setIsConnectOpen(true)}
+                                    fullPage={!!poolAddress}
+                                />
+                            )
+                        })}
+                    </div>
+                    {hasMore && <div ref={sentinelRef} className="h-10" aria-hidden />}
+                </>
             )}
             <ManagePoolDialog
                 pool={managedPool}

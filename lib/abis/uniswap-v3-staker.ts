@@ -24,6 +24,26 @@ export const UNISWAP_V3_STAKER_ABI = [
 
     {
         type: 'function',
+        name: 'stakeToken',
+        stateMutability: 'nonpayable',
+        inputs: [
+            {
+                name: 'key',
+                type: 'tuple',
+                components: [
+                    { name: 'rewardToken', type: 'address' },
+                    { name: 'pool', type: 'address' },
+                    { name: 'startTime', type: 'uint256' },
+                    { name: 'endTime', type: 'uint256' },
+                    { name: 'refundee', type: 'address' },
+                ],
+            },
+            { name: 'tokenId', type: 'uint256' },
+        ],
+        outputs: [],
+    },
+    {
+        type: 'function',
         name: 'claimReward',
         stateMutability: 'nonpayable',
         inputs: [

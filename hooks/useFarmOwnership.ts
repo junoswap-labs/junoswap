@@ -15,7 +15,7 @@ const EMPTY_SET: ReadonlySet<string> = new Set()
  */
 export function useFarmOwnership(
     incentives: readonly Incentive[],
-    filter: FarmOwnershipFilter
+    filter: FarmOwnershipFilter | 'all'
 ): {
     stakedIncentiveIds: ReadonlySet<string>
     myPoolAddresses: ReadonlySet<string>

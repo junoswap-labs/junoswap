@@ -16,7 +16,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useUserPositions } from '@/hooks/useUserPositions'
-import { useDepositInfo } from '@/hooks/useStakedPositions'
+import { useStakerDeposits } from '@/hooks/useStakerDeposits'
+import { useFarmStakes } from '@/hooks/useFarmStakes'
 import { useStakePosition } from '@/hooks/useStaking'
 import { formatBalance } from '@/lib/tokens'
 import { formatTimeRemaining, incentiveToPoolData } from '@/services/mining/incentives'
@@ -56,17 +57,42 @@ export function StakeDialog({
     // rebuilding the steps from it would delete the step being watched.
     const [flowNeedsApproval, setFlowNeedsApproval] = useState(false)
     const { positions, isLoading: isLoadingPositions } = useUserPositions(address, chainId)
+    const program = selectedIncentive?.program ?? 'v3'
+    const { deposits } = useStakerDeposits()
+    // Wallet positions come from the indexer, which can still list an NFT after it moved into a
+    // staker. The on-chain deposits decide: ones in either staker leave the wallet list, and the
+    // viewer's own deposits in this farm's staker come back as stakeable in place.
+    const myDeposits = useMemo(
+        () =>
+            deposits.filter(
+                (d) => d.program === program && d.depositor.toLowerCase() === address?.toLowerCase()
+            ),
+        [deposits, program, address]
+    )
     const eligiblePositions = useMemo(() => {
         if (!selectedIncentive) return []
-        return positions.filter(
-            (p) => p.poolAddress.toLowerCase() === selectedIncentive.pool.toLowerCase()
-        )
-    }, [positions, selectedIncentive])
+        const inPool = (p: PositionWithTokens) =>
+            p.poolAddress.toLowerCase() === selectedIncentive.pool.toLowerCase()
+        const depositedIds = new Set(deposits.map((d) => d.position.tokenId.toString()))
+        return [
+            ...positions.filter((p) => inPool(p) && !depositedIds.has(p.tokenId.toString())),
+            ...myDeposits.map((d) => d.position).filter(inPool),
+        ]
+    }, [positions, deposits, myDeposits, selectedIncentive])
     const selectedPosition = useMemo(() => {
         if (!selectedPositionId) return null
         return eligiblePositions.find((p) => p.tokenId.toString() === selectedPositionId) ?? null
     }, [eligiblePositions, selectedPositionId])
-    const { isDeposited } = useDepositInfo(selectedPosition?.tokenId)
+    const isDeposited =
+        !!selectedPosition &&
+        myDeposits.some((d) => d.position.tokenId === selectedPosition.tokenId)
+    const { stakes: farmStakes } = useFarmStakes(
+        selectedIncentive ? [selectedIncentive] : [],
+        myDeposits
+    )
+    const alreadyStakedHere =
+        !!selectedPosition &&
+        farmStakes.some((s) => s.position.tokenId === selectedPosition.tokenId)
     const {
         stake,
         approveAndStake,
@@ -77,12 +103,7 @@ export function StakeDialog({
         isSuccess,
         error,
         hash,
-    } = useStakePosition(
-        selectedPosition,
-        selectedIncentive,
-        address,
-        selectedIncentive?.program ?? 'v3'
-    )
+    } = useStakePosition(selectedPosition, selectedIncentive, address, program, isDeposited)
     useEffect(() => {
         if (open) {
             setSelectedPositionId(null)
@@ -127,10 +148,10 @@ export function StakeDialog({
     }, [error])
     if (!selectedIncentive) return null
     const isLoading = isPreparing || isExecuting || isConfirming
-    const canStake = selectedPosition && !isLoading && !isDeposited
+    const canStake = selectedPosition && !isLoading && !alreadyStakedHere
     const getButtonText = () => {
         if (!selectedPosition) return 'Select a position'
-        if (isDeposited) return 'Position already staked'
+        if (alreadyStakedHere) return 'Position already staked'
         if (isPreparing) return 'Preparing...'
         if (isExecuting) return 'Confirm in wallet...'
         if (isConfirming) return pendingTxType === 'stake' ? 'Staking...' : 'Approving...'

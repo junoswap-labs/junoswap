@@ -223,9 +223,10 @@ export type CreateIncentiveError =
     | 'DURATION_ZERO'
     | 'DURATION_TOO_LONG'
 
-export type FarmStatusFilter = 'all' | 'active' | 'upcoming' | 'ended'
+/** Filters are multi-select: an empty selection means no restriction. */
+export type FarmStatusFilter = 'active' | 'upcoming' | 'ended'
 
-export type FarmOwnershipFilter = 'all' | 'my-staked' | 'match-my-position'
+export type FarmOwnershipFilter = 'my-staked' | 'match-my-position'
 
 /** My Farms is a creator's own list, so it slices by what still needs their attention. */
 export type MyFarmFilter = 'ongoing' | 'unclaimed' | 'ended'

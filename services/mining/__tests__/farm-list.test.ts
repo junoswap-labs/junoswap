@@ -83,21 +83,44 @@ describe('filterFarms', () => {
     const all = [running, scheduled, ended]
 
     it('passes everything through on the default filters', () => {
-        expect(filterFarms(all, { status: 'all', ownership: 'all' }, { now: NOW })).toHaveLength(3)
+        expect(filterFarms(all, { status: [], ownership: [] }, { now: NOW })).toHaveLength(3)
     })
 
     it('filters by status', () => {
         const pick = (status: 'active' | 'upcoming' | 'ended') =>
-            ids(filterFarms(all, { status, ownership: 'all' }, { now: NOW }))
+            ids(filterFarms(all, { status: [status], ownership: [] }, { now: NOW }))
         expect(pick('active')).toEqual(['0xa'])
         expect(pick('upcoming')).toEqual(['0xb'])
         expect(pick('ended')).toEqual(['0xc'])
     })
 
+    it('keeps farms matching any of several selected statuses', () => {
+        const result = filterFarms(
+            all,
+            { status: ['active', 'upcoming'], ownership: [] },
+            { now: NOW }
+        )
+        expect(ids(result)).toEqual(['0xa', '0xb'])
+    })
+
+    it('widens the list across several ownership filters', () => {
+        const other = farm({ id: '0xd', pool: '0xPOOL2' })
+        const result = filterFarms(
+            [...all, other],
+            { status: [], ownership: ['my-staked', 'match-my-position'] },
+            {
+                now: NOW,
+                stakedIncentiveIds: new Set(['0xb']),
+                myPoolAddresses: new Set(['0xpool2']),
+            }
+        )
+        expect(ids(result)).toEqual(['0xb', '0xd'])
+    })
+
     it('keeps only farms the wallet has a stake in', () => {
         const result = filterFarms(
             all,
-            { status: 'all', ownership: 'my-staked' },
+            { status: [], ownership: ['my-staked'] },
             { now: NOW, stakedIncentiveIds: new Set(['0xb']) }
         )
         expect(ids(result)).toEqual(['0xb'])
@@ -107,25 +130,23 @@ describe('filterFarms', () => {
         const other = farm({ id: '0xd', pool: '0xPOOL2' })
         const result = filterFarms(
             [...all, other],
-            { status: 'all', ownership: 'match-my-position' },
+            { status: [], ownership: ['match-my-position'] },
             { now: NOW, myPoolAddresses: new Set(['0xpool2']) }
         )
         expect(ids(result)).toEqual(['0xd'])
     })
 
     it('returns nothing rather than everything when the ownership data has not loaded', () => {
-        expect(filterFarms(all, { status: 'all', ownership: 'my-staked' }, { now: NOW })).toEqual(
-            []
-        )
+        expect(filterFarms(all, { status: [], ownership: ['my-staked'] }, { now: NOW })).toEqual([])
         expect(
-            filterFarms(all, { status: 'all', ownership: 'match-my-position' }, { now: NOW })
+            filterFarms(all, { status: [], ownership: ['match-my-position'] }, { now: NOW })
         ).toEqual([])
     })
 
     it('applies status and ownership together', () => {
         const result = filterFarms(
             all,
-            { status: 'active', ownership: 'my-staked' },
+            { status: ['active'], ownership: ['my-staked'] },
             { now: NOW, stakedIncentiveIds: new Set(['0xa', '0xc']) }
         )
         expect(ids(result)).toEqual(['0xa'])
@@ -230,8 +251,8 @@ describe('sortFarms', () => {
 })
 
 describe('pagination', () => {
-    it('uses three per page for cards and ten for the table', () => {
-        expect(FARM_PAGE_SIZE.card).toBe(3)
+    it('uses six per page for cards and ten for the table', () => {
+        expect(FARM_PAGE_SIZE.card).toBe(6)
         expect(FARM_PAGE_SIZE.table).toBe(10)
     })
 

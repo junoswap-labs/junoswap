@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { Maximize2 } from 'lucide-react'
 import { useAccount, useChainId } from 'wagmi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,7 +33,14 @@ import type { EarnProgram } from '@/lib/earn-programs'
 
 const POSITIONS_PER_PAGE = 6
 
-function PositionHeader({ position }: { position: PositionWithTokens }) {
+function PositionHeader({
+    position,
+    farmHref,
+}: {
+    position: PositionWithTokens
+    /** A staked position links to the farm it earns from; an idle one has none. */
+    farmHref?: string
+}) {
     const token0 = getDisplayToken(position.token0Info)
     const token1 = getDisplayToken(position.token1Info)
     return (
@@ -46,8 +55,20 @@ function PositionHeader({ position }: { position: PositionWithTokens }) {
                     className="shrink-0"
                 />
                 <div className="min-w-0">
-                    <div className="truncate font-semibold">
-                        {token0.symbol} / {token1.symbol}
+                    <div className="flex items-center gap-1.5">
+                        <span className="truncate font-semibold">
+                            {token0.symbol} / {token1.symbol}
+                        </span>
+                        {farmHref && (
+                            <Link
+                                href={farmHref}
+                                title="Open farm full screen"
+                                aria-label="Open farm full screen"
+                                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                <Maximize2 className="h-3.5 w-3.5" />
+                            </Link>
+                        )}
                     </div>
                     <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="truncate">#{position.tokenId.toString()}</span>
@@ -98,13 +119,17 @@ function StakedPositionCard({
     onUnstake: (staked: StakedPosition) => void
 }) {
     const { incentive, position } = staked
+    const chainId = useChainId()
     const rewardToken = getDisplayToken(incentive.rewardTokenInfo)
     const status = getFarmStatusAt(incentive, now)
 
     return (
         <Card className="flex flex-col">
             <CardContent className="flex flex-1 flex-col p-5">
-                <PositionHeader position={position} />
+                <PositionHeader
+                    position={position}
+                    farmHref={`/earn/farm/${incentive.incentiveId}?chain=${chainId}`}
+                />
                 <div className="mt-3">
                     <PositionAmounts position={position} />
                 </div>
@@ -310,11 +335,12 @@ export function MyPositions({ onUnstake }: { onUnstake: (staked: StakedPosition)
 
     const idlePositions = useMemo(() => {
         if (!owner) return []
-        const stakedTokenIds = new Set(myStakes.map((s) => s.position.tokenId.toString()))
+        // numberOfStakes is authoritative; inferring "idle" from resolved farms mislabels a staked
+        // NFT whenever its farm hasn't loaded (or can't be resolved), and withdrawToken then reverts.
         return deposits
             .filter((d) => d.depositor.toLowerCase() === owner)
-            .filter((d) => !stakedTokenIds.has(d.position.tokenId.toString()))
-    }, [deposits, myStakes, owner])
+            .filter((d) => d.numberOfStakes === 0)
+    }, [deposits, owner])
 
     type Entry =
         | { kind: 'staked'; key: string; staked: StakedPosition }

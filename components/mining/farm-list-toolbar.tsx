@@ -4,6 +4,7 @@ import { ArrowUpDown, ChevronDown, LayoutGrid, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
@@ -49,6 +50,63 @@ export function FarmSelectMenu<T extends string>({
                         </DropdownMenuRadioItem>
                     ))}
                 </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
+
+/** Checkbox menu: nothing ticked reads as "all", so clearing the ticks removes the filter. */
+export function FarmMultiSelectMenu<T extends string>({
+    value,
+    options,
+    onChange,
+    allLabel,
+    icon,
+    ariaLabel,
+}: {
+    value: readonly T[]
+    options: readonly MenuOption<T>[]
+    onChange: (value: T[]) => void
+    allLabel: string
+    icon?: React.ReactNode
+    ariaLabel: string
+}) {
+    const picked = options.filter((option) => value.includes(option.key))
+    const label =
+        picked.length === 0
+            ? allLabel
+            : picked.length <= 2
+              ? picked.map((option) => option.label).join(', ')
+              : `${picked.length} selected`
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5" aria-label={ariaLabel}>
+                    {icon}
+                    <span>{label}</span>
+                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                {options.map((option) => (
+                    <DropdownMenuCheckboxItem
+                        key={option.key}
+                        checked={value.includes(option.key)}
+                        // Keep the menu open so several can be ticked in one visit.
+                        onSelect={(event) => event.preventDefault()}
+                        onCheckedChange={(checked) =>
+                            onChange(
+                                options
+                                    .map((o) => o.key)
+                                    .filter((key) =>
+                                        key === option.key ? checked : value.includes(key)
+                                    )
+                            )
+                        }
+                    >
+                        {option.label}
+                    </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuContent>
         </DropdownMenu>
     )

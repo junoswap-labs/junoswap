@@ -21,7 +21,9 @@ const INCENTIVE_CREATED = parseAbiItem(
 
 // ponytail: fixed-size log scan from the deploy block. Fine while the staker is young; move the
 // list into the ponder indexer once the range costs more than a handful of requests.
-const LOG_CHUNK = 50_000n
+// The kub testnet RPC rejects getLogs ranges of 50k blocks ("exceeded max allowed range"); 10k works.
+const LOG_CHUNK = 10_000n
+const LOG_PARALLEL = 8
 
 /** The Juno staker is not indexed, so its incentive list is rebuilt from IncentiveCreated logs. */
 export function useJunoIncentives(enabled = true): {
@@ -43,17 +45,24 @@ export function useJunoIncentives(enabled = true): {
         queryFn: async () => {
             if (!client || !deployment) return []
             const latest = await client.getBlockNumber()
-            const logs = []
+            const ranges: { from: bigint; to: bigint }[] = []
             for (let from = deployment.deployBlock; from <= latest; from += LOG_CHUNK) {
                 const to = from + LOG_CHUNK - 1n
-                logs.push(
-                    ...(await client.getLogs({
-                        address: deployment.address,
-                        event: INCENTIVE_CREATED,
-                        fromBlock: from,
-                        toBlock: to < latest ? to : latest,
-                    }))
+                ranges.push({ from, to: to < latest ? to : latest })
+            }
+            const logs = []
+            for (let i = 0; i < ranges.length; i += LOG_PARALLEL) {
+                const batch = await Promise.all(
+                    ranges.slice(i, i + LOG_PARALLEL).map(({ from, to }) =>
+                        client.getLogs({
+                            address: deployment.address,
+                            event: INCENTIVE_CREATED,
+                            fromBlock: from,
+                            toBlock: to,
+                        })
+                    )
                 )
+                logs.push(...batch.flat())
             }
             return logs.map((log) => {
                 const key = {

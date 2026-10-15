@@ -7,14 +7,16 @@ import type {
     MyFarmFilter,
 } from '@/types/earn'
 
-/** Card view fits one row of three; the table trades density for the same vertical space. */
+/** Card view is two rows of three, so the sections below the list stay in reach; the table trades density for the same space. */
 export const FARM_PAGE_SIZE: Record<FarmView, number> = {
-    card: 3,
+    card: 6,
     table: 10,
 }
 
 export const DEFAULT_FARM_SORT: FarmSortKey = 'reward-value'
 export const DEFAULT_FARM_VIEW: FarmView = 'card'
+/** Finished farms are history, so the list opens on what can still be joined. */
+export const DEFAULT_FARM_STATUSES: readonly FarmStatusFilter[] = ['active', 'upcoming']
 
 export const FARM_SORT_OPTIONS: readonly { key: FarmSortKey; label: string }[] = [
     { key: 'reward-value', label: 'Reward Value' },
@@ -24,14 +26,12 @@ export const FARM_SORT_OPTIONS: readonly { key: FarmSortKey; label: string }[] =
 ]
 
 export const FARM_STATUS_OPTIONS: readonly { key: FarmStatusFilter; label: string }[] = [
-    { key: 'all', label: 'All Status' },
     { key: 'active', label: 'Running' },
     { key: 'upcoming', label: 'Scheduled' },
     { key: 'ended', label: 'Ended' },
 ]
 
 export const FARM_OWNERSHIP_OPTIONS: readonly { key: FarmOwnershipFilter; label: string }[] = [
-    { key: 'all', label: 'All Farms' },
     { key: 'my-staked', label: 'My Staked' },
     { key: 'match-my-position', label: 'Match My Position' },
 ]
@@ -56,8 +56,8 @@ export interface FarmListContext {
 }
 
 export interface FarmFilters {
-    status: FarmStatusFilter
-    ownership: FarmOwnershipFilter
+    status: readonly FarmStatusFilter[]
+    ownership: readonly FarmOwnershipFilter[]
 }
 
 /** Status against an injected clock, so list ordering stays testable and tick-aligned. */
@@ -67,7 +67,7 @@ export function getFarmStatusAt(incentive: Incentive, now: number): FarmStatus {
     return 'active'
 }
 
-const STATUS_BY_FILTER: Record<Exclude<FarmStatusFilter, 'all'>, FarmStatus> = {
+const STATUS_BY_FILTER: Record<FarmStatusFilter, FarmStatus> = {
     active: 'active',
     upcoming: 'pending',
     ended: 'ended',
@@ -79,16 +79,18 @@ export function filterFarms(
     ctx: FarmListContext
 ): Incentive[] {
     return incentives.filter((incentive) => {
-        if (filters.status !== 'all') {
-            if (getFarmStatusAt(incentive, ctx.now) !== STATUS_BY_FILTER[filters.status]) {
-                return false
-            }
+        if (filters.status.length > 0) {
+            const status = getFarmStatusAt(incentive, ctx.now)
+            if (!filters.status.some((f) => STATUS_BY_FILTER[f] === status)) return false
         }
-        if (filters.ownership === 'my-staked') {
-            if (!ctx.stakedIncentiveIds?.has(incentive.incentiveId)) return false
-        }
-        if (filters.ownership === 'match-my-position') {
-            if (!ctx.myPoolAddresses?.has(incentive.pool.toLowerCase())) return false
+        // Selected ownership filters widen the list: a farm passes if it satisfies any of them.
+        if (filters.ownership.length > 0) {
+            const matches = filters.ownership.some((f) =>
+                f === 'my-staked'
+                    ? !!ctx.stakedIncentiveIds?.has(incentive.incentiveId)
+                    : !!ctx.myPoolAddresses?.has(incentive.pool.toLowerCase())
+            )
+            if (!matches) return false
         }
         return true
     })

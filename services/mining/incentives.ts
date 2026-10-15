@@ -74,6 +74,16 @@ export function formatTimeRemaining(endTime: number): string {
     return `${minutes}m remaining`
 }
 
+/** Countdown to a scheduled farm's opening, in the same units as `formatTimeRemaining`. */
+export function formatTimeUntilStart(startTime: number): string {
+    const { days, hours, minutes, isEnded } = getTimeRemaining(startTime)
+
+    if (isEnded) return 'Starting now'
+    if (days > 0) return `Starts in ${days}d ${hours}h`
+    if (hours > 0) return `Starts in ${hours}h ${minutes}m`
+    return `Starts in ${minutes}m`
+}
+
 export function getIncentiveStatus(key: IncentiveKey): 'pending' | 'active' | 'ended' {
     if (isIncentivePending(key)) return 'pending'
     if (isIncentiveEnded(key)) return 'ended'

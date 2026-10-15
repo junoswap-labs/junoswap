@@ -35,6 +35,8 @@ interface UseBondingCurveSwapExecutionResult {
     expectedOut: bigint
     minOut: bigint
     isPreparing: boolean
+    /** Why the pre-flight simulation failed (e.g. the min-output revert); null while it passes. */
+    simulateError: Error | null
     isExecuting: boolean
     isConfirming: boolean
     isSuccess: boolean
@@ -111,7 +113,11 @@ export function useBondingCurveSwapExecution({
             enabled: !!call && amount > 0n && (isBuy || allowance >= amount) && enabled,
         },
     }
-    const { data: simulationData, isLoading: isPreparing } = useSimulateContract(simulateConfig)
+    const {
+        data: simulationData,
+        isLoading: isPreparing,
+        error: simulateError,
+    } = useSimulateContract(simulateConfig)
 
     const {
         data: hash,
@@ -154,6 +160,7 @@ export function useBondingCurveSwapExecution({
         expectedOut,
         minOut,
         isPreparing,
+        simulateError: (simulateError as Error | null) ?? null,
         isExecuting,
         isConfirming,
         isSuccess,

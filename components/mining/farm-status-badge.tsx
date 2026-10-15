@@ -1,5 +1,8 @@
 'use client'
 
+import Link from 'next/link'
+import { Maximize2 } from 'lucide-react'
+import { useChainId } from 'wagmi'
 import { Badge } from '@/components/ui/badge'
 import { TokenIcon, TokenIconPair } from '@/components/ui/token-icon'
 import { formatFeeTier } from '@/lib/liquidity-helpers'
@@ -49,6 +52,7 @@ export function FarmIdentity({
     size = 'md',
     withProgram = false,
     schedule,
+    expandable = false,
 }: {
     incentive: Incentive
     size?: 'sm' | 'md'
@@ -56,7 +60,10 @@ export function FarmIdentity({
     withProgram?: boolean
     /** Table rows hang the schedule here instead of spending a whole column on it. */
     schedule?: React.ReactNode
+    /** Adds a link to the farm's shareable full-screen page. */
+    expandable?: boolean
 }) {
+    const chainId = useChainId()
     const token0 = getDisplayToken(incentive.poolToken0)
     const token1 = getDisplayToken(incentive.poolToken1)
     const rewardToken = getDisplayToken(incentive.rewardTokenInfo)
@@ -72,8 +79,20 @@ export function FarmIdentity({
                 className="shrink-0"
             />
             <div className="min-w-0">
-                <div className="truncate font-semibold">
-                    {token0.symbol} / {token1.symbol}
+                <div className="flex items-center gap-1.5">
+                    <span className="truncate font-semibold">
+                        {token0.symbol} / {token1.symbol}
+                    </span>
+                    {expandable && (
+                        <Link
+                            href={`/earn/farm/${incentive.incentiveId}?chain=${chainId}`}
+                            title="Open farm full screen"
+                            aria-label="Open farm full screen"
+                            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            <Maximize2 className="h-3.5 w-3.5" />
+                        </Link>
+                    )}
                 </div>
                 <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
                     <span className="shrink-0">{formatFeeTier(incentive.poolFee)}</span>

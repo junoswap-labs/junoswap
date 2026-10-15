@@ -11,21 +11,28 @@ import { PaginationControls } from '@/components/ui/pagination'
 import { TokenIconSkeleton } from '@/components/ui/token-icon'
 import { ConnectModal } from '@/components/web3/connect-modal'
 import { MiningFarmCard } from './farm-card'
-import { FarmListToolbar, FarmSelectMenu } from './farm-list-toolbar'
+import { FarmListToolbar, FarmMultiSelectMenu } from './farm-list-toolbar'
 import { FarmTable } from './farm-table'
 import { useIncentives } from '@/hooks/useIncentives'
 import { useIncentiveRewardValues } from '@/hooks/useIncentiveRewardValues'
 import { useFarmOwnership } from '@/hooks/useFarmOwnership'
 import { useFarmStats } from '@/hooks/useFarmStats'
+import { toStakedPosition, useFarmStakes } from '@/hooks/useFarmStakes'
+import { usePendingRewardsMultiple } from '@/hooks/useRewards'
+import { formatRewardAmount } from '@/lib/format'
+import { getDisplayToken } from '@/lib/tokens'
+import { useStakerDeposits } from '@/hooks/useStakerDeposits'
 import { useNowSeconds } from '@/hooks/useNowSeconds'
 import {
     DEFAULT_FARM_SORT,
+    DEFAULT_FARM_STATUSES,
+    FARM_PAGE_SIZE,
     DEFAULT_FARM_VIEW,
     FARM_OWNERSHIP_OPTIONS,
-    FARM_PAGE_SIZE,
     FARM_STATUS_OPTIONS,
     clampPage,
     filterFarms,
+    getFarmStatusAt,
     getTotalPages,
     paginate,
     sortFarms,
@@ -72,7 +79,10 @@ function FarmCardSkeleton() {
     )
 }
 
-const EMPTY_FILTER_COPY: Record<FarmOwnershipFilter, { title: string; description: string }> = {
+const EMPTY_FILTER_COPY: Record<
+    FarmOwnershipFilter | 'all',
+    { title: string; description: string }
+> = {
     all: {
         title: 'Nothing here right now',
         description: 'No farms match this filter.',
@@ -99,35 +109,79 @@ export function MiningFarms({
     onCreate: () => void
 }) {
     const chainId = useChainId()
-    const { isConnected } = useAccount()
+    const { address, isConnected } = useAccount()
     const availablePrograms = getAvailablePrograms(chainId)
     const hasStaker = availablePrograms.length > 0
-    const programOptions: readonly { key: EarnProgram | 'all'; label: string }[] = [
-        { key: 'all', label: 'All Rewards' },
-        ...availablePrograms.map((program) => ({
-            key: program,
-            label: EARN_PROGRAM_BADGE[program].label,
-        })),
-    ]
+    const programOptions: readonly { key: EarnProgram; label: string }[] = availablePrograms.map(
+        (program) => ({ key: program, label: EARN_PROGRAM_BADGE[program].label })
+    )
     const now = useNowSeconds()
 
     const { incentives, isLoading } = useIncentives()
     const { valueByIncentiveId } = useIncentiveRewardValues(incentives)
     const { statsByIncentiveId } = useFarmStats(incentives, valueByIncentiveId)
 
+    // An ended farm has nothing left to do for someone who neither made it nor stakes in it, and
+    // for someone still staked in it the only thing left is the reward they have not claimed.
+    const { deposits, isLoading: isLoadingDeposits } = useStakerDeposits()
+    const { stakes, isLoading: isLoadingStakes } = useFarmStakes(incentives, deposits)
+    const myStaked = useMemo(
+        () =>
+            stakes
+                .filter((s) => s.depositor.toLowerCase() === address?.toLowerCase())
+                .map(toStakedPosition),
+        [stakes, address]
+    )
+    const { rewards: pendingRewards } = usePendingRewardsMultiple(myStaked)
+    const unclaimedLabel = useMemo(() => {
+        const totals = new Map<string, bigint>()
+        for (const sp of myStaked) {
+            const reward = pendingRewards.get(`${sp.tokenId.toString()}-${sp.incentiveId}`) ?? 0n
+            totals.set(sp.incentiveId, (totals.get(sp.incentiveId) ?? 0n) + reward)
+        }
+        return (incentive: Incentive) => {
+            const total = totals.get(incentive.incentiveId)
+            if (total === undefined || getFarmStatusAt(incentive, now) !== 'ended') return undefined
+            return `Unclaimed ${formatRewardAmount(total, incentive.rewardTokenInfo.decimals)} ${getDisplayToken(incentive.rewardTokenInfo).symbol}`
+        }
+    }, [myStaked, pendingRewards, now])
+    const showActions = useMemo(() => {
+        const owner = address?.toLowerCase()
+        return (incentive: Incentive) =>
+            getFarmStatusAt(incentive, now) !== 'ended' ||
+            (!!owner && incentive.refundee.toLowerCase() === owner) ||
+            unclaimedLabel(incentive) !== undefined
+    }, [address, now, unclaimedLabel])
+
     const [view, setView] = useState<FarmView>(DEFAULT_FARM_VIEW)
     const [sort, setSort] = useState<FarmSortKey>(DEFAULT_FARM_SORT)
-    const [status, setStatus] = useState<FarmStatusFilter>('all')
-    const [ownership, setOwnership] = useState<FarmOwnershipFilter>('all')
-    const [programFilter, setProgramFilter] = useState<EarnProgram | 'all'>('all')
+    const [status, setStatus] = useState<readonly FarmStatusFilter[]>(DEFAULT_FARM_STATUSES)
+    const [ownership, setOwnership] = useState<readonly FarmOwnershipFilter[]>([])
+    const [programFilter, setProgramFilter] = useState<readonly EarnProgram[]>([])
     const [page, setPage] = useState(1)
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
 
-    const {
-        stakedIncentiveIds,
-        myPoolAddresses,
-        isLoading: isLoadingOwnership,
-    } = useFarmOwnership(incentives, ownership)
+    // Staking moves the NFT into the staker, so the wallet-held sweep alone misses every position
+    // already farming. The on-chain deposits and stakes above answer both filters instead.
+    const stakedIncentiveIds = useMemo(
+        () => new Set(myStaked.map((sp) => sp.incentiveId)),
+        [myStaked]
+    )
+    const { myPoolAddresses: walletPoolAddresses, isLoading: isLoadingWallet } = useFarmOwnership(
+        incentives,
+        ownership.includes('match-my-position') ? 'match-my-position' : 'all'
+    )
+    const myPoolAddresses = useMemo(() => {
+        const owner = address?.toLowerCase()
+        const pools = new Set(walletPoolAddresses)
+        for (const d of deposits) {
+            if (d.depositor.toLowerCase() === owner) pools.add(d.position.poolAddress.toLowerCase())
+        }
+        return pools
+    }, [walletPoolAddresses, deposits, address])
+    const isLoadingOwnership =
+        isLoadingWallet ||
+        (ownership.includes('my-staked') && (isLoadingDeposits || isLoadingStakes))
 
     useEffect(() => {
         setPage(1)
@@ -135,9 +189,9 @@ export function MiningFarms({
 
     const byProgram = useMemo(
         () =>
-            programFilter === 'all'
+            programFilter.length === 0
                 ? incentives
-                : incentives.filter((i) => i.program === programFilter),
+                : incentives.filter((i) => programFilter.includes(i.program)),
         [incentives, programFilter]
     )
 
@@ -194,8 +248,6 @@ export function MiningFarms({
     }
 
     const isBusy = isLoading || isLoadingOwnership
-    const rangeStart = (safePage - 1) * pageSize + 1
-    const rangeEnd = rangeStart + pageItems.length - 1
 
     return (
         <div className="space-y-4">
@@ -208,25 +260,28 @@ export function MiningFarms({
                     onViewChange={setView}
                     filters={
                         <>
-                            {programOptions.length > 2 && (
-                                <FarmSelectMenu
+                            {programOptions.length > 1 && (
+                                <FarmMultiSelectMenu
                                     value={programFilter}
                                     options={programOptions}
                                     onChange={setProgramFilter}
+                                    allLabel="All Rewards"
                                     ariaLabel="Filter by reward model"
                                 />
                             )}
-                            <FarmSelectMenu
+                            <FarmMultiSelectMenu
                                 value={status}
                                 options={FARM_STATUS_OPTIONS}
                                 onChange={setStatus}
+                                allLabel="All Status"
                                 ariaLabel="Filter by status"
                             />
                             {isConnected && (
-                                <FarmSelectMenu
+                                <FarmMultiSelectMenu
                                     value={ownership}
                                     options={FARM_OWNERSHIP_OPTIONS}
                                     onChange={setOwnership}
+                                    allLabel="All Farms"
                                     ariaLabel="Filter farms"
                                 />
                             )}
@@ -250,7 +305,9 @@ export function MiningFarms({
                     action={createButton}
                 />
             ) : visible.length === 0 ? (
-                <EmptyState {...EMPTY_FILTER_COPY[ownership]} />
+                <EmptyState
+                    {...EMPTY_FILTER_COPY[ownership.length === 1 ? ownership[0]! : 'all']}
+                />
             ) : (
                 <div className="space-y-4">
                     {view === 'card' ? (
@@ -263,6 +320,8 @@ export function MiningFarms({
                                     onStake={onStake}
                                     onUnstake={onUnstake}
                                     onAddLiquidity={onAddLiquidity}
+                                    showActions={showActions(incentive)}
+                                    unclaimed={unclaimedLabel(incentive)}
                                 />
                             ))}
                         </div>
@@ -275,12 +334,15 @@ export function MiningFarms({
                             onStake={onStake}
                             onUnstake={onUnstake}
                             onAddLiquidity={onAddLiquidity}
+                            showActions={showActions}
+                            unclaimed={unclaimedLabel}
                             onConnect={() => setIsConnectModalOpen(true)}
                         />
                     )}
                     <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
                         <p className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
-                            Showing {rangeStart}–{rangeEnd} of {visible.length}
+                            Showing {(safePage - 1) * pageSize + 1}–
+                            {(safePage - 1) * pageSize + pageItems.length} of {visible.length}
                         </p>
                         <PaginationControls
                             currentPage={safePage}

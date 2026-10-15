@@ -29,8 +29,8 @@ export const EARN_PROGRAM_BADGE: Record<EarnProgram, { label: string; hint: stri
  * farms are not indexed, so the incentive list is built from IncentiveCreated logs. */
 const JUNO_STAKER: Record<number, { address: Address; deployBlock: bigint }> = {
     25925: {
-        address: '0x9766424962CBB7482AA58f0c9842673515ABec9a',
-        deployBlock: 33240557n,
+        address: '0x17Bf4274D5a4AF99c7dfE641894F2bB340C10EF2',
+        deployBlock: 34217149n,
     },
 }
 

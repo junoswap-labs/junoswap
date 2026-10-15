@@ -340,6 +340,36 @@ export const JUNO_V3_STAKER_ABI = [
     },
     {
         type: 'function',
+        name: 'minRangeSpacings',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        type: 'function',
+        name: 'stakeEligibility',
+        stateMutability: 'view',
+        inputs: [
+            {
+                name: 'key',
+                type: 'tuple',
+                components: [
+                    { name: 'rewardToken', type: 'address' },
+                    { name: 'pool', type: 'address' },
+                    { name: 'startTime', type: 'uint256' },
+                    { name: 'endTime', type: 'uint256' },
+                    { name: 'refundee', type: 'address' },
+                ],
+            },
+            { name: 'tokenId', type: 'uint256' },
+        ],
+        outputs: [
+            { name: 'eligible', type: 'bool' },
+            { name: 'reason', type: 'string' },
+        ],
+    },
+    {
+        type: 'function',
         name: 'maxIncentiveDuration',
         inputs: [],
         outputs: [
